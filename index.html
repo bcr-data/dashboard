@@ -117,6 +117,7 @@ const groupBy = (arr,key) => arr.reduce((a,r)=>{ (a[r[key]]=a[r[key]]||[]).push(
 let allData=[], filteredData=[], sortDir={};
 let absMode='team', hoursMode='team', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[];
 let chartAbs=null, chartHours=null, chartTrend=null;
+let tablePage=0; const TABLE_PAGE_SIZE=100;
 
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
@@ -177,10 +178,12 @@ async function init() {
     processRows(rows);
     if(allData.length === 0) { showError('Nenhum registro encontrado para o período selecionado.'); return; }
     filteredData = [...allData];
+    loadedDateStart = defaultStart;
+    loadedDateEnd   = defaultEnd;
     document.getElementById('f-date-start').value = defaultStart;
     document.getElementById('f-date-end').value   = defaultEnd;
     document.getElementById('header-meta').textContent =
-      `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${allData.length} registros`;
+      `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
     document.getElementById('filters-bar').style.display = 'flex';
     populateFilters();
     buildLayout();
@@ -190,32 +193,45 @@ async function init() {
   }
 }
 
+let loadedDateStart='', loadedDateEnd='';
+
 async function applyFilters() {
   const sup  = document.getElementById('f-sup').value;
   const team = document.getElementById('f-team').value;
   const emp  = document.getElementById('f-emp').value;
   const ds   = document.getElementById('f-date-start').value;
   const de   = document.getElementById('f-date-end').value;
-  document.getElementById('app').innerHTML =
-    '<div class="loading"><div class="spinner"></div>Atualizando...</div>';
-  try {
-    const rows = await fetchAll(ds, de);
-    processRows(rows);
-    filteredData = allData.filter(d => {
-      if(sup  && d.supervisor !== sup)  return false;
-      if(team && d.team !== team)       return false;
-      if(emp  && d.name !== emp)        return false;
-      return true;
-    });
-    document.getElementById('header-meta').textContent =
-      `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${filteredData.length} registros`;
-    funnelPath = [];
-    populateFilters(sup, team, emp);
-    buildLayout();
-    renderAll();
-  } catch(e) {
-    showError(`Erro ao buscar dados: ${e.message}`);
+
+  // só rebusca Supabase se as datas mudaram
+  if(ds !== loadedDateStart || de !== loadedDateEnd) {
+    document.getElementById('app').innerHTML =
+      '<div class="loading"><div class="spinner"></div>Atualizando...</div>';
+    try {
+      const rows = await fetchAll(ds, de);
+      processRows(rows);
+      loadedDateStart = ds;
+      loadedDateEnd   = de;
+      document.getElementById('header-meta').textContent =
+        `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
+      funnelPath = [];
+      populateFilters(sup, team, emp);
+      buildLayout();
+    } catch(e) {
+      showError(`Erro ao buscar dados: ${e.message}`);
+      return;
+    }
   }
+
+  // aplica filtros localmente (rápido)
+  filteredData = allData.filter(d => {
+    if(sup  && d.supervisor !== sup)  return false;
+    if(team && d.team !== team)       return false;
+    if(emp  && d.name !== emp)        return false;
+    return true;
+  });
+
+  funnelPath = [];
+  renderAll();
 }
 
 function resetFilters() {
@@ -324,6 +340,13 @@ function buildLayout() {
             </tr></thead>
             <tbody id="table-body"></tbody>
           </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--mid)">
+          <span id="table-info"></span>
+          <div style="display:flex;gap:8px">
+            <button class="btn-reset" id="btn-prev" onclick="tablePageChange(-1)">‹ Anterior</button>
+            <button class="btn-reset" id="btn-next" onclick="tablePageChange(1)">Próximo ›</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -509,11 +532,28 @@ function drillDown(key,val){funnelPath.push({key,val});renderFunnel();}
 function drillUp(idx){funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1);renderFunnel();}
 
 function renderTableBody(){
-  document.getElementById('table-body').innerHTML=filteredData.map(r=>{
+  tablePage=0;
+  renderTablePage();
+}
+
+function renderTablePage(){
+  const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
+  const slice=filteredData.slice(start,end);
+  document.getElementById('table-body').innerHTML=slice.map(r=>{
     const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
     const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
     return`<tr><td>${r.name}</td><td>${r.team}</td><td>${r.supervisor}</td><td>${r.date}</td><td>${monthLabel(r.month)}</td><td>${r.previsto.toFixed(1)}h</td><td>${r.trabalhado.toFixed(1)}h</td><td>${r.ausencia.toFixed(1)}h</td><td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span></div></td></tr>`;
   }).join('');
+  const total=filteredData.length, pages=Math.ceil(total/TABLE_PAGE_SIZE);
+  document.getElementById('table-info').textContent=`Exibindo ${start+1}–${Math.min(end,total)} de ${total} registros`;
+  document.getElementById('btn-prev').disabled=tablePage===0;
+  document.getElementById('btn-next').disabled=tablePage>=pages-1;
+}
+
+function tablePageChange(dir){
+  const pages=Math.ceil(filteredData.length/TABLE_PAGE_SIZE);
+  tablePage=Math.max(0,Math.min(tablePage+dir,pages-1));
+  renderTablePage();
 }
 
 function sortTable(col){
@@ -521,7 +561,8 @@ function sortTable(col){
   const keys=['name','team','supervisor','date','month','previsto','trabalhado','ausencia'];
   if(col===8){filteredData.sort((a,b)=>{const av=a.previsto>0?a.ausencia/a.previsto:0,bv=b.previsto>0?b.ausencia/b.previsto:0;return dir?av-bv:bv-av;});}
   else{filteredData.sort((a,b)=>dir?(a[keys[col]]>b[keys[col]]?1:-1):(a[keys[col]]<b[keys[col]]?1:-1));}
-  renderTableBody();
+  tablePage=0;
+  renderTablePage();
 }
 
 function showError(msg){
