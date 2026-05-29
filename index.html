@@ -109,7 +109,11 @@ const PAGE    = 5000;
 const parseTime = t => { if(!t||t==='00:00')return 0; const[h,m]=t.split(':'); return+h+(+m/60); };
 const firstLeader = l => l ? l.split(',')[0].trim() : 'N/A';
 const allLeaders = l => l ? l.split(',').map(x=>x.trim()).filter(Boolean) : ['N/A'];
-const calcAbs = rows => { const p=rows.reduce((s,r)=>s+r.previsto,0),a=rows.reduce((s,r)=>s+r.ausencia,0); return p>0?+(a/p*100).toFixed(2):0; };
+const calcAbs = rows => {
+  const primary = rows.filter(r=>r.isPrimary);
+  const p=primary.reduce((s,r)=>s+r.previsto,0), a=primary.reduce((s,r)=>s+r.ausencia,0);
+  return p>0?+(a/p*100).toFixed(2):0;
+};
 const monthKey = d => d.slice(0,7);
 const monthLabel = k => { const[y,m]=k.split('-'); return `${'JanFevMarAbrMaiJunJulAgoSetOutNovDez'.slice((+m-1)*3,(+m-1)*3+3)}/${y.slice(2)}`; };
 const groupBy = (arr,key) => arr.reduce((a,r)=>{ (a[r[key]]=a[r[key]]||[]).push(r); return a; },{});
@@ -117,6 +121,7 @@ const groupBy = (arr,key) => arr.reduce((a,r)=>{ (a[r[key]]=a[r[key]]||[]).push(
 let allData=[], filteredData=[], sortDir={};
 let absMode='team', hoursMode='team', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[];
 let chartAbs=null, chartHours=null, chartTrend=null;
+let tablePage=0; const TABLE_PAGE_SIZE=100;
 
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
@@ -151,16 +156,19 @@ function processRows(rows) {
   for(const r of rows) {
     const prev = parseTime(r.total_working_time);
     const supervisors = allLeaders(r.leaders);
-    supervisors.forEach(sup => {
+    // gera um registro por supervisor (para filtro/drill),
+    // mas marca o primeiro como "primary" para evitar duplicar horas nos KPIs
+    supervisors.forEach((sup, idx) => {
       allData.push({
         name: r.name,
         team: r.cost_center,
         supervisor: sup,
         date: r.extraction_date,
         month: monthKey(r.extraction_date),
-        previsto: prev,
-        trabalhado: parseTime(r.total_worked_time),
-        ausencia: parseTime(r.total_missing_time),
+        previsto:    idx === 0 ? prev : 0,
+        trabalhado:  idx === 0 ? parseTime(r.total_worked_time) : 0,
+        ausencia:    idx === 0 ? parseTime(r.total_missing_time) : 0,
+        isPrimary:   idx === 0,
       });
     });
   }
@@ -177,10 +185,12 @@ async function init() {
     processRows(rows);
     if(allData.length === 0) { showError('Nenhum registro encontrado para o período selecionado.'); return; }
     filteredData = [...allData];
+    loadedDateStart = defaultStart;
+    loadedDateEnd   = defaultEnd;
     document.getElementById('f-date-start').value = defaultStart;
     document.getElementById('f-date-end').value   = defaultEnd;
     document.getElementById('header-meta').textContent =
-      `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${allData.length} registros`;
+      `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
     document.getElementById('filters-bar').style.display = 'flex';
     populateFilters();
     buildLayout();
@@ -190,32 +200,45 @@ async function init() {
   }
 }
 
+let loadedDateStart='', loadedDateEnd='';
+
 async function applyFilters() {
   const sup  = document.getElementById('f-sup').value;
   const team = document.getElementById('f-team').value;
   const emp  = document.getElementById('f-emp').value;
   const ds   = document.getElementById('f-date-start').value;
   const de   = document.getElementById('f-date-end').value;
-  document.getElementById('app').innerHTML =
-    '<div class="loading"><div class="spinner"></div>Atualizando...</div>';
-  try {
-    const rows = await fetchAll(ds, de);
-    processRows(rows);
-    filteredData = allData.filter(d => {
-      if(sup  && d.supervisor !== sup)  return false;
-      if(team && d.team !== team)       return false;
-      if(emp  && d.name !== emp)        return false;
-      return true;
-    });
-    document.getElementById('header-meta').textContent =
-      `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${filteredData.length} registros`;
-    funnelPath = [];
-    populateFilters(sup, team, emp);
-    buildLayout();
-    renderAll();
-  } catch(e) {
-    showError(`Erro ao buscar dados: ${e.message}`);
+
+  // só rebusca Supabase se as datas mudaram
+  if(ds !== loadedDateStart || de !== loadedDateEnd) {
+    document.getElementById('app').innerHTML =
+      '<div class="loading"><div class="spinner"></div>Atualizando...</div>';
+    try {
+      const rows = await fetchAll(ds, de);
+      processRows(rows);
+      loadedDateStart = ds;
+      loadedDateEnd   = de;
+      document.getElementById('header-meta').textContent =
+        `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
+      funnelPath = [];
+      populateFilters(sup, team, emp);
+      buildLayout();
+    } catch(e) {
+      showError(`Erro ao buscar dados: ${e.message}`);
+      return;
+    }
   }
+
+  // aplica filtros localmente (rápido)
+  filteredData = allData.filter(d => {
+    if(sup  && d.supervisor !== sup)  return false;
+    if(team && d.team !== team)       return false;
+    if(emp  && d.name !== emp)        return false;
+    return true;
+  });
+
+  funnelPath = [];
+  renderAll();
 }
 
 function resetFilters() {
@@ -325,6 +348,13 @@ function buildLayout() {
             <tbody id="table-body"></tbody>
           </table>
         </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--mid)">
+          <span id="table-info"></span>
+          <div style="display:flex;gap:8px">
+            <button class="btn-reset" id="btn-prev" onclick="tablePageChange(-1)">‹ Anterior</button>
+            <button class="btn-reset" id="btn-next" onclick="tablePageChange(1)">Próximo ›</button>
+          </div>
+        </div>
       </div>
     </div>`;
   chartAbs=null; chartHours=null; chartTrend=null;
@@ -336,7 +366,8 @@ function renderAll(){
 
 function renderKPIs(){
   const d=filteredData;
-  const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
+  const primary=d.filter(r=>r.isPrimary);
+  const totP=primary.reduce((s,r)=>s+r.previsto,0), totT=primary.reduce((s,r)=>s+r.trabalhado,0), totA=primary.reduce((s,r)=>s+r.ausencia,0);
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const kpis=[
     {label:'Colaboradores',val:new Set(d.map(r=>r.name)).size,sub:'no período'},
@@ -344,7 +375,7 @@ function renderKPIs(){
     {label:'Total trabalhado',val:totT.toFixed(0)+'h',sub:pct.toFixed(1)+'% do previsto'},
     {label:'Total ausências',val:totA.toFixed(1)+'h',sub:'horas faltantes'},
     {label:'ABS Global',val:absG.toFixed(2)+'%',sub:'índice de absenteísmo'},
-    {label:'Reg. c/ falta',val:d.filter(r=>r.ausencia>0).length,sub:'registros com ausência'},
+    {label:'Reg. c/ falta',val:primary.filter(r=>r.ausencia>0).length,sub:'registros com ausência'},
   ];
   document.getElementById('kpi-row').innerHTML=kpis.map(k=>`<div class="kpi"><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
 }
@@ -369,7 +400,7 @@ function renderTrendChart(){
     const groups = Object.entries(groupBy(dayData, groupKey))
       .map(([k,v])=>({k, abs:calcAbs(v)}))
       .sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
-    labels = days.map(d=>d.slice(5));
+    labels = days.map(d=>{ const[,m,day]=d.split('-'); return `${day}/${m}`; });
     datasets = groups.map((g,i)=>({
       label:g,
       data:days.map(day=>{const r=dayData.filter(x=>x[groupKey]===g&&x.date===day);return r.length?calcAbs(r):null;}),
@@ -458,14 +489,14 @@ function renderChartHours(){
   let labels,prev,trab;
   if(hoursMode==='team'){
     const e=Object.entries(groupBy(filteredData,'team'))
-      .map(([t,v])=>({t, prev:v.reduce((s,r)=>s+r.previsto,0), trab:v.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}))
+      .map(([t,v])=>{ const p=v.filter(r=>r.isPrimary); return {t, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
       .sort((a,b)=>b.abs-a.abs);
     labels=e.map(x=>x.t);
     prev=e.map(x=>+x.prev.toFixed(1));
     trab=e.map(x=>+x.trab.toFixed(1));
   } else {
     const e=Object.entries(groupBy(filteredData,'name'))
-      .map(([n,v])=>({n, prev:v.reduce((s,r)=>s+r.previsto,0), trab:v.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}))
+      .map(([n,v])=>{ const p=v.filter(r=>r.isPrimary); return {n, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
       .sort((a,b)=>b.abs-a.abs);
     labels=e.map(x=>x.n.split(' ').slice(0,2).join(' '));
     prev=e.map(x=>+x.prev.toFixed(1));
@@ -509,11 +540,28 @@ function drillDown(key,val){funnelPath.push({key,val});renderFunnel();}
 function drillUp(idx){funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1);renderFunnel();}
 
 function renderTableBody(){
-  document.getElementById('table-body').innerHTML=filteredData.map(r=>{
+  tablePage=0;
+  renderTablePage();
+}
+
+function renderTablePage(){
+  const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
+  const slice=filteredData.slice(start,end);
+  document.getElementById('table-body').innerHTML=slice.map(r=>{
     const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
     const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
     return`<tr><td>${r.name}</td><td>${r.team}</td><td>${r.supervisor}</td><td>${r.date}</td><td>${monthLabel(r.month)}</td><td>${r.previsto.toFixed(1)}h</td><td>${r.trabalhado.toFixed(1)}h</td><td>${r.ausencia.toFixed(1)}h</td><td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span></div></td></tr>`;
   }).join('');
+  const total=filteredData.length, pages=Math.ceil(total/TABLE_PAGE_SIZE);
+  document.getElementById('table-info').textContent=`Exibindo ${start+1}–${Math.min(end,total)} de ${total} registros`;
+  document.getElementById('btn-prev').disabled=tablePage===0;
+  document.getElementById('btn-next').disabled=tablePage>=pages-1;
+}
+
+function tablePageChange(dir){
+  const pages=Math.ceil(filteredData.length/TABLE_PAGE_SIZE);
+  tablePage=Math.max(0,Math.min(tablePage+dir,pages-1));
+  renderTablePage();
 }
 
 function sortTable(col){
@@ -521,7 +569,8 @@ function sortTable(col){
   const keys=['name','team','supervisor','date','month','previsto','trabalhado','ausencia'];
   if(col===8){filteredData.sort((a,b)=>{const av=a.previsto>0?a.ausencia/a.previsto:0,bv=b.previsto>0?b.ausencia/b.previsto:0;return dir?av-bv:bv-av;});}
   else{filteredData.sort((a,b)=>dir?(a[keys[col]]>b[keys[col]]?1:-1):(a[keys[col]]<b[keys[col]]?1:-1));}
-  renderTableBody();
+  tablePage=0;
+  renderTablePage();
 }
 
 function showError(msg){
