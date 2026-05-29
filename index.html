@@ -11,7 +11,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 :root{--blue1:#1565C0;--blue2:#1976D2;--blue3:#2196F3;--blue4:#64B5F6;--blue5:#E3F2FD;--dark:#1a2332;--mid:#455a64;--light:#78909c;--border:#e0e8f0}
 .header{background:var(--blue1);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .logo-wrap{background:#fff;border-radius:10px;padding:6px 12px;display:flex;align-items:center;gap:8px}
-.logo-text{color:var(--blue1);font-weight:700;font-size:20px}.logo-text span{color:var(--dark)}
 .header-title{flex:1;text-align:center}.header-title h1{font-size:20px;font-weight:600}.header-title p{font-size:12px;opacity:.8;margin-top:2px}
 .header-meta{font-size:12px;text-align:right;opacity:.85;min-width:160px}
 .filters{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
@@ -101,40 +100,37 @@ tbody td{padding:7px 10px}
 </div>
 
 <script>
-const SB_URL  = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
-const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
-const TABLE   = 'absenteeism';
-const PAGE    = 5000;
+const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
+const TABLE  = 'absenteeism';
+const PAGE   = 5000;
 
-const parseTime = t => { if(!t||t==='00:00')return 0; const[h,m]=t.split(':'); return+h+(+m/60); };
-const firstLeader = l => l ? l.split(',')[0].trim() : 'N/A';
+const parseTime  = t => { if(!t||t==='00:00')return 0; const[h,m]=t.split(':'); return+h+(+m/60); };
+const allLeaders = l => l ? l.split(',').map(x=>x.trim()).filter(Boolean) : ['N/A'];
+const monthKey   = d => d.slice(0,7);
+const monthLabel = k => { const[y,m]=k.split('-'); return `${'JanFevMarAbrMaiJunJulAgoSetOutNovDez'.slice((+m-1)*3,(+m-1)*3+3)}/${y.slice(2)}`; };
+const groupBy    = (arr,key) => arr.reduce((a,r)=>{ (a[r[key]]=a[r[key]]||[]).push(r); return a; },{});
+
+// deduplica por name+date para não somar horas duplicadas de múltiplos supervisores
 const dedupeRows = rows => {
   const seen = new Set();
   return rows.filter(r => {
-    const key = r.name + '|' + r.date;
+    const key = r.name+'|'+r.date;
     if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
+    seen.add(key); return true;
   });
 };
-const allLeaders = l => l ? l.split(',').map(x=>x.trim()).filter(Boolean) : ['N/A'];
-  // deduplica por name+date para não somar horas duplicadas de múltiplos supervisores
-  const seen = new Set();
-  const unique = rows.filter(r => {
-    const key = r.name + '|' + r.date;
-    if(seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-  const p = unique.reduce((s,r)=>s+r.previsto,0);
-  const a = unique.reduce((s,r)=>s+r.ausencia,0);
+
+// ABS = soma(ausencia) / soma(previsto) no contexto do grupo, dedupado
+const calcAbs = rows => {
+  const u = dedupeRows(rows);
+  const p = u.reduce((s,r)=>s+r.previsto,0);
+  const a = u.reduce((s,r)=>s+r.ausencia,0);
   return p>0?+(a/p*100).toFixed(2):0;
 };
-const monthKey = d => d.slice(0,7);
-const monthLabel = k => { const[y,m]=k.split('-'); return `${'JanFevMarAbrMaiJunJulAgoSetOutNovDez'.slice((+m-1)*3,(+m-1)*3+3)}/${y.slice(2)}`; };
-const groupBy = (arr,key) => arr.reduce((a,r)=>{ (a[r[key]]=a[r[key]]||[]).push(r); return a; },{});
 
 let allData=[], filteredData=[], sortDir={};
+let loadedDateStart='', loadedDateEnd='';
 let absMode='team', hoursMode='team', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[];
 let chartAbs=null, chartHours=null, chartTrend=null;
 let tablePage=0; const TABLE_PAGE_SIZE=100;
@@ -142,27 +138,18 @@ let tablePage=0; const TABLE_PAGE_SIZE=100;
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
   while(true) {
-    const headers = {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      Range: `${offset}-${offset+PAGE-1}`,
-      Prefer: 'count=exact'
-    };
+    const headers = { apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
     let url = `${SB_URL}/rest/v1/${TABLE}?select=*&order=extraction_date.asc`;
     if(dateStart) url += `&extraction_date=gte.${dateStart}`;
     if(dateEnd)   url += `&extraction_date=lte.${dateEnd}`;
     const res = await fetch(url, { headers });
     if(!res.ok) throw new Error(`Supabase error: ${res.status} ${res.statusText}`);
-    if(total === null) {
-      const cr = res.headers.get('Content-Range');
-      if(cr) total = parseInt(cr.split('/')[1]) || null;
-    }
+    if(total===null){ const cr=res.headers.get('Content-Range'); if(cr) total=parseInt(cr.split('/')[1])||null; }
     const page = await res.json();
     rows.push(...page);
-    const fetched = offset + page.length;
-    if(total !== null && fetched >= total) break;
-    if(page.length < PAGE) break;
-    offset += PAGE;
+    if(total!==null && rows.length>=total) break;
+    if(page.length<PAGE) break;
+    offset+=PAGE;
   }
   return rows;
 }
@@ -171,20 +158,13 @@ function processRows(rows) {
   allData = [];
   for(const r of rows) {
     const prev = parseTime(r.total_working_time);
-    const supervisors = allLeaders(r.leaders);
-    // gera um registro por supervisor (para filtro/drill),
-    // mas marca o primeiro como "primary" para evitar duplicar horas nos KPIs
-    supervisors.forEach((sup, idx) => {
+    const trab = parseTime(r.total_worked_time);
+    const aus  = parseTime(r.total_missing_time);
+    allLeaders(r.leaders).forEach(sup => {
       allData.push({
-        name: r.name,
-        team: r.cost_center,
-        supervisor: sup,
-        date: r.extraction_date,
-        month: monthKey(r.extraction_date),
-        previsto:    idx === 0 ? prev : 0,
-        trabalhado:  idx === 0 ? parseTime(r.total_worked_time) : 0,
-        ausencia:    idx === 0 ? parseTime(r.total_missing_time) : 0,
-        isPrimary:   idx === 0,
+        name: r.name, team: r.cost_center, supervisor: sup,
+        date: r.extraction_date, month: monthKey(r.extraction_date),
+        previsto: prev, trabalhado: trab, ausencia: aus,
       });
     });
   }
@@ -192,98 +172,69 @@ function processRows(rows) {
 
 async function init() {
   const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth()+1).padStart(2,'0');
-  const defaultStart = `${y}-${m}-01`;
-  const defaultEnd   = today.toISOString().slice(0,10);
+  const y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
+  const defaultStart=`${y}-${m}-01`, defaultEnd=today.toISOString().slice(0,10);
   try {
     const rows = await fetchAll(defaultStart, defaultEnd);
     processRows(rows);
-    if(allData.length === 0) { showError('Nenhum registro encontrado para o período selecionado.'); return; }
-    filteredData = [...allData];
-    loadedDateStart = defaultStart;
-    loadedDateEnd   = defaultEnd;
-    document.getElementById('f-date-start').value = defaultStart;
-    document.getElementById('f-date-end').value   = defaultEnd;
-    document.getElementById('header-meta').textContent =
-      `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
-    document.getElementById('filters-bar').style.display = 'flex';
-    populateFilters();
-    buildLayout();
-    renderAll();
-  } catch(e) {
-    showError(`Erro ao conectar ao Supabase: ${e.message}`);
-  }
+    if(!allData.length){ showError('Nenhum registro encontrado para o período selecionado.'); return; }
+    filteredData=[...allData];
+    loadedDateStart=defaultStart; loadedDateEnd=defaultEnd;
+    document.getElementById('f-date-start').value=defaultStart;
+    document.getElementById('f-date-end').value=defaultEnd;
+    document.getElementById('header-meta').textContent=`Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
+    document.getElementById('filters-bar').style.display='flex';
+    populateFilters(); buildLayout(); renderAll();
+  } catch(e){ showError(`Erro ao conectar ao Supabase: ${e.message}`); }
 }
 
-let loadedDateStart='', loadedDateEnd='';
-
+let loadedRawCount=0;
 async function applyFilters() {
-  const sup  = document.getElementById('f-sup').value;
-  const team = document.getElementById('f-team').value;
-  const emp  = document.getElementById('f-emp').value;
-  const ds   = document.getElementById('f-date-start').value;
-  const de   = document.getElementById('f-date-end').value;
+  const sup=document.getElementById('f-sup').value, team=document.getElementById('f-team').value,
+        emp=document.getElementById('f-emp').value, ds=document.getElementById('f-date-start').value,
+        de=document.getElementById('f-date-end').value;
 
-  // só rebusca Supabase se as datas mudaram
-  if(ds !== loadedDateStart || de !== loadedDateEnd) {
-    document.getElementById('app').innerHTML =
-      '<div class="loading"><div class="spinner"></div>Atualizando...</div>';
+  if(ds!==loadedDateStart || de!==loadedDateEnd) {
+    document.getElementById('app').innerHTML='<div class="loading"><div class="spinner"></div>Atualizando...</div>';
     try {
-      const rows = await fetchAll(ds, de);
+      const rows=await fetchAll(ds,de);
       processRows(rows);
-      loadedDateStart = ds;
-      loadedDateEnd   = de;
-      document.getElementById('header-meta').textContent =
-        `Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
-      funnelPath = [];
-      populateFilters(sup, team, emp);
-      buildLayout();
-    } catch(e) {
-      showError(`Erro ao buscar dados: ${e.message}`);
-      return;
-    }
+      loadedDateStart=ds; loadedDateEnd=de; loadedRawCount=rows.length;
+      document.getElementById('header-meta').textContent=`Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
+      funnelPath=[]; populateFilters(sup,team,emp); buildLayout();
+    } catch(e){ showError(`Erro ao buscar dados: ${e.message}`); return; }
   }
 
-  // aplica filtros localmente (rápido)
-  filteredData = allData.filter(d => {
-    if(sup  && d.supervisor !== sup)  return false;
-    if(team && d.team !== team)       return false;
-    if(emp  && d.name !== emp)        return false;
+  filteredData=allData.filter(d=>{
+    if(sup  && d.supervisor!==sup)  return false;
+    if(team && d.team!==team)       return false;
+    if(emp  && d.name!==emp)        return false;
     return true;
   });
-
-  funnelPath = [];
-  renderAll();
+  funnelPath=[]; renderAll();
 }
 
 function resetFilters() {
-  ['f-sup','f-team','f-emp'].forEach(id => document.getElementById(id).value='');
-  const today = new Date();
-  const y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
-  document.getElementById('f-date-start').value = `${y}-${m}-01`;
-  document.getElementById('f-date-end').value   = today.toISOString().slice(0,10);
+  ['f-sup','f-team','f-emp'].forEach(id=>document.getElementById(id).value='');
+  const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
+  document.getElementById('f-date-start').value=`${y}-${m}-01`;
+  document.getElementById('f-date-end').value=today.toISOString().slice(0,10);
   applyFilters();
 }
 
-function populateFilters(selSup='', selTeam='', selEmp='') {
-  const fill = (id, opts, ph, sel) => {
-    const s = document.getElementById(id);
-    s.innerHTML = `<option value="">${ph}</option>`;
-    opts.forEach(v => {
-      const o = document.createElement('option');
-      o.value = v; o.textContent = v;
-      if(v === sel) o.selected = true;
-      s.appendChild(o);
-    });
+function populateFilters(selSup='',selTeam='',selEmp='') {
+  const fill=(id,opts,ph,sel)=>{
+    const s=document.getElementById(id);
+    s.innerHTML=`<option value="">${ph}</option>`;
+    opts.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; if(v===sel)o.selected=true; s.appendChild(o); });
   };
-  fill('f-sup',  [...new Set(allData.map(d=>d.supervisor))].sort(), 'Todos os supervisores', selSup);
-  fill('f-team', [...new Set(allData.map(d=>d.team))].sort(),       'Todas as equipes',      selTeam);
-  fill('f-emp',  [...new Set(allData.map(d=>d.name))].sort(),       'Todos',                 selEmp);
+  fill('f-sup',  [...new Set(allData.map(d=>d.supervisor))].sort(),'Todos os supervisores',selSup);
+  fill('f-team', [...new Set(allData.map(d=>d.team))].sort(),      'Todas as equipes',     selTeam);
+  fill('f-emp',  [...new Set(allData.map(d=>d.name))].sort(),      'Todos',                selEmp);
 }
 
 function buildLayout() {
-  document.getElementById('app').innerHTML = `
+  document.getElementById('app').innerHTML=`
     <div class="main">
       <div class="kpi-row" id="kpi-row"></div>
       <div class="charts-row">
@@ -376,12 +327,10 @@ function buildLayout() {
   chartAbs=null; chartHours=null; chartTrend=null;
 }
 
-function renderAll(){
-  renderKPIs(); renderTrendChart(); renderChartAbs(); renderChartHours(); renderFunnel(); renderTableBody();
-}
+function renderAll(){ renderKPIs(); renderTrendChart(); renderChartAbs(); renderChartHours(); renderFunnel(); renderTableBody(); }
 
 function renderKPIs(){
-  const d = dedupeRows(filteredData);
+  const d=dedupeRows(filteredData);
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const kpis=[
@@ -399,68 +348,55 @@ function setTrendMode(m){
   trendMode=m; trendDrillMonth=null;
   document.getElementById('trend-btn-team').classList.toggle('active',m==='team');
   document.getElementById('trend-btn-emp').classList.toggle('active',m==='emp');
-  document.getElementById('trend-title').textContent = m==='team'
-    ? 'Evolução — ABS (%) por Equipe — Top 10 maiores'
-    : 'Evolução — ABS (*) por Colaborador — Top 10 maiores';
+  document.getElementById('trend-title').textContent=m==='team'
+    ?'Evolução — ABS (%) por Equipe — Top 10 maiores'
+    :'Evolução — ABS (*) por Colaborador — Top 10 maiores';
   renderTrendChart();
 }
 
 function renderTrendChart(){
-  const groupKey = trendMode==='team' ? 'team' : 'name';
+  const groupKey=trendMode==='team'?'team':'name';
   const colors=['#1565C0','#D32F2F','#2E7D32','#F57C00','#6A1B9A','#00838F','#AD1457','#4E342E','#37474F','#558B2F'];
-  let labels, datasets, hint='', breadcrumb='';
+  let labels,datasets,hint='',breadcrumb='';
+
   if(trendDrillMonth){
-    const dayData = filteredData.filter(d=>d.month===trendDrillMonth);
-    const days = [...new Set(dayData.map(d=>d.date))].sort();
-    const groups = Object.entries(groupBy(dayData, groupKey))
-      .map(([k,v])=>({k, abs:calcAbs(v)}))
-      .sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
-    labels = days.map(d=>{ const[,m,day]=d.split('-'); return `${day}/${m}`; });
-    datasets = groups.map((g,i)=>({
-      label:g,
-      data:days.map(day=>{const r=dayData.filter(x=>x[groupKey]===g&&x.date===day);return r.length?calcAbs(r):null;}),
-      borderColor:colors[i%10],backgroundColor:colors[i%10],
-      borderWidth:2.5,pointRadius:4,fill:false,tension:.3,spanGaps:true
+    const dayData=filteredData.filter(d=>d.month===trendDrillMonth);
+    const days=[...new Set(dayData.map(d=>d.date))].sort();
+    const groups=Object.entries(groupBy(dayData,groupKey)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    labels=days.map(d=>{ const[,m,day]=d.split('-'); return `${day}/${m}`; });
+    datasets=groups.map((g,i)=>({
+      label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
+      borderWidth:2.5, pointRadius:4, fill:false, tension:.3, spanGaps:true,
+      data:days.map(day=>{ const r=dayData.filter(x=>x[groupKey]===g&&x.date===day); return r.length?calcAbs(r):null; })
     }));
     breadcrumb=`${monthLabel(trendDrillMonth)} › dias`;
     hint='Clique aqui para voltar para o mês';
-    document.getElementById('trend-hint').onclick=()=>{trendDrillMonth=null;renderTrendChart();};
+    document.getElementById('trend-hint').onclick=()=>{ trendDrillMonth=null; renderTrendChart(); };
   } else {
     const months=[...new Set(filteredData.map(d=>d.month))].sort();
-    const groups = Object.entries(groupBy(filteredData, groupKey))
-      .map(([k,v])=>({k, abs:calcAbs(v)}))
-      .sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    const groups=Object.entries(groupBy(filteredData,groupKey)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
     labels=months.map(monthLabel);
     datasets=groups.map((g,i)=>({
-      label:g,
-      data:months.map(m=>{const r=filteredData.filter(d=>d[groupKey]===g&&d.month===m);return r.length?calcAbs(r):null;}),
-      borderColor:colors[i%10],backgroundColor:colors[i%10],
-      borderWidth:2.5,pointRadius:5,fill:false,tension:.3,spanGaps:true
+      label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
+      borderWidth:2.5, pointRadius:5, fill:false, tension:.3, spanGaps:true,
+      data:months.map(m=>{ const r=filteredData.filter(d=>d[groupKey]===g&&d.month===m); return r.length?calcAbs(r):null; })
     }));
     hint='Clique em um ponto para ver a evolução diária';
     document.getElementById('trend-hint').onclick=null;
   }
+
   document.getElementById('trend-breadcrumb').textContent=breadcrumb;
   document.getElementById('trend-hint').textContent=hint;
   document.getElementById('trend-legend').innerHTML=datasets.map((d,i)=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:18px;height:3px;background:${colors[i%10]};display:inline-block;border-radius:2px"></span><span style="font-size:12px;color:var(--mid)">${d.label}</span></span>`).join('');
+
   if(chartTrend)chartTrend.destroy();
   chartTrend=new Chart(document.getElementById('chartTrend'),{
-    type:'line',
-    data:{labels,datasets},
+    type:'line', data:{labels,datasets},
     options:{
-      responsive:true,maintainAspectRatio:false,
+      responsive:true, maintainAspectRatio:false,
       plugins:{legend:{display:false}},
-      onClick:(evt,els)=>{
-        if(!trendDrillMonth && els.length){
-          const months=[...new Set(filteredData.map(d=>d.month))].sort();
-          trendDrillMonth=months[els[0].index];
-          renderTrendChart();
-        }
-      },
-      scales:{
-        y:{title:{display:true,text:'ABS %'},min:0,grid:{color:'#f0f4f8'},ticks:{callback:v=>v+'%'}},
-        x:{grid:{color:'#f0f4f8'}}
-      }
+      onClick:(evt,els)=>{ if(!trendDrillMonth&&els.length){ const months=[...new Set(filteredData.map(d=>d.month))].sort(); trendDrillMonth=months[els[0].index]; renderTrendChart(); } },
+      scales:{ y:{title:{display:true,text:'ABS %'},min:0,grid:{color:'#f0f4f8'},ticks:{callback:v=>v+'%'}}, x:{grid:{color:'#f0f4f8'}} }
     }
   });
 }
@@ -474,17 +410,10 @@ function setAbsMode(m){
 }
 
 function renderChartAbs(){
-  let labels,vals;
-  if(absMode==='team'){
-    const by=groupBy(filteredData,'team');
-    const e=Object.entries(by).map(([t,v])=>({t,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
-    labels=e.map(x=>x.t);
-    vals=e.map(x=>x.abs);
-  } else {
-    const e=Object.entries(groupBy(filteredData,'name')).map(([n,v])=>({n,abs:calcAbs(v)})).filter(x=>x.abs>0).sort((a,b)=>b.abs-a.abs);
-    labels=e.map(x=>x.n.split(' ').slice(0,2).join(' '));
-    vals=e.map(x=>x.abs);
-  }
+  const key=absMode==='team'?'team':'name';
+  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
+  const labels=e.map(x=>absMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
+  const vals=e.map(x=>x.abs);
   const colors=vals.map(v=>v>=5?'#c62828':v>=3?'#f57c00':'#1976D2');
   const wrap=document.getElementById('chart-abs-wrap');
   wrap.style.height=Math.max(200,labels.length*(absMode==='emp'?20:30)+60)+'px';
@@ -501,18 +430,13 @@ function setHoursMode(m){
 }
 
 function renderChartHours(){
-  let labels,prev,trab;
-  if(hoursMode==='team'){
-    const e=Object.entries(groupBy(filteredData,'team'))
-      .map(([t,v])=>{ const p=dedupeRows(v); return {t, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
-      .sort((a,b)=>b.abs-a.abs);
-    labels=e.map(x=>x.t); prev=e.map(x=>+x.prev.toFixed(1)); trab=e.map(x=>+x.trab.toFixed(1));
-  } else {
-    const e=Object.entries(groupBy(filteredData,'name'))
-      .map(([n,v])=>{ const p=dedupeRows(v); return {n, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
-      .sort((a,b)=>b.abs-a.abs);
-    labels=e.map(x=>x.n.split(' ').slice(0,2).join(' ')); prev=e.map(x=>+x.prev.toFixed(1)); trab=e.map(x=>+x.trab.toFixed(1));
-  }
+  const key=hoursMode==='team'?'team':'name';
+  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>{
+    const u=dedupeRows(v);
+    return {k, prev:u.reduce((s,r)=>s+r.previsto,0), trab:u.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)};
+  }).sort((a,b)=>b.abs-a.abs);
+  const labels=e.map(x=>hoursMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
+  const prev=e.map(x=>+x.prev.toFixed(1)), trab=e.map(x=>+x.trab.toFixed(1));
   const wrap=document.getElementById('chart-hours-wrap');
   wrap.style.height=Math.max(200,labels.length*(hoursMode==='emp'?20:30)+60)+'px';
   if(chartHours)chartHours.destroy();
@@ -527,18 +451,25 @@ function setFunnelRoot(r){
 
 function renderFunnel(){
   let rows=filteredData;
-  funnelPath.forEach(s=>{rows=rows.filter(r=>r[s.key]===s.val);});
+  funnelPath.forEach(s=>{ rows=rows.filter(r=>r[s.key]===s.val); });
   const depth=funnelPath.length;
   let levelLabel,items;
-  if(funnelRoot==='supervisor'){if(depth===0){levelLabel='Supervisor';items=getItems(rows,'supervisor');}else if(depth===1){levelLabel='Equipe';items=getItems(rows,'team');}else{levelLabel='Colaborador';items=getItems(rows,'name');}}
-  else if(funnelRoot==='team'){if(depth===0){levelLabel='Equipe';items=getItems(rows,'team');}else{levelLabel='Colaborador';items=getItems(rows,'name');}}
-  else{levelLabel='Colaborador';items=getItems(rows,'name');}
+  if(funnelRoot==='supervisor'){
+    if(depth===0){levelLabel='Supervisor';items=getItems(rows,'supervisor');}
+    else if(depth===1){levelLabel='Equipe';items=getItems(rows,'team');}
+    else{levelLabel='Colaborador';items=getItems(rows,'name');}
+  } else if(funnelRoot==='team'){
+    if(depth===0){levelLabel='Equipe';items=getItems(rows,'team');}
+    else{levelLabel='Colaborador';items=getItems(rows,'name');}
+  } else {
+    levelLabel='Colaborador';items=getItems(rows,'name');
+  }
   const maxAbs=Math.max(...items.map(i=>i.abs),0.01);
   const canDrill=(funnelRoot==='supervisor'&&depth<2)||(funnelRoot==='team'&&depth<1);
   const bc=document.getElementById('funnel-breadcrumb');
   bc.innerHTML='<span onclick="drillUp(-1)">Início</span>';
-  funnelPath.forEach((s,i)=>{bc.innerHTML+=` › <span onclick="drillUp(${i})">${s.val}</span>`;});
-  if(funnelPath.length)bc.innerHTML+=` › <strong>${levelLabel}</strong>`;
+  funnelPath.forEach((s,i)=>{ bc.innerHTML+=` › <span onclick="drillUp(${i})">${s.val}</span>`; });
+  if(funnelPath.length) bc.innerHTML+=` › <strong>${levelLabel}</strong>`;
   document.getElementById('funnel-wrap').innerHTML=`<div class="funnel-level-title">${levelLabel}</div>`+items.map(item=>{
     const w=item.abs/maxAbs*100, cls=item.abs>=5?'danger':item.abs>=3?'warn':'';
     const esc=item.label.replace(/'/g,"\\'");
@@ -546,42 +477,40 @@ function renderFunnel(){
   }).join('');
   document.getElementById('funnel-hint').textContent=canDrill?'Clique em uma barra para detalhar':'';
 }
-function getItems(rows,key){return Object.entries(groupBy(rows,key)).map(([k,v])=>({key,label:k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);}
-function drillDown(key,val){funnelPath.push({key,val});renderFunnel();}
-function drillUp(idx){funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1);renderFunnel();}
+
+function getItems(rows,key){
+  return Object.entries(groupBy(rows,key)).map(([k,v])=>({key,label:k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
+}
+function drillDown(key,val){ funnelPath.push({key,val}); renderFunnel(); }
+function drillUp(idx){ funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1); renderFunnel(); }
 
 function renderTableBody(){
-  tablePage=0;
-  renderTablePage();
+  tablePage=0; renderTablePage();
 }
-
 function renderTablePage(){
   const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
-  const slice=filteredData.slice(start,end);
+  const slice=dedupeRows(filteredData).slice(start,end);
   document.getElementById('table-body').innerHTML=slice.map(r=>{
     const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
     const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
     return`<tr><td>${r.name}</td><td>${r.team}</td><td>${r.supervisor}</td><td>${r.date}</td><td>${monthLabel(r.month)}</td><td>${r.previsto.toFixed(1)}h</td><td>${r.trabalhado.toFixed(1)}h</td><td>${r.ausencia.toFixed(1)}h</td><td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span></div></td></tr>`;
   }).join('');
-  const total=filteredData.length, pages=Math.ceil(total/TABLE_PAGE_SIZE);
+  const total=dedupeRows(filteredData).length, pages=Math.ceil(total/TABLE_PAGE_SIZE);
   document.getElementById('table-info').textContent=`Exibindo ${start+1}–${Math.min(end,total)} de ${total} registros`;
   document.getElementById('btn-prev').disabled=tablePage===0;
   document.getElementById('btn-next').disabled=tablePage>=pages-1;
 }
-
 function tablePageChange(dir){
-  const pages=Math.ceil(filteredData.length/TABLE_PAGE_SIZE);
+  const pages=Math.ceil(dedupeRows(filteredData).length/TABLE_PAGE_SIZE);
   tablePage=Math.max(0,Math.min(tablePage+dir,pages-1));
   renderTablePage();
 }
-
 function sortTable(col){
   const dir=sortDir[col]=!sortDir[col];
   const keys=['name','team','supervisor','date','month','previsto','trabalhado','ausencia'];
-  if(col===8){filteredData.sort((a,b)=>{const av=a.previsto>0?a.ausencia/a.previsto:0,bv=b.previsto>0?b.ausencia/b.previsto:0;return dir?av-bv:bv-av;});}
-  else{filteredData.sort((a,b)=>dir?(a[keys[col]]>b[keys[col]]?1:-1):(a[keys[col]]<b[keys[col]]?1:-1));}
-  tablePage=0;
-  renderTablePage();
+  if(col===8){ filteredData.sort((a,b)=>{ const av=a.previsto>0?a.ausencia/a.previsto:0,bv=b.previsto>0?b.ausencia/b.previsto:0; return dir?av-bv:bv-av; }); }
+  else{ filteredData.sort((a,b)=>dir?(a[keys[col]]>b[keys[col]]?1:-1):(a[keys[col]]<b[keys[col]]?1:-1)); }
+  tablePage=0; renderTablePage();
 }
 
 function showError(msg){
