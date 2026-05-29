@@ -298,7 +298,10 @@ function buildLayout() {
         <div class="funnel-hint" id="funnel-hint">Clique em uma barra para detalhar</div>
       </div>
       <div class="table-card">
-        <div class="card-title" style="margin-bottom:14px"><span class="bar-accent"></span>Detalhamento por colaborador / dia</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div class="card-title"><span class="bar-accent"></span>Detalhamento por colaborador / dia</div>
+          <button class="btn-filter" onclick="exportCSV()">⬇ Exportar CSV</button>
+        </div>
         <div class="table-wrap">
           <table>
             <thead><tr>
@@ -513,7 +516,20 @@ function sortTable(col){
   tablePage=0; renderTablePage();
 }
 
-function showError(msg){
+function exportCSV(){
+  const rows=dedupeRows(filteredData);
+  const header=['Colaborador','Equipe','Supervisor','Data','Mês','Previsto(h)','Trabalhado(h)','Ausência(h)','ABS%'];
+  const lines=[header.join(';')];
+  rows.forEach(r=>{
+    const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
+    lines.push([r.name,r.team,r.supervisor,r.date,monthLabel(r.month),r.previsto.toFixed(1),r.trabalhado.toFixed(1),r.ausencia.toFixed(1),a.toFixed(2)].join(';'));
+  });
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='absenteismo.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
   document.getElementById('app').innerHTML=`<div class="error-box">⚠️ ${msg}</div>`;
   document.getElementById('header-meta').textContent='Erro ao carregar';
 }
