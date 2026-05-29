@@ -108,10 +108,26 @@ const PAGE    = 5000;
 
 const parseTime = t => { if(!t||t==='00:00')return 0; const[h,m]=t.split(':'); return+h+(+m/60); };
 const firstLeader = l => l ? l.split(',')[0].trim() : 'N/A';
+const dedupeRows = rows => {
+  const seen = new Set();
+  return rows.filter(r => {
+    const key = r.name + '|' + r.date;
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 const allLeaders = l => l ? l.split(',').map(x=>x.trim()).filter(Boolean) : ['N/A'];
-const calcAbs = rows => {
-  const primary = rows.filter(r=>r.isPrimary);
-  const p=primary.reduce((s,r)=>s+r.previsto,0), a=primary.reduce((s,r)=>s+r.ausencia,0);
+  // deduplica por name+date para não somar horas duplicadas de múltiplos supervisores
+  const seen = new Set();
+  const unique = rows.filter(r => {
+    const key = r.name + '|' + r.date;
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const p = unique.reduce((s,r)=>s+r.previsto,0);
+  const a = unique.reduce((s,r)=>s+r.ausencia,0);
   return p>0?+(a/p*100).toFixed(2):0;
 };
 const monthKey = d => d.slice(0,7);
@@ -365,17 +381,16 @@ function renderAll(){
 }
 
 function renderKPIs(){
-  const d=filteredData;
-  const primary=d.filter(r=>r.isPrimary);
-  const totP=primary.reduce((s,r)=>s+r.previsto,0), totT=primary.reduce((s,r)=>s+r.trabalhado,0), totA=primary.reduce((s,r)=>s+r.ausencia,0);
+  const d = dedupeRows(filteredData);
+  const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const kpis=[
-    {label:'Colaboradores',val:new Set(d.map(r=>r.name)).size,sub:'no período'},
+    {label:'Colaboradores',val:new Set(filteredData.map(r=>r.name)).size,sub:'no período'},
     {label:'Total previsto',val:totP.toFixed(0)+'h',sub:'horas esperadas'},
     {label:'Total trabalhado',val:totT.toFixed(0)+'h',sub:pct.toFixed(1)+'% do previsto'},
     {label:'Total ausências',val:totA.toFixed(1)+'h',sub:'horas faltantes'},
     {label:'ABS Global',val:absG.toFixed(2)+'%',sub:'índice de absenteísmo'},
-    {label:'Reg. c/ falta',val:primary.filter(r=>r.ausencia>0).length,sub:'registros com ausência'},
+    {label:'Reg. c/ falta',val:d.filter(r=>r.ausencia>0).length,sub:'registros com ausência'},
   ];
   document.getElementById('kpi-row').innerHTML=kpis.map(k=>`<div class="kpi"><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
 }
@@ -489,18 +504,14 @@ function renderChartHours(){
   let labels,prev,trab;
   if(hoursMode==='team'){
     const e=Object.entries(groupBy(filteredData,'team'))
-      .map(([t,v])=>{ const p=v.filter(r=>r.isPrimary); return {t, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
+      .map(([t,v])=>{ const p=dedupeRows(v); return {t, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
       .sort((a,b)=>b.abs-a.abs);
-    labels=e.map(x=>x.t);
-    prev=e.map(x=>+x.prev.toFixed(1));
-    trab=e.map(x=>+x.trab.toFixed(1));
+    labels=e.map(x=>x.t); prev=e.map(x=>+x.prev.toFixed(1)); trab=e.map(x=>+x.trab.toFixed(1));
   } else {
     const e=Object.entries(groupBy(filteredData,'name'))
-      .map(([n,v])=>{ const p=v.filter(r=>r.isPrimary); return {n, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
+      .map(([n,v])=>{ const p=dedupeRows(v); return {n, prev:p.reduce((s,r)=>s+r.previsto,0), trab:p.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)}; })
       .sort((a,b)=>b.abs-a.abs);
-    labels=e.map(x=>x.n.split(' ').slice(0,2).join(' '));
-    prev=e.map(x=>+x.prev.toFixed(1));
-    trab=e.map(x=>+x.trab.toFixed(1));
+    labels=e.map(x=>x.n.split(' ').slice(0,2).join(' ')); prev=e.map(x=>+x.prev.toFixed(1)); trab=e.map(x=>+x.trab.toFixed(1));
   }
   const wrap=document.getElementById('chart-hours-wrap');
   wrap.style.height=Math.max(200,labels.length*(hoursMode==='emp'?20:30)+60)+'px';
