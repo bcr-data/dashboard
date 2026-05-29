@@ -521,7 +521,8 @@ function exportCSV(){
   const lines=[header.join(';')];
   rows.forEach(r=>{
     const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
-    lines.push([r.name,r.team,r.supervisor,r.date,monthLabel(r.month),r.previsto.toFixed(1),r.trabalhado.toFixed(1),r.ausencia.toFixed(1),a.toFixed(2)].join(';'));
+    const fmt=n=>n.replace('.',',');
+    lines.push([r.name,r.team,r.supervisor,r.date,monthLabel(r.month),fmt(r.previsto.toFixed(1)),fmt(r.trabalhado.toFixed(1)),fmt(r.ausencia.toFixed(1)),fmt(a.toFixed(2))].join(';'));
   });
   const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
