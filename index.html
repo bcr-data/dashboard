@@ -392,7 +392,7 @@ function renderTrendChart(){
     const groups = Object.entries(groupBy(dayData, groupKey))
       .map(([k,v])=>({k, abs:calcAbs(v)}))
       .sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
-    labels = days.map(d=>d.slice(5));
+    labels = days.map(d=>{ const[,m,day]=d.split('-'); return `${day}/${m}`; });
     datasets = groups.map((g,i)=>({
       label:g,
       data:days.map(day=>{const r=dayData.filter(x=>x[groupKey]===g&&x.date===day);return r.length?calcAbs(r):null;}),
