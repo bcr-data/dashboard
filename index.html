@@ -171,7 +171,9 @@ function processRows(rows) {
 
 async function init() {
   const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
-  const defaultStart=`${y}-${m}-01`, defaultEnd=today.toISOString().slice(0,10);
+  const past30=new Date(today); past30.setDate(past30.getDate()-30);
+  const py=past30.getFullYear(), pm=String(past30.getMonth()+1).padStart(2,'0'), pd=String(past30.getDate()).padStart(2,'0');
+  const defaultStart=`${py}-${pm}-${pd}`, defaultEnd=today.toISOString().slice(0,10);
   try {
     const rows = await fetchAll(defaultStart, defaultEnd);
     processRows(rows);
