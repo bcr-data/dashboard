@@ -112,7 +112,7 @@ tbody td{padding:7px 10px}
       <label>Senha</label>
       <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
     </div>
-    <button class="btn-login" id="btn-login" onclick="doLogin()">
+    <button class="btn-login" id="btn-login">
       <span id="login-label">Entrar</span>
       <div class="login-spinner" id="login-spinner"></div>
     </button>
@@ -156,6 +156,8 @@ tbody td{padding:7px 10px}
 </div><!-- /dashboard -->
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+
 const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
 const TABLE  = 'absenteeism';
@@ -205,7 +207,8 @@ function showDashboard(user) {
   init();
 }
 
-// Allow Enter key on login fields
+// Button + Enter key listeners
+document.getElementById('btn-login').addEventListener('click', doLogin);
 ['login-email','login-password'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 });
@@ -649,10 +652,9 @@ function exportCSV(){
 
 function showError(msg){
   document.getElementById('app').innerHTML=`<div class="error-box">⚠️ ${msg}</div>`;
-  document.getElementById('header-meta').textContent='Erro ao carregar';
 }
 
-init();
+}); // DOMContentLoaded
 </script>
 </body>
 </html>
