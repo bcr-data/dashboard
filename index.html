@@ -70,9 +70,58 @@ tbody td{padding:7px 10px}
 .spinner{width:28px;height:28px;border:3px solid var(--blue5);border-top-color:var(--blue2);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .error-box{background:#ffebee;border:1px solid #ef9a9a;border-radius:8px;padding:16px 20px;color:#c62828;font-size:13px;margin:20px 24px}
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1565C0 0%,#1976D2 50%,#2196F3 100%)}
+.login-card{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.login-logo{display:flex;justify-content:center;margin-bottom:28px}
+.login-logo img{height:44px;width:auto}
+.login-title{font-size:20px;font-weight:700;color:var(--dark);text-align:center;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--light);text-align:center;margin-bottom:28px}
+.login-field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.login-field label{font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px}
+.login-field input{border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--dark);outline:none;transition:border-color .15s}
+.login-field input:focus{border-color:var(--blue2)}
+.btn-login{width:100%;background:var(--blue2);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:background .15s}
+.btn-login:hover{background:var(--blue1)}
+.btn-login:disabled{background:var(--blue4);cursor:not-allowed}
+.login-error{background:#ffebee;border:1px solid #ef9a9a;border-radius:6px;padding:10px 14px;color:#c62828;font-size:13px;margin-top:12px;display:none}
+.login-spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+/* USER CHIP */
+.user-chip{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.9}
+.user-chip span{opacity:.8}
+.btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;transition:background .15s}
+.btn-logout:hover{background:rgba(255,255,255,.25)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="./logo.png" alt="BCR.CX">
+    </div>
+    <div class="login-title">Dashboard de Ponto</div>
+    <div class="login-sub">Acesso restrito — entre com suas credenciais</div>
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">
+      <span id="login-label">Entrar</span>
+      <div class="login-spinner" id="login-spinner"></div>
+    </button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none">
 
 <div class="header">
   <div class="logo-wrap">
@@ -82,7 +131,12 @@ tbody td{padding:7px 10px}
     <h1>Dashboard de Ponto — Absenteísmo</h1>
     <p>Acompanhamento de frequência e ausências por equipe</p>
   </div>
-  <div class="header-meta" id="header-meta">Carregando...</div>
+  <div class="header-meta" id="header-meta">
+    <div class="user-chip">
+      <span id="user-email-display"></span>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
 </div>
 
 <div class="filters" id="filters-bar" style="display:none">
@@ -99,11 +153,71 @@ tbody td{padding:7px 10px}
   <div class="loading"><div class="spinner"></div>Buscando dados do Supabase...</div>
 </div>
 
+</div><!-- /dashboard -->
+
 <script>
 const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
 const TABLE  = 'absenteeism';
 const PAGE   = 5000;
+
+// Supabase client
+const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('btn-login');
+  const label    = document.getElementById('login-label');
+  const spinner  = document.getElementById('login-spinner');
+
+  errEl.style.display = 'none';
+  if(!email || !password){ errEl.textContent='Preencha e-mail e senha.'; errEl.style.display='block'; return; }
+
+  btn.disabled = true; label.style.display='none'; spinner.style.display='block';
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  btn.disabled = false; label.style.display='block'; spinner.style.display='none';
+
+  if(error){
+    errEl.textContent = error.message.includes('Invalid login') ? 'E-mail ou senha incorretos.' : error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  showDashboard(data.user);
+}
+
+async function doLogout() {
+  await supabase.auth.signOut();
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+  document.getElementById('app').innerHTML = '<div class="loading"><div class="spinner"></div>Buscando dados do Supabase...</div>';
+}
+
+function showDashboard(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('user-email-display').textContent = user.email;
+  init();
+}
+
+// Allow Enter key on login fields
+['login-email','login-password'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+// Check existing session on load
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if(session) {
+    showDashboard(session.user);
+  }
+})();
+// ─────────────────────────────────────────────────────────────────────────────
 
 const parseTime  = t => { if(!t||t==='00:00')return 0; const[h,m]=t.split(':'); return+h+(+m/60); };
 const allLeaders = l => l ? l.split(',').map(x=>x.trim()).filter(Boolean) : ['N/A'];
@@ -136,8 +250,10 @@ const TABLE_PAGE_SIZE=100;
 
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session ? session.access_token : SB_KEY;
   while(true) {
-    const headers = { apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
+    const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
     let url = `${SB_URL}/rest/v1/${TABLE}?select=*&order=extraction_date.asc`;
     if(dateStart) url += `&extraction_date=gte.${dateStart}`;
     if(dateEnd)   url += `&extraction_date=lte.${dateEnd}`;
@@ -182,7 +298,6 @@ async function init() {
     loadedDateStart=defaultStart; loadedDateEnd=defaultEnd;
     document.getElementById('f-date-start').value=defaultStart;
     document.getElementById('f-date-end').value=defaultEnd;
-    document.getElementById('header-meta').textContent=`Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
     document.getElementById('filters-bar').style.display='flex';
     populateFilters(); buildLayout(); renderAll();
   } catch(e){ showError(`Erro ao conectar ao Supabase: ${e.message}`); }
@@ -199,7 +314,6 @@ async function applyFilters() {
       const rows=await fetchAll(ds,de);
       processRows(rows);
       loadedDateStart=ds; loadedDateEnd=de;
-      document.getElementById('header-meta').textContent=`Atualizado: ${allData.map(d=>d.date).sort().pop()} — ${rows.length} registros`;
       funnelPath=[]; populateFilters(sup,team,emp); buildLayout();
     } catch(e){ showError(`Erro ao buscar dados: ${e.message}`); return; }
   }
