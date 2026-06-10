@@ -251,8 +251,13 @@ const dedupeRows = rows => {
 const calcAbs = rows => {
   const u = dedupeRows(rows);
   const p = u.reduce((s,r)=>s+r.previsto,0);
-  const a = u.reduce((s,r)=>s+r.ausencia,0);
-  return p>0?+(a/p*100).toFixed(2):0;
+  const t = u.reduce((s,r)=>s+r.trabalhado,0);
+  return p>0?+((1-(t/p))*100).toFixed(2):0;
+};
+
+// ABS para linha individual (colaborador + dia): clamp em 0 — horas extras não geram ABS negativo
+const calcAbsRow = r => {
+  return r.previsto>0 ? Math.max(0, (1-(r.trabalhado/r.previsto))*100) : 0;
 };
 
 let allData=[], filteredData=[], sortDir={};
@@ -462,7 +467,7 @@ function renderAll(){ renderKPIs(); renderTrendChart(); renderChartAbs(); render
 function renderKPIs(){
   const d=dedupeRows(filteredData);
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
-  const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
+  const absG=totP>0?((1-(totT/totP))*100):0, pct=totP>0?(totT/totP*100):0;
   const kpis=[
     {label:'Colaboradores',val:new Set(filteredData.map(r=>r.name)).size,sub:'no período'},
     {label:'Total previsto',val:totP.toFixed(0)+'h',sub:'horas esperadas'},
@@ -621,7 +626,7 @@ function renderTablePage(){
   const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
   const slice=all.slice(start,end);
   document.getElementById('table-body').innerHTML=slice.map(r=>{
-    const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
+    const a=calcAbsRow(r);
     const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
     return `<tr><td>${r.name}</td><td>${r.team}</td><td>${r.supervisor}</td><td>${r.date}</td><td>${monthLabel(r.month)}</td><td>${r.previsto.toFixed(1)}h</td><td>${r.trabalhado.toFixed(1)}h</td><td>${r.ausencia.toFixed(1)}h</td><td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span></div></td></tr>`;
   }).join('');
@@ -640,7 +645,7 @@ function tablePageChange(dir){
 function sortTable(col){
   const dir=sortDir[col]=!sortDir[col];
   const keys=['name','team','supervisor','date','month','previsto','trabalhado','ausencia'];
-  if(col===8){ filteredData.sort((a,b)=>{ const av=a.previsto>0?a.ausencia/a.previsto:0,bv=b.previsto>0?b.ausencia/b.previsto:0; return dir?av-bv:bv-av; }); }
+  if(col===8){ filteredData.sort((a,b)=>{ const av=calcAbsRow(a),bv=calcAbsRow(b); return dir?av-bv:bv-av; }); }
   else{ filteredData.sort((a,b)=>dir?(a[keys[col]]>b[keys[col]]?1:-1):(a[keys[col]]<b[keys[col]]?1:-1)); }
   tablePage=0; renderTablePage();
 }
@@ -650,7 +655,7 @@ function exportCSV(){
   const header=['Colaborador','Equipe','Supervisor','Data','Mês','Previsto(h)','Trabalhado(h)','Ausência(h)','ABS%'];
   const lines=[header.join(';')];
   rows.forEach(r=>{
-    const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
+    const a=calcAbsRow(r);
     const fmt=n=>n.replace('.',',');
     lines.push([r.name,r.team,r.supervisor,r.date,monthLabel(r.month),fmt(r.previsto.toFixed(1)),fmt(r.trabalhado.toFixed(1)),fmt(r.ausencia.toFixed(1)),fmt(a.toFixed(2))].join(';'));
   });
