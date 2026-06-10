@@ -205,6 +205,19 @@ function showDashboard(user) {
   init();
 }
 
+// Expõe funções usadas em onclick inline para o escopo global
+window.applyFilters = applyFilters;
+window.resetFilters = resetFilters;
+window.setTrendMode = setTrendMode;
+window.setAbsMode   = setAbsMode;
+window.setHoursMode = setHoursMode;
+window.setFunnelRoot= setFunnelRoot;
+window.drillDown    = drillDown;
+window.drillUp      = drillUp;
+window.sortTable    = sortTable;
+window.tablePageChange = tablePageChange;
+window.exportCSV    = exportCSV;
+
 // Button + Enter key listeners
 document.getElementById('btn-login').addEventListener('click', doLogin);
 ['login-email','login-password'].forEach(id => {
