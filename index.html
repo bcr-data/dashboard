@@ -224,6 +224,10 @@ window.drillUp      = drillUp;
 window.sortTable    = sortTable;
 window.tablePageChange = tablePageChange;
 window.exportCSV    = exportCSV;
+window.setExAxisMode  = setExAxisMode;
+window.setExDrillMode = setExDrillMode;
+window.exDrillDown    = exDrillDown;
+window.exDrillUp      = exDrillUp;
 
 // Button + Enter key listeners
 document.getElementById('btn-login').addEventListener('click', doLogin);
@@ -266,7 +270,8 @@ let allData=[], filteredData=[], sortDir={};
 let exemptionMap={}; // key: "name|date" → exemption row
 let loadedDateStart='', loadedDateEnd='';
 let absMode='team', hoursMode='team', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[];
-let chartAbs=null, chartHours=null, chartTrend=null;
+let chartAbs=null, chartHours=null, chartTrend=null, chartExAxis=null, chartExDrill=null;
+let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[];
 let tablePage=0;
 const TABLE_PAGE_SIZE=100;
 
@@ -493,6 +498,42 @@ function buildLayout() {
         <div class="funnel-wrap" id="funnel-wrap"></div>
         <div class="funnel-hint" id="funnel-hint">Clique em uma barra para detalhar</div>
       </div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title"><span class="bar-accent"></span>Abonos por categoria</div>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="ex-axis-btn-status"       onclick="setExAxisMode('status')">Status</button>
+              <button class="toggle-btn"         id="ex-axis-btn-exemption_type" onclick="setExAxisMode('exemption_type')">Tipo de Abono</button>
+              <button class="toggle-btn"         id="ex-axis-btn-solicitation_status" onclick="setExAxisMode('solicitation_status')">Status Solicitação</button>
+            </div>
+          </div>
+          <div class="legend-row">
+            <span><span class="legend-dot" style="background:#1976D2"></span>Registros</span>
+            <span><span class="legend-dot" style="background:#90CAF9"></span>Horas abonadas</span>
+          </div>
+          <div style="max-height:320px;overflow-y:auto;"><div style="position:relative;" id="chart-ex-axis-wrap"><canvas id="chartExAxis"></canvas></div></div>
+        </div>
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title"><span class="bar-accent"></span><span id="ex-drill-title">Abonos por Supervisor</span></div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="funnel-breadcrumb" id="ex-drill-breadcrumb" style="margin-bottom:0"></div>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="ex-drill-btn-answered_by"   onclick="setExDrillMode('answered_by')">Supervisor</button>
+                <button class="toggle-btn"         id="ex-drill-btn-team_name"     onclick="setExDrillMode('team_name')">Equipe</button>
+                <button class="toggle-btn"         id="ex-drill-btn-employee_name" onclick="setExDrillMode('employee_name')">Colaborador</button>
+              </div>
+            </div>
+          </div>
+          <div class="legend-row">
+            <span><span class="legend-dot" style="background:#1565C0"></span>Registros</span>
+            <span><span class="legend-dot" style="background:#64B5F6"></span>Horas abonadas</span>
+          </div>
+          <div style="max-height:320px;overflow-y:auto;"><div style="position:relative;" id="chart-ex-drill-wrap"><canvas id="chartExDrill"></canvas></div></div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;font-style:italic" id="ex-drill-hint">Clique em uma barra para detalhar</div>
+        </div>
+      </div>
       <div class="table-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <div class="card-title"><span class="bar-accent"></span>Detalhamento por colaborador / dia</div>
@@ -533,10 +574,10 @@ function buildLayout() {
         </div>
       </div>
     </div>`;
-  chartAbs=null; chartHours=null; chartTrend=null;
+  chartAbs=null; chartHours=null; chartTrend=null; chartExAxis=null; chartExDrill=null; exDrillPath=[];
 }
 
-function renderAll(){ renderKPIs(); renderTrendChart(); renderChartAbs(); renderChartHours(); renderFunnel(); renderTableBody(); }
+function renderAll(){ renderKPIs(); renderTrendChart(); renderChartAbs(); renderChartHours(); renderFunnel(); renderExAxisChart(); renderExDrillChart(); renderTableBody(); }
 
 function renderKPIs(){
   const d=dedupeRows(filteredData);
@@ -544,19 +585,20 @@ function renderKPIs(){
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
   const totAbonado=d.reduce((s,r)=>s+(r.abonado||0),0);
-  // Formata horas decimais → "Xh YYmin"
+  const totAbonos=d.filter(r=>r.exemption).length;
   const fmtHoras = h => {
     const hh=Math.floor(h), mm=Math.round((h-hh)*60);
     return mm>0?`${hh}h ${String(mm).padStart(2,'0')}min`:`${hh}h`;
   };
   const kpis=[
-    {label:'Colaboradores',val:new Set(filteredData.map(r=>r.name)).size,sub:'no período'},
-    {label:'Total previsto',val:totP.toFixed(0)+'h',sub:'horas esperadas'},
-    {label:'Total trabalhado',val:totT.toFixed(0)+'h',sub:pct.toFixed(1)+'% do previsto'},
-    {label:'Total ausências',val:totA.toFixed(1)+'h',sub:'horas faltantes'},
-    {label:'ABS Global',val:absG.toFixed(2)+'%',sub:'índice de absenteísmo'},
-    {label:'Reg. c/ falta',val:regFalta,sub:'registros com ausência'},
-    {label:'Total Abonado',val:fmtHoras(totAbonado),sub:'horas com abono'},
+    {label:'Colaboradores',    val:new Set(filteredData.map(r=>r.name)).size, sub:'no período'},
+    {label:'Total previsto',   val:fmtHoras(totP),   sub:'horas esperadas'},
+    {label:'Total trabalhado', val:fmtHoras(totT),   sub:pct.toFixed(1)+'% do previsto'},
+    {label:'Total ausências',  val:fmtHoras(totA),   sub:'horas faltantes'},
+    {label:'ABS Global',       val:absG.toFixed(2)+'%', sub:'índice de absenteísmo'},
+    {label:'Reg. c/ falta',    val:regFalta,         sub:'registros com ausência'},
+    {label:'Total Abonos',     val:totAbonos,        sub:'registros com abono'},
+    {label:'Total Abonado',    val:fmtHoras(totAbonado), sub:'horas com abono'},
   ];
   document.getElementById('kpi-row').innerHTML=kpis.map(k=>`<div class="kpi"><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
 }
@@ -807,6 +849,161 @@ function exportCSV(){
   const a=document.createElement('a');
   a.href=url; a.download='absenteismo.csv'; a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── HELPERS para gráficos de abono ────────────────────────────────────────────
+function getExemptions() {
+  // Pega só registros únicos com abono do filteredData
+  const seen = new Set();
+  const result = [];
+  for(const r of filteredData) {
+    if(!r.exemption) continue;
+    const key = r.name+'|'+r.date;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    result.push(r);
+  }
+  return result;
+}
+
+const fmtH = h => {
+  const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+  return mm>0?`${hh}h${String(mm).padStart(2,'0')}m`:`${hh}h`;
+};
+
+// ── GRÁFICO 1: por categoria (status / exemption_type / solicitation_status) ──
+function setExAxisMode(m){
+  exAxisMode=m;
+  ['status','exemption_type','solicitation_status'].forEach(k=>{
+    document.getElementById('ex-axis-btn-'+k).classList.toggle('active',m===k);
+  });
+  renderExAxisChart();
+}
+
+function renderExAxisChart(){
+  const exRows = getExemptions();
+  const grouped = {};
+  exRows.forEach(r => {
+    const cat = (r.exemption[exAxisMode]||'N/A').trim() || 'N/A';
+    if(!grouped[cat]) grouped[cat]={count:0, horas:0};
+    grouped[cat].count++;
+    grouped[cat].horas += (r.abonado||0);
+  });
+  const sorted = Object.entries(grouped).sort((a,b)=>b[1].count-a[1].count);
+  const labels  = sorted.map(([k])=>k);
+  const counts  = sorted.map(([,v])=>v.count);
+  const horas   = sorted.map(([,v])=>+v.horas.toFixed(2));
+
+  const wrap = document.getElementById('chart-ex-axis-wrap');
+  wrap.style.height = Math.max(180, labels.length*34+60)+'px';
+  if(chartExAxis) chartExAxis.destroy();
+  chartExAxis = new Chart(document.getElementById('chartExAxis'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Registros', data:counts, backgroundColor:'#1976D2', borderRadius:4, yAxisID:'y'},
+        {label:'Horas abonadas', data:horas, backgroundColor:'#90CAF9', borderRadius:4, yAxisID:'y2'}
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label: ctx => ctx.dataset.label==='Horas abonadas' ? fmtH(ctx.parsed.x) : ctx.parsed.x+' reg.'
+      }}},
+      scales:{
+        x:{display:false},
+        y:{grid:{display:false}, ticks:{font:{size:11}}},
+        y2:{display:false}
+      }
+    }
+  });
+}
+
+// ── GRÁFICO 2: drill down (answered_by / team_name / employee_name) ───────────
+function setExDrillMode(m){
+  exDrillMode=m; exDrillPath=[];
+  ['answered_by','team_name','employee_name'].forEach(k=>{
+    document.getElementById('ex-drill-btn-'+k).classList.toggle('active',m===k);
+  });
+  const labels={'answered_by':'Supervisor','team_name':'Equipe','employee_name':'Colaborador'};
+  document.getElementById('ex-drill-title').textContent='Abonos por '+labels[m];
+  renderExDrillChart();
+}
+
+function exDrillDown(val){
+  exDrillPath.push(val);
+  renderExDrillChart();
+}
+
+function exDrillUp(idx){
+  exDrillPath = idx===-1 ? [] : exDrillPath.slice(0,idx+1);
+  renderExDrillChart();
+}
+
+function renderExDrillChart(){
+  let exRows = getExemptions();
+
+  // Aplica o path de drill (filtra por valores anteriores usando exDrillMode sequencial)
+  // O drill aprofunda no mesmo eixo filtrando pelo valor clicado
+  exDrillPath.forEach(val => {
+    exRows = exRows.filter(r => (r.exemption[exDrillMode]||'N/A').trim()===val);
+  });
+
+  // Determina qual campo agrupar: se já drillou, vai para employee_name
+  const drillDepthKey = exDrillPath.length===0 ? exDrillMode
+    : exDrillMode==='answered_by' && exDrillPath.length===1 ? 'team_name'
+    : 'employee_name';
+
+  const canDrill = drillDepthKey !== 'employee_name';
+
+  const grouped = {};
+  exRows.forEach(r => {
+    const cat = (r.exemption[drillDepthKey]||'N/A').trim() || 'N/A';
+    if(!grouped[cat]) grouped[cat]={count:0, horas:0};
+    grouped[cat].count++;
+    grouped[cat].horas += (r.abonado||0);
+  });
+  const sorted = Object.entries(grouped).sort((a,b)=>b[1].count-a[1].count);
+  const labels  = sorted.map(([k])=>k);
+  const counts  = sorted.map(([,v])=>v.count);
+  const horas   = sorted.map(([,v])=>+v.horas.toFixed(2));
+
+  // Breadcrumb
+  const bc = document.getElementById('ex-drill-breadcrumb');
+  bc.innerHTML = '<span onclick="exDrillUp(-1)" style="color:var(--blue2);cursor:pointer;font-weight:600">Início</span>';
+  exDrillPath.forEach((v,i)=>{
+    bc.innerHTML += ` › <span onclick="exDrillUp(${i})" style="color:var(--blue2);cursor:pointer;font-weight:600">${v}</span>`;
+  });
+  document.getElementById('ex-drill-hint').textContent = canDrill ? 'Clique em uma barra para detalhar' : '';
+
+  const wrap = document.getElementById('chart-ex-drill-wrap');
+  wrap.style.height = Math.max(180, labels.length*34+60)+'px';
+  if(chartExDrill) chartExDrill.destroy();
+  chartExDrill = new Chart(document.getElementById('chartExDrill'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Registros',      data:counts, backgroundColor:'#1565C0', borderRadius:4, yAxisID:'y'},
+        {label:'Horas abonadas', data:horas,  backgroundColor:'#64B5F6', borderRadius:4, yAxisID:'y2'}
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label: ctx => ctx.dataset.label==='Horas abonadas' ? fmtH(ctx.parsed.x) : ctx.parsed.x+' reg.'
+      }}},
+      onClick: canDrill ? (evt, els) => {
+        if(els.length){ exDrillDown(labels[els[0].index]); }
+      } : null,
+      scales:{
+        x:{display:false},
+        y:{grid:{display:false}, ticks:{font:{size:11}}, cursor: canDrill?'pointer':'default'},
+        y2:{display:false}
+      }
+    }
+  });
 }
 
 function showError(msg){
