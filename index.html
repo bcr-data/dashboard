@@ -301,7 +301,11 @@ async function fetchExemptions(dateStart, dateEnd) {
     if(dateStart) url += `&date=gte.${dateStart}`;
     if(dateEnd)   url += `&date=lte.${dateEnd}`;
     const res = await fetch(url, { headers });
-    if(!res.ok) { console.warn('exemptions fetch failed:', res.status); return {}; }
+    if(!res.ok) {
+      const errBody = await res.text();
+      console.error('exemptions fetch failed:', res.status, errBody);
+      return {};
+    }
     if(total===null){ const cr=res.headers.get('Content-Range'); if(cr) total=parseInt(cr.split('/')[1])||null; }
     const page = await res.json();
     rows.push(...page);
@@ -309,36 +313,51 @@ async function fetchExemptions(dateStart, dateEnd) {
     if(page.length<PAGE) break;
     offset+=PAGE;
   }
+  console.log(`[exemptions] ${rows.length} registros carregados para ${dateStart} → ${dateEnd}`);
   // Build lookup map: "employee_name|date" → exemption row (first match, prefer all_day=sim)
   const map={};
   rows.forEach(ex => {
-    const k=(ex.employee_name||'')+'|'+(ex.date||'');
+    const k=(ex.employee_name||'').trim()+'|'+(ex.date||'');
     if(!map[k] || (ex.all_day||'').toLowerCase()==='sim') map[k]=ex;
   });
+  console.log(`[exemptions] ${Object.keys(map).length} chaves no mapa`);
+  // Log primeiras 3 chaves para inspeção
+  Object.keys(map).slice(0,3).forEach(k => console.log('[exemptions] chave:', k));
   return map;
 }
 
 function processRows(rows) {
   allData = [];
+  let exHits = 0, exAllDay = 0;
   for(const r of rows) {
     const prev = parseTime(r.total_working_time);
     const trab = parseTime(r.total_worked_time);
     const ausOriginal = parseTime(r.total_missing_time);
     allLeaders(r.leaders).forEach(sup => {
-      // Check exemption for this employee+date
-      const exKey = r.name+'|'+r.extraction_date;
+      const exKey = r.name.trim()+'|'+r.extraction_date;
       const ex = exemptionMap[exKey] || null;
       const isAllDay = ex && (ex.all_day||'').toLowerCase()==='sim';
-      // If all_day=sim → ausencia = previsto (100% ABS impact)
       const ausencia = isAllDay ? prev : ausOriginal;
+      // Total abonado: all_day=sim → total_working_time; parcial → exemption_duration
+      let abonado = 0;
+      if(ex) {
+        abonado = isAllDay ? prev : parseTime(ex.exemption_duration || '00:00');
+      }
+      if(ex) exHits++;
+      if(isAllDay) exAllDay++;
       allData.push({
         name:r.name, team:r.cost_center, supervisor:sup,
         date:r.extraction_date, month:monthKey(r.extraction_date),
         previsto:prev, trabalhado:trab, ausencia:ausencia,
+        abonado:abonado,
         exemption: ex
       });
     });
   }
+  console.log(`[processRows] ${allData.length} linhas | ${exHits} com abono | ${exAllDay} all_day=sim`);
+  allData.filter(r=>r.exemption).slice(0,3).forEach(r =>
+    console.log(`[match] ${r.name} | ${r.date} | all_day:${r.exemption.all_day} | aus:${r.ausencia} | abonado:${r.abonado} | prev:${r.previsto}`)
+  );
 }
 
 async function init() {
@@ -491,6 +510,7 @@ function buildLayout() {
               <th onclick="sortTable(6)">Trabalhado ↕</th>
               <th onclick="sortTable(7)">Ausência ↕</th>
               <th onclick="sortTable(8)">ABS % ↕</th>
+              <th>Total Abonado</th>
               <th>Tipo de Abono</th>
               <th>Status</th>
               <th>Solicitação</th>
@@ -522,8 +542,13 @@ function renderKPIs(){
   const d=dedupeRows(filteredData);
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
-  // Reg c/ falta: ausencia > 0 OR exemption all_day=sim
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
+  const totAbonado=d.reduce((s,r)=>s+(r.abonado||0),0);
+  // Formata horas decimais → "Xh YYmin"
+  const fmtHoras = h => {
+    const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+    return mm>0?`${hh}h ${String(mm).padStart(2,'0')}min`:`${hh}h`;
+  };
   const kpis=[
     {label:'Colaboradores',val:new Set(filteredData.map(r=>r.name)).size,sub:'no período'},
     {label:'Total previsto',val:totP.toFixed(0)+'h',sub:'horas esperadas'},
@@ -531,6 +556,7 @@ function renderKPIs(){
     {label:'Total ausências',val:totA.toFixed(1)+'h',sub:'horas faltantes'},
     {label:'ABS Global',val:absG.toFixed(2)+'%',sub:'índice de absenteísmo'},
     {label:'Reg. c/ falta',val:regFalta,sub:'registros com ausência'},
+    {label:'Total Abonado',val:fmtHoras(totAbonado),sub:'horas com abono'},
   ];
   document.getElementById('kpi-row').innerHTML=kpis.map(k=>`<div class="kpi"><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.label}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
 }
@@ -694,8 +720,13 @@ function renderTablePage(){
     const exAllDay= ex?(ex.all_day||'—'):'—';
     const exStart = isAllDay?'—':(ex?(ex.start_time||'—'):'—');
     const exEnd   = isAllDay?'—':(ex?(ex.end_time||'—'):'—');
-    const exAttach= ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim')?'✔ Sim':'✘ Não'):'—';
+    const exAttach= ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim'||ex.has_attachment==='Sim')?'✔ Sim':'✘ Não'):'—';
     const exObs   = ex?(ex.observation||'—'):'—';
+    // Total abonado formatado
+    const abonadoH = r.abonado||0;
+    const abonadoHH = Math.floor(abonadoH), abonadoMM = Math.round((abonadoH-abonadoHH)*60);
+    const abonadoFmt = abonadoH>0 ? (abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`) : '—';
+    const abonadoTag = abonadoH>0 ? `<span class="badge badge-exemption">${abonadoFmt}</span>` : '—';
     // Row highlight class when exemption present
     const rowClass= isAllDay?'style="background:#fff8e1"':'';
     // ABS cell tag
@@ -711,6 +742,7 @@ function renderTablePage(){
       <td>${r.trabalhado.toFixed(1)}h</td>
       <td>${r.ausencia.toFixed(1)}h</td>
       <td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span>${absTag}</div></td>
+      <td>${abonadoTag}</td>
       <td>${exType}</td>
       <td>${exStatus}</td>
       <td>${exSol}</td>
@@ -744,7 +776,7 @@ function sortTable(col){
 
 function exportCSV(){
   const rows=dedupeRows(filteredData);
-  const header=['Colaborador','Equipe','Supervisor','Data','Mês','Previsto(h)','Trabalhado(h)','Ausência(h)','ABS%',
+  const header=['Colaborador','Equipe','Supervisor','Data','Mês','Previsto(h)','Trabalhado(h)','Ausência(h)','ABS%','Total Abonado',
                 'Tipo de Abono','Status','Solicitação','Aprovada por','Dia todo','Horário Início Abono','Horário Fim Abono','Possui Anexo','Observação'];
   const lines=[header.join(';')];
   rows.forEach(r=>{
@@ -752,9 +784,13 @@ function exportCSV(){
     const fmt=n=>n.replace('.',',');
     const ex=r.exemption;
     const isAllDay=ex&&(ex.all_day||'').toLowerCase()==='sim';
+    const abonadoH=r.abonado||0;
+    const abonadoHH=Math.floor(abonadoH), abonadoMM=Math.round((abonadoH-abonadoHH)*60);
+    const abonadoFmt=abonadoH>0?(abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`):'';
     lines.push([
       r.name, r.team, r.supervisor, r.date, monthLabel(r.month),
       fmt(r.previsto.toFixed(1)), fmt(r.trabalhado.toFixed(1)), fmt(r.ausencia.toFixed(1)), fmt(a.toFixed(2)),
+      abonadoFmt,
       ex?(ex.exemption_type||''):'',
       ex?(ex.status||''):'',
       ex?(ex.solicitation_status||''):'',
@@ -762,7 +798,7 @@ function exportCSV(){
       ex?(ex.all_day||''):'',
       isAllDay?'':(ex?(ex.start_time||''):''),
       isAllDay?'':(ex?(ex.end_time||''):''),
-      ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim')?'Sim':'Não'):'',
+      ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim'||ex.has_attachment==='Sim')?'Sim':'Não'):'',
       ex?(ex.observation||''):''
     ].join(';'));
   });
