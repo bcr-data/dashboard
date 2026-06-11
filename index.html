@@ -23,10 +23,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .filter-group select,.filter-group input[type=date]{border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s ease}
 .filter-group select:hover,.filter-group input[type=date]:hover{border-color:var(--text-3)}
 .filter-group select:focus,.filter-group input[type=date]:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(24,24,27,.06)}
-.btn-filter{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:500;height:35px;transition:opacity .15s ease}
+.btn-filter{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:500;height:36px;transition:opacity .15s ease;flex-shrink:0}
 .btn-filter:hover{opacity:.85}
-.btn-reset{background:transparent;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;height:35px;transition:background .15s ease,border-color .15s ease}
+.btn-reset{background:transparent;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;height:36px;transition:background .15s ease,border-color .15s ease;flex-shrink:0}
 .btn-reset:hover{background:var(--border-subtle);border-color:var(--text-3)}
+/* MULTISELECT */
+.ms-wrap{position:relative}
+.ms-trigger{border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:13px;color:var(--text);background:var(--surface);cursor:pointer;display:flex;align-items:center;gap:6px;min-height:36px;transition:border-color .15s ease;flex-wrap:wrap}
+.ms-trigger:hover{border-color:var(--text-3)}
+.ms-trigger.open{border-color:var(--text)}
+.ms-chips{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.ms-chip{background:#eff6ff;color:#1e40af;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:500;display:flex;align-items:center;gap:2px;white-space:nowrap}
+.ms-chip .ms-rm{cursor:pointer;opacity:.6;font-size:13px;line-height:1}
+.ms-chip .ms-rm:hover{opacity:1}
+.ms-placeholder{color:var(--text);font-size:13px}
+.ms-chevron{font-size:14px;color:var(--text-3);flex-shrink:0;transition:transform .15s ease;margin-left:auto}
+.ms-chevron.open{transform:rotate(180deg)}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:10px;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.07);overflow:hidden}
+.ms-search{padding:8px;border-bottom:1px solid var(--border-subtle)}
+.ms-search input{width:100%;border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;outline:none;color:var(--text);background:var(--bg);transition:border-color .15s ease}
+.ms-search input:focus{border-color:var(--text)}
+.ms-opts{max-height:200px;overflow-y:auto}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:13px;color:var(--text);cursor:pointer;transition:background .1s ease}
+.ms-opt:hover{background:var(--border-subtle)}
+.ms-opt input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.ms-footer{padding:7px 12px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center}
+.ms-footer-count{font-size:11px;color:var(--text-3)}
+.ms-footer-clear{font-size:11px;color:var(--text-2);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px}
+.ms-footer-clear:hover{color:var(--text);background:var(--border-subtle)}
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-width:1600px;margin:0 auto;width:100%}
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .kpi{background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border);transition:border-color .15s ease}
@@ -159,9 +183,42 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
 <div class="filters" id="filters-bar" style="display:none">
   <div class="filter-group"><label>Data início</label><input type="date" id="f-date-start"></div>
   <div class="filter-group"><label>Data fim</label><input type="date" id="f-date-end"></div>
-  <div class="filter-group"><label>Supervisor</label><select id="f-sup"></select></div>
-  <div class="filter-group"><label>Equipe</label><select id="f-team"></select></div>
-  <div class="filter-group"><label>Colaborador</label><select id="f-emp"></select></div>
+  <div class="filter-group ms-wrap" id="ms-wrap-sup">
+    <label>Supervisor</label>
+    <div class="ms-trigger" id="ms-trigger-sup" onclick="msToggle('sup')">
+      <div class="ms-chips" id="ms-chips-sup"><span class="ms-placeholder">Todos os supervisores</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-sup" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-sup" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-sup')" id="ms-srch-sup"></div>
+      <div class="ms-opts" id="ms-list-sup"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-sup">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('sup')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-team">
+    <label>Equipe</label>
+    <div class="ms-trigger" id="ms-trigger-team" onclick="msToggle('team')">
+      <div class="ms-chips" id="ms-chips-team"><span class="ms-placeholder">Todas as equipes</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-team" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-team" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-team')" id="ms-srch-team"></div>
+      <div class="ms-opts" id="ms-list-team"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-team">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('team')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-emp">
+    <label>Colaborador</label>
+    <div class="ms-trigger" id="ms-trigger-emp" onclick="msToggle('emp')">
+      <div class="ms-chips" id="ms-chips-emp"><span class="ms-placeholder">Todos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-emp" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-emp" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-emp')" id="ms-srch-emp"></div>
+      <div class="ms-opts" id="ms-list-emp"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-emp">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('emp')">Limpar</button></div>
+    </div>
+  </div>
   <button class="btn-filter" onclick="applyFilters()">Filtrar</button>
   <button class="btn-reset" onclick="resetFilters()">Limpar</button>
 </div>
@@ -228,6 +285,11 @@ function showDashboard(user) {
 // Expõe funções usadas em onclick inline para o escopo global
 window.applyFilters = applyFilters;
 window.resetFilters = resetFilters;
+window.msToggle     = msToggle;
+window.msToggleOpt  = msToggleOpt;
+window.msClear      = msClear;
+window.msFilter     = msFilter;
+window.msRemoveChip = msRemoveChip;
 window.setTrendMode = setTrendMode;
 window.setAbsMode   = setAbsMode;
 window.setHoursMode = setHoursMode;
@@ -268,7 +330,7 @@ const groupBy    = (arr,key) => arr.reduce((a,r)=>{ (a[r[key]]=a[r[key]]||[]).pu
 const dedupeRows = rows => {
   const seen = new Set();
   return rows.filter(r => {
-    const key = r.name+'|'+r.date;
+    const key = r.name+'|'+r.date+'|'+r.team;
     if(seen.has(key)) return false;
     seen.add(key); return true;
   });
@@ -282,8 +344,11 @@ const calcAbs = rows => {
 };
 
 let allData=[], filteredData=[], sortDir={};
-let exemptionMap={}; // key: "name|date" → exemption row
+let exemptionMap={};
 let loadedDateStart='', loadedDateEnd='';
+// Multiselect state
+const msSel={sup:new Set(), team:new Set(), emp:new Set()};
+const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos'};
 let absMode='team', hoursMode='team', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[];
 let chartAbs=null, chartHours=null, chartTrend=null, chartExAxis=null, chartExDrill=null, chartExMatrix=null;
 let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDrillMode='answered_by', exMatrixDrillPath=[];
@@ -403,51 +468,179 @@ async function init() {
 }
 
 async function applyFilters() {
-  const sup=document.getElementById('f-sup').value, team=document.getElementById('f-team').value,
-        emp=document.getElementById('f-emp').value, ds=document.getElementById('f-date-start').value,
-        de=document.getElementById('f-date-end').value;
+  const ds=document.getElementById('f-date-start').value;
+  const de=document.getElementById('f-date-end').value;
 
   if(ds!==loadedDateStart || de!==loadedDateEnd) {
     document.getElementById('app').innerHTML='<div class="loading"><div class="spinner"></div>Atualizando...</div>';
     try {
-      const [rows, exMap] = await Promise.all([
-        fetchAll(ds, de),
-        fetchExemptions(ds, de)
-      ]);
+      const [rows, exMap] = await Promise.all([fetchAll(ds,de), fetchExemptions(ds,de)]);
       exemptionMap = exMap;
       processRows(rows);
       loadedDateStart=ds; loadedDateEnd=de;
-      funnelPath=[]; populateFilters(sup,team,emp); buildLayout();
+      funnelPath=[]; populateFilters(); buildLayout();
     } catch(e){ showError(`Erro ao buscar dados: ${e.message}`); return; }
   }
 
   filteredData=allData.filter(d=>{
-    if(sup  && d.supervisor!==sup)  return false;
-    if(team && d.team!==team)       return false;
-    if(emp  && d.name!==emp)        return false;
+    if(msSel.sup.size  && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size && !msSel.team.has(d.team))       return false;
+    if(msSel.emp.size  && !msSel.emp.has(d.name))        return false;
     return true;
   });
   funnelPath=[]; renderAll();
 }
 
 function resetFilters() {
-  ['f-sup','f-team','f-emp'].forEach(id=>document.getElementById(id).value='');
+  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear();
+  ['sup','team','emp'].forEach(k=>msRenderChips(k));
   const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
   document.getElementById('f-date-start').value=`${y}-${m}-01`;
   document.getElementById('f-date-end').value=today.toISOString().slice(0,10);
   applyFilters();
 }
 
-function populateFilters(selSup='',selTeam='',selEmp='') {
-  const fill=(id,opts,ph,sel)=>{
-    const s=document.getElementById(id);
-    s.innerHTML=`<option value="">${ph}</option>`;
-    opts.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; if(v===sel)o.selected=true; s.appendChild(o); });
-  };
-  fill('f-sup',  [...new Set(allData.map(d=>d.supervisor))].sort(),'Todos os supervisores',selSup);
-  fill('f-team', [...new Set(allData.map(d=>d.team))].sort(),      'Todas as equipes',     selTeam);
-  fill('f-emp',  [...new Set(allData.map(d=>d.name))].sort(),      'Todos',                selEmp);
+function populateFilters() {
+  // Supervisor — todas as opções
+  const allSups = [...new Set(allData.map(d=>d.supervisor))].sort();
+  msFill('sup', allSups);
+
+  // Equipe — filtrada pelos supervisores selecionados
+  const dataForTeam = msSel.sup.size
+    ? allData.filter(d => msSel.sup.has(d.supervisor))
+    : allData;
+  const allTeams = [...new Set(dataForTeam.map(d=>d.team))].sort();
+  // remove seleções de equipe que já não existem no contexto
+  [...msSel.team].forEach(v => { if(!allTeams.includes(v)) msSel.team.delete(v); });
+  msFill('team', allTeams);
+
+  // Colaborador — filtrado pelos supervisores E equipes selecionadas
+  const dataForEmp = allData.filter(d => {
+    if(msSel.sup.size  && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size && !msSel.team.has(d.team))       return false;
+    return true;
+  });
+  const allEmps = [...new Set(dataForEmp.map(d=>d.name))].sort();
+  // remove seleções de colaborador que já não existem no contexto
+  [...msSel.emp].forEach(v => { if(!allEmps.includes(v)) msSel.emp.delete(v); });
+  msFill('emp', allEmps);
 }
+
+// ── MULTISELECT FUNCTIONS ─────────────────────────────────────────────────────
+function msFill(k, opts) {
+  const list = document.getElementById('ms-list-'+k);
+  if(!list) return;
+  list.innerHTML = opts.map(v => {
+    const checked = msSel[k].has(v) ? 'checked' : '';
+    const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\\'");
+    return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="msToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
+  }).join('');
+  msRenderChips(k);
+}
+
+function msToggle(k) {
+  const dd = document.getElementById('ms-dd-'+k);
+  const chev = document.getElementById('ms-chev-'+k);
+  const trigger = document.getElementById('ms-trigger-'+k);
+  const isOpen = dd.style.display !== 'none';
+  // close all
+  ['sup','team','emp'].forEach(x => {
+    document.getElementById('ms-dd-'+x).style.display = 'none';
+    document.getElementById('ms-chev-'+x).classList.remove('open');
+    document.getElementById('ms-trigger-'+x).classList.remove('open');
+  });
+  if(!isOpen) {
+    dd.style.display = 'block';
+    chev.classList.add('open');
+    trigger.classList.add('open');
+    const srch = document.getElementById('ms-srch-'+k);
+    if(srch){ srch.value=''; msFilter(srch,'ms-list-'+k); srch.focus(); }
+  }
+}
+
+function msToggleOpt(k, v, cb) {
+  if(cb.checked) msSel[k].add(v); else msSel[k].delete(v);
+  msRenderChips(k);
+  // Repopula filtros dependentes em cascata
+  if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
+  if(k === 'team') { populateEmpFilter(); }
+}
+
+function populateTeamFilter() {
+  const dataForTeam = msSel.sup.size
+    ? allData.filter(d => msSel.sup.has(d.supervisor))
+    : allData;
+  const allTeams = [...new Set(dataForTeam.map(d=>d.team))].sort();
+  [...msSel.team].forEach(v => { if(!allTeams.includes(v)) msSel.team.delete(v); });
+  msFill('team', allTeams);
+}
+
+function populateEmpFilter() {
+  const dataForEmp = allData.filter(d => {
+    if(msSel.sup.size  && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size && !msSel.team.has(d.team))       return false;
+    return true;
+  });
+  const allEmps = [...new Set(dataForEmp.map(d=>d.name))].sort();
+  [...msSel.emp].forEach(v => { if(!allEmps.includes(v)) msSel.emp.delete(v); });
+  msFill('emp', allEmps);
+}
+
+function msClear(k) {
+  msSel[k].clear();
+  document.querySelectorAll('#ms-list-'+k+' input').forEach(i=>i.checked=false);
+  msRenderChips(k);
+  if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
+  if(k === 'team') { populateEmpFilter(); }
+}
+
+function msRenderChips(k) {
+  const chips = document.getElementById('ms-chips-'+k);
+  const count = document.getElementById('ms-count-'+k);
+  if(!chips) return;
+  if(count) count.textContent = msSel[k].size + ' selecionado' + (msSel[k].size!==1?'s':'');
+  if(msSel[k].size === 0) {
+    chips.innerHTML = `<span class="ms-placeholder">${msPlaceholder[k]}</span>`;
+    return;
+  }
+  chips.innerHTML = [...msSel[k]].map(v => {
+    const short = v.split(' ').slice(0,2).join(' ');
+    const esc = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<span class="ms-chip">${short}<span class="ms-rm" onclick="msRemoveChip('${k}','${esc}',event)">×</span></span>`;
+  }).join('');
+}
+
+function msRemoveChip(k, v, e) {
+  e.stopPropagation();
+  msSel[k].delete(v);
+  const cb = document.querySelector(`#ms-list-${k} input[type=checkbox]`);
+  // uncheck matching checkbox
+  document.querySelectorAll(`#ms-list-${k} .ms-opt`).forEach(el => {
+    if(el.querySelector('span').textContent === v) el.querySelector('input').checked = false;
+  });
+  msRenderChips(k);
+}
+
+function msFilter(inp, listId) {
+  const q = inp.value.toLowerCase();
+  document.querySelectorAll('#'+listId+' .ms-opt').forEach(el => {
+    el.style.display = el.querySelector('span').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', e => {
+  if(!e.target.closest('.ms-wrap')) {
+    ['sup','team','emp'].forEach(k => {
+      const dd = document.getElementById('ms-dd-'+k);
+      if(dd) dd.style.display = 'none';
+      const chev = document.getElementById('ms-chev-'+k);
+      if(chev) chev.classList.remove('open');
+      const tr = document.getElementById('ms-trigger-'+k);
+      if(tr) tr.classList.remove('open');
+    });
+  }
+});
 
 function buildLayout() {
   document.getElementById('app').innerHTML=`
