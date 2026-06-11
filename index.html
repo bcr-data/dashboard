@@ -7,96 +7,106 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#1a2332;font-size:14px}
-:root{--blue1:#1565C0;--blue2:#1976D2;--blue3:#2196F3;--blue4:#64B5F6;--blue5:#E3F2FD;--dark:#1a2332;--mid:#455a64;--light:#78909c;--border:#e0e8f0}
-.header{background:var(--blue1);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.logo-wrap{background:#fff;border-radius:10px;padding:6px 12px;display:flex;align-items:center;gap:8px}
-.header-title{flex:1;text-align:center}.header-title h1{font-size:20px;font-weight:600}.header-title p{font-size:12px;opacity:.8;margin-top:2px}
-.header-meta{font-size:12px;text-align:right;opacity:.85;min-width:160px}
-.filters{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
-.filter-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:150px}
-.filter-group label{font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.5px}
-.filter-group select,.filter-group input[type=date]{border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--dark);background:#fff;outline:none}
-.filter-group select:hover,.filter-group input[type=date]:hover{border-color:var(--blue3)}
-.btn-filter{background:var(--blue2);color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:13px;cursor:pointer;font-weight:600;height:33px}
-.btn-reset{background:transparent;color:var(--mid);border:1.5px solid var(--border);border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;height:33px}
-.main{padding:20px 24px;display:flex;flex-direction:column;gap:18px}
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
-.kpi{background:#fff;border-radius:10px;padding:16px;border:1px solid var(--border);position:relative;overflow:hidden}
-.kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:#1A2A6C}
-.kpi-val{font-size:26px;font-weight:700;color:var(--dark);line-height:1}
-.kpi-label{font-size:11px;color:var(--light);margin-top:6px;text-transform:uppercase;letter-spacing:.4px}
-.kpi-sub{font-size:11px;color:var(--mid);margin-top:3px}
-.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.chart-card{background:#fff;border-radius:10px;padding:18px;border:1px solid var(--border)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:#fafafa;color:#18181b;font-size:14px;-webkit-font-smoothing:antialiased}
+:root{--bg:#fafafa;--surface:#fff;--border:#e4e4e7;--border-subtle:#f4f4f5;--text:#18181b;--text-2:#71717a;--text-3:#a1a1aa;--brand:#1A2A6C;--data:#3b82f6;--data-dark:#1e40af;--data-light:#93c5fd;--warn:#f59e0b;--danger:#dc2626;--success:#16a34a;--blue1:#1A2A6C;--blue2:#3b82f6;--blue3:#3b82f6;--blue4:#93c5fd;--blue5:#eff6ff;--dark:#18181b;--mid:#71717a;--light:#a1a1aa}
+.header{background:var(--surface);color:var(--text);padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)}
+.logo-wrap{display:flex;align-items:center;gap:8px}
+.logo-wrap img{height:28px;width:auto}
+.header-divider{width:1px;height:20px;background:var(--border)}
+.header-title{flex:initial;text-align:left}.header-title h1{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.01em}.header-title p{font-size:12px;color:var(--text-3);margin-top:1px}
+.header-meta{font-size:12px;text-align:right;color:var(--text-3);margin-left:auto}
+.filters{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
+.filter-group label{font-size:11px;font-weight:500;color:var(--text-2)}
+.filter-group select,.filter-group input[type=date]{border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s ease}
+.filter-group select:hover,.filter-group input[type=date]:hover{border-color:var(--text-3)}
+.filter-group select:focus,.filter-group input[type=date]:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+.btn-filter{background:var(--text);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:500;height:35px;transition:opacity .15s ease}
+.btn-filter:hover{opacity:.85}
+.btn-reset{background:transparent;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;height:35px;transition:background .15s ease,border-color .15s ease}
+.btn-reset:hover{background:var(--border-subtle);border-color:var(--text-3)}
+.main{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-width:1600px;margin:0 auto;width:100%}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border);transition:border-color .15s ease}
+.kpi:hover{border-color:var(--text-3)}
+.kpi-val{font-size:26px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-0.02em}
+.kpi-label{font-size:12px;color:var(--text-2);margin-top:8px}
+.kpi-sub{font-size:11px;color:var(--text-3);margin-top:3px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chart-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border)}
 .chart-card.full{grid-column:1/-1}
-.bar-accent{width:4px;height:16px;background:#4A90D9;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
-.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.card-title{font-size:13px;font-weight:700;color:var(--dark);display:flex;align-items:center;gap:4px}
-.toggle-group{display:flex;border:1.5px solid var(--border);border-radius:6px;overflow:hidden}
-.toggle-btn{background:#fff;border:none;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--mid);font-weight:500}
-.toggle-btn:not(:last-child){border-right:1px solid var(--border)}
-.toggle-btn.active{background:var(--blue2);color:#fff}
-.legend-row{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:var(--mid)}
-.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
-.funnel-card{background:#fff;border-radius:10px;padding:18px;border:1px solid var(--border)}
+.bar-accent{display:none}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;letter-spacing:-0.01em}
+.toggle-group{display:inline-flex;background:var(--border-subtle);border:none;border-radius:8px;padding:3px;gap:2px;overflow:visible}
+.toggle-btn{background:transparent;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text-2);font-weight:500;transition:color .15s ease,background .15s ease}
+.toggle-btn:not(:last-child){border-right:none}
+.toggle-btn:hover{color:var(--text)}
+.toggle-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.legend-row{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:var(--text-2)}
+.legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:4px}
+.funnel-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border)}
 .funnel-wrap{display:flex;flex-direction:column;gap:4px;margin-top:4px}
-.funnel-level-title{font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.funnel-bar-row{display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:6px;transition:background .12s}
-.funnel-bar-row:hover{background:var(--blue5)}
-.funnel-label{font-size:12px;color:var(--dark);min-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.funnel-bar-bg{flex:1;height:18px;background:#e0e8f0;border-radius:4px;overflow:hidden}
-.funnel-bar-fill{height:100%;border-radius:4px;background:var(--blue2);transition:width .3s}
-.funnel-bar-fill.warn{background:#f57c00}.funnel-bar-fill.danger{background:#c62828}
-.funnel-pct{font-size:12px;font-weight:700;color:var(--dark);min-width:52px;text-align:right}
-.funnel-breadcrumb{font-size:12px;color:var(--mid);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.funnel-breadcrumb span{color:var(--blue2);cursor:pointer;font-weight:600}
-.funnel-hint{font-size:11px;color:var(--light);margin-top:8px;font-style:italic}
-.table-card{background:#fff;border-radius:10px;padding:18px;border:1px solid var(--border)}
-.table-wrap{overflow-x:auto;max-height:320px;overflow-y:auto}
+.funnel-level-title{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px}
+.funnel-bar-row{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:8px;transition:background .12s ease}
+.funnel-bar-row:hover{background:var(--border-subtle)}
+.funnel-label{font-size:12px;color:var(--text);min-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.funnel-bar-bg{flex:1;height:14px;background:var(--border-subtle);border-radius:4px;overflow:hidden}
+.funnel-bar-fill{height:100%;border-radius:4px;background:var(--data);transition:width .3s ease}
+.funnel-bar-fill.warn{background:var(--warn)}.funnel-bar-fill.danger{background:var(--danger)}
+.funnel-pct{font-size:12px;font-weight:600;color:var(--text);min-width:52px;text-align:right}
+.funnel-breadcrumb{font-size:12px;color:var(--text-2);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.funnel-breadcrumb span{color:var(--data-dark);cursor:pointer;font-weight:500}
+.funnel-breadcrumb span:hover{text-decoration:underline}
+.funnel-hint{font-size:11px;color:var(--text-3);margin-top:8px}
+.table-card{background:var(--surface);border-radius:12px;padding:0;border:1px solid var(--border);overflow:hidden}
+.table-card>div:first-child{padding:14px 18px;border-bottom:1px solid var(--border-subtle)}
+.table-wrap{overflow-x:auto;max-height:380px;overflow-y:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{position:sticky;top:0;background:var(--blue5);color:var(--blue1);font-weight:700;padding:8px 10px;text-align:left;border-bottom:2px solid var(--blue4);font-size:11px;text-transform:uppercase;cursor:pointer;white-space:nowrap}
-thead th:hover{background:#d0e8fb}
-tbody tr{border-bottom:1px solid var(--border)}
-tbody tr:hover{background:var(--blue5)}
-tbody td{padding:7px 10px}
-.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
-.badge-ok{background:#e8f5e9;color:#2e7d32}.badge-warn{background:#fff3e0;color:#e65100}.badge-danger{background:#ffebee;color:#c62828}
+thead th{position:sticky;top:0;background:var(--bg);color:var(--text-2);font-weight:500;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:11px;cursor:pointer;white-space:nowrap;transition:color .15s ease}
+thead th:hover{color:var(--text)}
+tbody tr{border-bottom:1px solid var(--border-subtle);transition:background .12s ease}
+tbody tr:hover{background:var(--bg)}
+tbody td{padding:8px 14px;color:var(--text)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
+.badge-ok{background:transparent;color:#15803d}.badge-ok::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--success)}
+.badge-warn{background:transparent;color:#b45309}.badge-warn::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--warn)}
+.badge-danger{background:transparent;color:#b91c1c}.badge-danger::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--danger)}
 .abs-bar{display:flex;align-items:center;gap:6px}
-.abs-bar-bg{flex:1;height:6px;background:#e0e8f0;border-radius:3px;overflow:hidden;min-width:60px}
-.abs-bar-fill{height:100%;border-radius:3px;background:var(--blue3)}
-.abs-bar-fill.warn{background:#f57c00}.abs-bar-fill.danger{background:#c62828}
-.loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:60px;color:var(--mid);font-size:15px}
-.spinner{width:28px;height:28px;border:3px solid var(--blue5);border-top-color:var(--blue2);border-radius:50%;animation:spin .7s linear infinite}
+.abs-bar-bg{flex:1;height:5px;background:var(--border-subtle);border-radius:3px;overflow:hidden;min-width:60px}
+.abs-bar-fill{height:100%;border-radius:3px;background:var(--data)}
+.abs-bar-fill.warn{background:var(--warn)}.abs-bar-fill.danger{background:var(--danger)}
+.loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:60px;color:var(--text-2);font-size:14px}
+.spinner{width:26px;height:26px;border:2.5px solid var(--border-subtle);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.error-box{background:#ffebee;border:1px solid #ef9a9a;border-radius:8px;padding:16px 20px;color:#c62828;font-size:13px;margin:20px 24px}
+.error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;color:#b91c1c;font-size:13px;margin:20px 24px}
 /* LOGIN */
-#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1565C0 0%,#1976D2 50%,#2196F3 100%)}
-.login-card{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.login-card{background:var(--surface);border-radius:16px;padding:40px 36px;width:100%;max-width:380px;border:1px solid var(--border)}
 .login-logo{display:flex;justify-content:center;margin-bottom:28px}
 .login-logo img{height:44px;width:auto}
-.login-title{font-size:20px;font-weight:700;color:var(--dark);text-align:center;margin-bottom:4px}
-.login-sub{font-size:13px;color:var(--light);text-align:center;margin-bottom:28px}
+.login-title{font-size:19px;font-weight:600;color:var(--text);text-align:center;margin-bottom:4px;letter-spacing:-0.01em}
+.login-sub{font-size:13px;color:var(--text-3);text-align:center;margin-bottom:28px}
 .login-field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-.login-field label{font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px}
-.login-field input{border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--dark);outline:none;transition:border-color .15s}
-.login-field input:focus{border-color:var(--blue2)}
-.btn-login{width:100%;background:var(--blue2);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:background .15s}
-.btn-login:hover{background:var(--blue1)}
-.btn-login:disabled{background:var(--blue4);cursor:not-allowed}
-.login-error{background:#ffebee;border:1px solid #ef9a9a;border-radius:6px;padding:10px 14px;color:#c62828;font-size:13px;margin-top:12px;display:none}
+.login-field label{font-size:12px;font-weight:500;color:var(--text-2)}
+.login-field input{border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text);outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+.login-field input:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+.btn-login{width:100%;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:500;cursor:pointer;margin-top:6px;transition:opacity .15s ease}
+.btn-login:hover{opacity:.9}
+.btn-login:disabled{opacity:.5;cursor:not-allowed}
+.login-error{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#b91c1c;font-size:13px;margin-top:12px;display:none}
 .login-spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
 /* USER CHIP */
-.user-chip{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.9}
-.user-chip span{opacity:.8}
-.btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;transition:background .15s}
-.btn-logout:hover{background:rgba(255,255,255,.25)}
+.user-chip{display:flex;align-items:center;gap:8px;font-size:12px}
+.user-chip span{color:var(--text-3)}
+.btn-logout{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 11px;font-size:12px;cursor:pointer;transition:background .15s ease}
+.btn-logout:hover{background:var(--border-subtle)}
 /* EXEMPTION */
-.badge-exemption{background:#e8f0fe;color:#1a56db;border:1px solid #b4c8f8}
-.badge-exempt-allday{background:#fce4ec;color:#c62828;border:1px solid #f48fb1}
-td.exempt-cell{background:#fff8e1;border-left:3px solid #f57c00}
-.exempt-tag{display:inline-flex;align-items:center;gap:3px;background:#fff3e0;color:#e65100;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;border:1px solid #ffcc80;white-space:nowrap}
-.exempt-tag.allday{background:#fce4ec;color:#c62828;border-color:#f48fb1}
+.badge-exemption{background:#dbeafe;color:#1e40af;border:none}
+.badge-exempt-allday{background:#fef3c7;color:#92400e;border:none}
+td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
+.exempt-tag{display:inline-flex;align-items:center;gap:3px;background:#dbeafe;color:#1e40af;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:500;border:none;white-space:nowrap}
+.exempt-tag.allday{background:#fef3c7;color:#92400e;border:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -130,10 +140,11 @@ td.exempt-cell{background:#fff8e1;border-left:3px solid #f57c00}
 
 <div class="header">
   <div class="logo-wrap">
-    <img src="./logo.png" alt="BCR.CX" style="height:36px;width:auto;">
+    <img src="./logo.png" alt="BCR.CX">
   </div>
+  <div class="header-divider"></div>
   <div class="header-title">
-    <h1>Dashboard Gerencial — Absenteísmo</h1>
+    <h1>Dashboard Gerencial - Absenteísmo</h1>
     <p>Acompanhamento de frequência e ausências por equipe</p>
   </div>
   <div class="header-meta" id="header-meta">
@@ -454,7 +465,7 @@ function buildLayout() {
           </div>
           <div class="legend-row" id="trend-legend"></div>
           <div style="position:relative;height:260px"><canvas id="chartTrend"></canvas></div>
-          <div style="font-size:11px;color:var(--light);margin-top:6px;font-style:italic" id="trend-hint">Clique em um mês para ver a evolução diária</div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="trend-hint">Clique em um mês para ver a evolução diária</div>
         </div>
       </div>
       <div class="charts-row">
@@ -467,8 +478,8 @@ function buildLayout() {
             </div>
           </div>
           <div class="legend-row">
-            <span><span class="legend-dot" style="background:#1976D2"></span>ABS %</span>
-            <span><span class="legend-dot" style="background:#f57c00"></span>Meta 3%</span>
+            <span><span class="legend-dot" style="background:#3b82f6"></span>ABS %</span>
+            <span><span class="legend-dot" style="background:#f59e0b"></span>Meta 3%</span>
           </div>
           <div style="max-height:320px;overflow-y:auto;"><div style="position:relative;" id="chart-abs-wrap"><canvas id="chartAbs"></canvas></div></div>
         </div>
@@ -481,8 +492,8 @@ function buildLayout() {
             </div>
           </div>
           <div class="legend-row">
-            <span><span class="legend-dot" style="background:#1976D2"></span>Previsto</span>
-            <span><span class="legend-dot" style="background:#90CAF9"></span>Trabalhado</span>
+            <span><span class="legend-dot" style="background:#1e40af"></span>Previsto</span>
+            <span><span class="legend-dot" style="background:#93c5fd"></span>Trabalhado</span>
           </div>
           <div style="max-height:320px;overflow-y:auto;"><div style="position:relative;" id="chart-hours-wrap"><canvas id="chartHours"></canvas></div></div>
         </div>
@@ -514,11 +525,11 @@ function buildLayout() {
             </div>
           </div>
           <div class="legend-row">
-            <span><span class="legend-dot" style="background:#1565C0"></span>Registros</span>
-            <span><span class="legend-dot" style="background:#64B5F6"></span>Horas abonadas</span>
+            <span><span class="legend-dot" style="background:#1e40af"></span>Registros</span>
+            <span><span class="legend-dot" style="background:#93c5fd"></span>Horas abonadas</span>
           </div>
           <div style="max-height:400px;overflow-y:auto;"><div style="position:relative;" id="chart-ex-drill-wrap"><canvas id="chartExDrill" role="img" aria-label="Drill down de abonos"></canvas></div></div>
-          <div style="font-size:11px;color:var(--light);margin-top:6px;font-style:italic" id="ex-drill-hint">Clique em uma barra para detalhar</div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="ex-drill-hint">Clique em uma barra para detalhar</div>
         </div>
         <div class="chart-card">
           <div class="card-header">
@@ -533,13 +544,13 @@ function buildLayout() {
             </div>
           </div>
           <div style="max-height:420px;overflow-y:auto;overflow-x:auto;" id="ex-matrix-wrap"></div>
-          <div style="font-size:11px;color:var(--light);margin-top:6px;font-style:italic" id="ex-matrix-hint">Clique em uma linha para detalhar</div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="ex-matrix-hint">Clique em uma linha para detalhar</div>
         </div>
       </div>
       <div class="table-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
           <div class="card-title"><span class="bar-accent"></span>Detalhamento por colaborador / dia</div>
-          <button class="btn-filter" onclick="exportCSV()">⬇ Exportar CSV</button>
+          <button class="btn-reset" onclick="exportCSV()" style="height:auto;padding:6px 12px;font-size:12px;font-weight:500">⬇ Exportar CSV</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -567,7 +578,7 @@ function buildLayout() {
             <tbody id="table-body"></tbody>
           </table>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--mid)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--border-subtle);font-size:12px;color:var(--text-3)">
           <span id="table-info"></span>
           <div style="display:flex;gap:8px">
             <button class="btn-reset" id="btn-prev" onclick="tablePageChange(-1)">‹ Anterior</button>
@@ -626,7 +637,7 @@ function setTrendMode(m){
 
 function renderTrendChart(){
   const groupKey=trendMode==='team'?'team':'name';
-  const colors=['#1565C0','#D32F2F','#2E7D32','#F57C00','#6A1B9A','#00838F','#AD1457','#4E342E','#37474F','#558B2F'];
+  const colors=['#3b82f6','#dc2626','#16a34a','#f59e0b','#8b5cf6','#0891b2','#db2777','#78716c','#475569','#65a30d'];
   let labels,datasets,hint='',breadcrumb='';
 
   if(trendDrillMonth){
@@ -666,7 +677,7 @@ function renderTrendChart(){
       responsive:true, maintainAspectRatio:false,
       plugins:{legend:{display:false}},
       onClick:(evt,els)=>{ if(!trendDrillMonth&&els.length){ const months=[...new Set(filteredData.map(d=>d.month))].sort(); trendDrillMonth=months[els[0].index]; renderTrendChart(); } },
-      scales:{ y:{title:{display:true,text:'ABS %'},min:0,grid:{color:'#f0f4f8'},ticks:{callback:v=>v+'%'}}, x:{grid:{color:'#f0f4f8'}} }
+      scales:{ y:{title:{display:true,text:'ABS %'},min:0,grid:{color:'#f4f4f5'},ticks:{callback:v=>v+'%'}}, x:{grid:{color:'#f4f4f5'}} }
     }
   });
 }
@@ -684,7 +695,7 @@ function renderChartAbs(){
   const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
   const labels=e.map(x=>absMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
   const vals=e.map(x=>x.abs);
-  const colors=vals.map(v=>v>=5?'#c62828':v>=3?'#f57c00':'#1976D2');
+  const colors=vals.map(v=>v>=5?'#dc2626':v>=3?'#f59e0b':'#3b82f6');
   const maxVal=Math.max(...vals,3)*1.3;
   const wrap=document.getElementById('chart-abs-wrap');
   wrap.style.height=Math.max(200,labels.length*(absMode==='emp'?20:30)+60)+'px';
@@ -695,7 +706,7 @@ function renderChartAbs(){
       if(!val) return;
       const bar=chart.getDatasetMeta(0).data[i];
       ctx.save();
-      ctx.fillStyle='#455a64';ctx.font=`500 ${absMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+      ctx.fillStyle='#71717a';ctx.font=`500 ${absMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
       ctx.textAlign='left';ctx.textBaseline='middle';
       ctx.fillText(val.toFixed(1)+'%', bar.x+4, bar.y);
       ctx.restore();
@@ -705,7 +716,7 @@ function renderChartAbs(){
     type:'bar',
     data:{labels,datasets:[
       {label:'ABS %',data:vals,backgroundColor:colors,borderRadius:4},
-      {label:'Meta 3%',data:labels.map(()=>3),type:'line',borderColor:'#f57c00',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false}
+      {label:'Meta 3%',data:labels.map(()=>3),type:'line',borderColor:'#f59e0b',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false}
     ]},
     options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
@@ -748,7 +759,7 @@ function renderChartHours(){
         const val=ds.data[i];
         if(!val) return;
         ctx.save();
-        ctx.fillStyle='#455a64';ctx.font=`500 ${hoursMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+        ctx.fillStyle='#71717a';ctx.font=`500 ${hoursMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
         ctx.textAlign='left';ctx.textBaseline='middle';
         ctx.fillText(val+'h', bar.x+4, bar.y);
         ctx.restore();
@@ -758,8 +769,8 @@ function renderChartHours(){
   chartHours=new Chart(document.getElementById('chartHours'),{
     type:'bar',
     data:{labels,datasets:[
-      {label:'Previsto',data:prev,backgroundColor:'#1976D2',borderRadius:3},
-      {label:'Trabalhado',data:trab,backgroundColor:'#90CAF9',borderRadius:3}
+      {label:'Previsto',data:prev,backgroundColor:'#1e40af',borderRadius:3},
+      {label:'Trabalhado',data:trab,backgroundColor:'#93c5fd',borderRadius:3}
     ]},
     options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
@@ -841,7 +852,7 @@ function renderTablePage(){
     const abonadoFmt = abonadoH>0 ? (abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`) : '—';
     const abonadoTag = abonadoH>0 ? `<span class="badge badge-exemption">${abonadoFmt}</span>` : '—';
     // Row highlight class when exemption present
-    const rowClass= isAllDay?'style="background:#fff8e1"':'';
+    const rowClass= isAllDay?'style="background:#fffbeb"':'';
     // ABS cell tag
     const absTag = isAllDay?`<span class="exempt-tag allday">Abono Dia</span>`
                   :ex?`<span class="exempt-tag">Abono</span>`:'';
@@ -954,7 +965,7 @@ const barLabelPlugin = {
         if(!val) return;
         const label=ds.label==='Horas abonadas'?fmtH(val):val+' reg.';
         ctx.save();
-        ctx.fillStyle='#455a64';
+        ctx.fillStyle='#71717a';
         ctx.font='500 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
         ctx.textAlign='left';
         ctx.textBaseline='middle';
@@ -1037,8 +1048,8 @@ function renderExDrillChart(){
     const active = i === depth;
     const done   = i < depth;
     return `<span style="font-size:10px;padding:1px 6px;border-radius:10px;white-space:nowrap;
-      background:${active?'#1976D2':done?'#E3F2FD':'#f0f4f8'};
-      color:${active?'#fff':done?'#1565C0':'#90a4ae'};
+      background:${active?'#18181b':done?'#eff6ff':'#f4f4f5'};
+      color:${active?'#fff':done?'#1e40af':'#a1a1aa'};
       font-weight:${active?'600':'400'}">${l}</span>`;
   }).join('<span style="font-size:10px;color:#ccc;margin:0 1px">›</span>');
 
@@ -1049,17 +1060,17 @@ function renderExDrillChart(){
     const fmtHoras = v.horas>0 ? fmtH(v.horas) : '—';
     const esc = cat.replace(/'/g,"\\'").replace(/"/g,'&quot;');
     const cursor = canDrill ? 'pointer' : 'default';
-    const hover = canDrill ? `onmouseenter="this.style.background='#E3F2FD'" onmouseleave="this.style.background=''"` : '';
+    const hover = canDrill ? `onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''"` : '';
     return `<div ${hover} onclick="${canDrill?`exDrillDown('${esc}')`:''}\"
       style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
       <div style="font-size:12px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px" title="${esc}">${cat}</div>
       <div style="display:flex;align-items:center;gap:4px">
-        <div style="flex:1;background:#e0e8f0;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wR}%;height:100%;background:#1565C0;border-radius:3px"></div></div>
+        <div style="flex:1;background:#f4f4f5;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wR}%;height:100%;background:#1e40af;border-radius:3px"></div></div>
         <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${v.count} reg.</div>
       </div>
       <div></div>
       <div style="display:flex;align-items:center;gap:4px">
-        <div style="flex:1;background:#e0e8f0;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wH}%;height:100%;background:#64B5F6;border-radius:3px"></div></div>
+        <div style="flex:1;background:#f4f4f5;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wH}%;height:100%;background:#93c5fd;border-radius:3px"></div></div>
         <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${fmtHoras}</div>
       </div>
       <div></div>
@@ -1070,7 +1081,7 @@ function renderExDrillChart(){
     <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:6px 6px 8px;border-bottom:1px solid var(--border);margin-bottom:4px">
       ${drillPathIndicator}
     </div>
-    <div style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;padding:2px 6px 6px;font-size:10px;color:var(--light);font-weight:700;text-transform:uppercase;letter-spacing:.4px">
+    <div style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;padding:2px 6px 6px;font-size:11px;color:var(--text-2);font-weight:500">
       <div>${DRILL_LABELS[currentKey]||currentKey}</div><div colspan="2">Registros</div><div></div><div colspan="2">Horas Abonadas</div>
     </div>
     ${rows}`;
@@ -1151,31 +1162,31 @@ function renderExMatrixChart(){
   document.getElementById('ex-matrix-hint').textContent = canDrill ? 'Clique em uma linha para detalhar' : '';
 
   const colW = 80;
-  const hdrCols = cols.map(c=>`<th style="min-width:${colW}px;text-align:center;padding:6px 8px;background:var(--blue5);color:var(--blue1);font-size:10px;font-weight:700;text-transform:uppercase;white-space:nowrap">${c}</th>`).join('');
+  const hdrCols = cols.map(c=>`<th style="min-width:${colW}px;text-align:center;padding:6px 8px;background:var(--bg);color:var(--text-2);font-size:11px;font-weight:500;white-space:nowrap">${c}</th>`).join('');
   const bodyRows = rowsSorted.map(([rk,rv])=>{
     const esc = rk.replace(/'/g,"\\'").replace(/"/g,'&quot;');
     const cursor = canDrill ? 'pointer' : 'default';
     const cells = cols.map(c=>{
       const cv = rv[c]||{count:0,horas:0};
-      const bg = cv.count>0?'#E3F2FD':'';
+      const bg = cv.count>0?'#eff6ff':'';
       return `<td style="text-align:center;padding:5px 8px;background:${bg};font-size:11px">
         ${cv.count>0?`<div style="font-weight:600;color:var(--dark)">${cv.count}</div><div style="color:var(--mid);font-size:10px">${fmtH(cv.horas)}</div>`:'<span style="color:#ccc">—</span>'}
       </td>`;
     }).join('');
     return `<tr onclick="${canDrill?`exMatrixDrillDown('${esc}')`:''}" style="cursor:${cursor};border-bottom:1px solid var(--border)"
-      onmouseenter="this.style.background='#f5f9ff'" onmouseleave="this.style.background=''">
+      onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
       <td style="padding:6px 10px;font-size:12px;color:var(--dark);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc}">${rk}</td>
       ${cells}
-      <td style="text-align:center;padding:5px 10px;font-size:11px;background:#f0f4f8;font-weight:600;color:var(--dark)">${rv._total.count}<div style="color:var(--mid);font-size:10px;font-weight:400">${fmtH(rv._total.horas)}</div></td>
+      <td style="text-align:center;padding:5px 10px;font-size:11px;background:#fafafa;font-weight:600;color:var(--dark)">${rv._total.count}<div style="color:var(--mid);font-size:10px;font-weight:400">${fmtH(rv._total.horas)}</div></td>
     </tr>`;
   }).join('');
 
   document.getElementById('ex-matrix-wrap').innerHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto">
       <thead><tr>
-        <th style="padding:6px 10px;background:var(--blue5);color:var(--blue1);font-size:10px;font-weight:700;text-transform:uppercase;text-align:left;white-space:nowrap">${MATRIX_LABELS[currentKey]||currentKey}</th>
+        <th style="padding:6px 10px;background:var(--bg);color:var(--text-2);font-size:11px;font-weight:500;text-align:left;white-space:nowrap">${MATRIX_LABELS[currentKey]||currentKey}</th>
         ${hdrCols}
-        <th style="min-width:70px;text-align:center;padding:6px 8px;background:#e8edf2;color:var(--mid);font-size:10px;font-weight:700;text-transform:uppercase">Total</th>
+        <th style="min-width:70px;text-align:center;padding:6px 8px;background:var(--border-subtle);color:var(--text-2);font-size:11px;font-weight:500">Total</th>
       </tr></thead>
       <tbody>${bodyRows}</tbody>
     </table>`;
