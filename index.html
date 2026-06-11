@@ -23,14 +23,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:18px}
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
 .kpi{background:#fff;border-radius:10px;padding:16px;border:1px solid var(--border);position:relative;overflow:hidden}
-.kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--blue2)}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:#1A2A6C}
 .kpi-val{font-size:26px;font-weight:700;color:var(--dark);line-height:1}
 .kpi-label{font-size:11px;color:var(--light);margin-top:6px;text-transform:uppercase;letter-spacing:.4px}
 .kpi-sub{font-size:11px;color:var(--mid);margin-top:3px}
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .chart-card{background:#fff;border-radius:10px;padding:18px;border:1px solid var(--border)}
 .chart-card.full{grid-column:1/-1}
-.bar-accent{width:4px;height:16px;background:var(--blue2);border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+.bar-accent{width:4px;height:16px;background:#4A90D9;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .card-title{font-size:13px;font-weight:700;color:var(--dark);display:flex;align-items:center;gap:4px}
 .toggle-group{display:flex;border:1.5px solid var(--border);border-radius:6px;overflow:hidden}
@@ -224,7 +224,6 @@ window.drillUp      = drillUp;
 window.sortTable    = sortTable;
 window.tablePageChange = tablePageChange;
 window.exportCSV    = exportCSV;
-window.setExAxisMode  = setExAxisMode;
 window.setExDrillMode = setExDrillMode;
 window.exDrillDown    = exDrillDown;
 window.exDrillUp      = exDrillUp;
@@ -587,7 +586,7 @@ function renderKPIs(){
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
-  // Total Abonos e Total Abonado: exclui Pendente e Reprovada (inclui NULL e demais)
+  // Total Abonos e Total Abonado: exclui apenas Pendente e Reprovada
   const excluidos = new Set(['Pendente','Reprovada']);
   const aprovados=d.filter(r=>r.exemption && !excluidos.has((r.exemption.solicitation_status||'').trim()));
   const totAbonos=aprovados.length;
@@ -610,8 +609,8 @@ function renderKPIs(){
     mkHoraKpi('Total ausências',  totA, 'horas faltantes'),
     mkKpi('ABS Global',      absG.toFixed(2)+'%', 'índice de absenteísmo'),
     mkKpi('Reg. c/ falta',   regFalta, 'registros com ausência'),
-    mkKpi('Total Abonos',    totAbonos, 'registros aprovados'),
-    mkHoraKpi('Total Abonado', totAbonado, 'horas aprovadas'),
+    mkKpi('Total Abonos',    totAbonos, 'registros abonados'),
+    mkHoraKpi('Total Abonado', totAbonado, 'horas abonadas'),
   ].join('');
 }
 
@@ -686,10 +685,38 @@ function renderChartAbs(){
   const labels=e.map(x=>absMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
   const vals=e.map(x=>x.abs);
   const colors=vals.map(v=>v>=5?'#c62828':v>=3?'#f57c00':'#1976D2');
+  const maxVal=Math.max(...vals,3)*1.3;
   const wrap=document.getElementById('chart-abs-wrap');
   wrap.style.height=Math.max(200,labels.length*(absMode==='emp'?20:30)+60)+'px';
   if(chartAbs)chartAbs.destroy();
-  chartAbs=new Chart(document.getElementById('chartAbs'),{type:'bar',data:{labels,datasets:[{label:'ABS %',data:vals,backgroundColor:colors,borderRadius:4},{label:'Meta 3%',data:labels.map(()=>3),type:'line',borderColor:'#f57c00',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f4f8'}},y:{grid:{display:false},ticks:{font:{size:absMode==='emp'?10:12}}}}}});
+  const absLabelPlugin={id:'absLabel',afterDatasetsDraw(chart){
+    const{ctx,scales:{x,y}}=chart;
+    chart.data.datasets[0].data.forEach((val,i)=>{
+      if(!val) return;
+      const bar=chart.getDatasetMeta(0).data[i];
+      ctx.save();
+      ctx.fillStyle='#455a64';ctx.font=`500 ${absMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillText(val.toFixed(1)+'%', bar.x+4, bar.y);
+      ctx.restore();
+    });
+  }};
+  chartAbs=new Chart(document.getElementById('chartAbs'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'ABS %',data:vals,backgroundColor:colors,borderRadius:4},
+      {label:'Meta 3%',data:labels.map(()=>3),type:'line',borderColor:'#f57c00',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false}
+    ]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false,max:maxVal},
+        y:{grid:{display:false},ticks:{font:{size:absMode==='emp'?10:12}}}
+      }
+    },
+    plugins:[absLabelPlugin]
+  });
 }
 
 function setHoursMode(m){
@@ -708,10 +735,42 @@ function renderChartHours(){
   }).sort((a,b)=>b.abs-a.abs);
   const labels=e.map(x=>hoursMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
   const prev=e.map(x=>+x.prev.toFixed(1)), trab=e.map(x=>+x.trab.toFixed(1));
+  const maxVal=Math.max(...prev,...trab,1)*1.25;
   const wrap=document.getElementById('chart-hours-wrap');
   wrap.style.height=Math.max(200,labels.length*(hoursMode==='emp'?20:30)+60)+'px';
   if(chartHours)chartHours.destroy();
-  chartHours=new Chart(document.getElementById('chartHours'),{type:'bar',data:{labels,datasets:[{label:'Previsto',data:prev,backgroundColor:'#1976D2',borderRadius:3},{label:'Trabalhado',data:trab,backgroundColor:'#90CAF9',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f4f8'}},y:{grid:{display:false},ticks:{font:{size:hoursMode==='emp'?10:12}}}}}});
+  const hoursLabelPlugin={id:'hoursLabel',afterDatasetsDraw(chart){
+    const{ctx}=chart;
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden) return;
+      meta.data.forEach((bar,i)=>{
+        const val=ds.data[i];
+        if(!val) return;
+        ctx.save();
+        ctx.fillStyle='#455a64';ctx.font=`500 ${hoursMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+        ctx.textAlign='left';ctx.textBaseline='middle';
+        ctx.fillText(val+'h', bar.x+4, bar.y);
+        ctx.restore();
+      });
+    });
+  }};
+  chartHours=new Chart(document.getElementById('chartHours'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Previsto',data:prev,backgroundColor:'#1976D2',borderRadius:3},
+      {label:'Trabalhado',data:trab,backgroundColor:'#90CAF9',borderRadius:3}
+    ]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false,max:maxVal},
+        y:{grid:{display:false},ticks:{font:{size:hoursMode==='emp'?10:12}}}
+      }
+    },
+    plugins:[hoursLabelPlugin]
+  });
 }
 
 function setFunnelRoot(r){
@@ -972,6 +1031,17 @@ function renderExDrillChart(){
   if(exDrillPath.length) bc.innerHTML += ` › <strong>${DRILL_LABELS[currentKey]||currentKey}</strong>`;
   document.getElementById('ex-drill-hint').textContent = canDrill ? 'Clique em uma linha para detalhar' : '';
 
+  // Indicador de camadas disponíveis
+  const seqLabels = seq.map(k => DRILL_LABELS[k]||k);
+  const drillPathIndicator = seqLabels.map((l,i) => {
+    const active = i === depth;
+    const done   = i < depth;
+    return `<span style="font-size:10px;padding:1px 6px;border-radius:10px;white-space:nowrap;
+      background:${active?'#1976D2':done?'#E3F2FD':'#f0f4f8'};
+      color:${active?'#fff':done?'#1565C0':'#90a4ae'};
+      font-weight:${active?'600':'400'}">${l}</span>`;
+  }).join('<span style="font-size:10px;color:#ccc;margin:0 1px">›</span>');
+
   const wrap = document.getElementById('chart-ex-drill-wrap');
   const rows = sorted.map(([cat,v])=>{
     const wR = Math.round(v.count/maxR*100);
@@ -981,18 +1051,27 @@ function renderExDrillChart(){
     const cursor = canDrill ? 'pointer' : 'default';
     const hover = canDrill ? `onmouseenter="this.style.background='#E3F2FD'" onmouseleave="this.style.background=''"` : '';
     return `<div ${hover} onclick="${canDrill?`exDrillDown('${esc}')`:''}\"
-      style="display:grid;grid-template-columns:160px 1fr 64px 1fr 56px;gap:6px 8px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
+      style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
       <div style="font-size:12px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px" title="${esc}">${cat}</div>
-      <div style="background:#e0e8f0;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wR}%;height:100%;background:#1565C0;border-radius:3px"></div></div>
-      <div style="font-size:11px;color:var(--mid);text-align:right">${v.count} reg.</div>
-      <div style="background:#e0e8f0;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wH}%;height:100%;background:#64B5F6;border-radius:3px"></div></div>
-      <div style="font-size:11px;color:var(--mid);text-align:right">${fmtHoras}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="flex:1;background:#e0e8f0;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wR}%;height:100%;background:#1565C0;border-radius:3px"></div></div>
+        <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${v.count} reg.</div>
+      </div>
+      <div></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="flex:1;background:#e0e8f0;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wH}%;height:100%;background:#64B5F6;border-radius:3px"></div></div>
+        <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${fmtHoras}</div>
+      </div>
+      <div></div>
     </div>`;
   }).join('');
 
   wrap.innerHTML = `
-    <div style="display:grid;grid-template-columns:160px 1fr 64px 1fr 56px;gap:4px 8px;padding:4px 6px 8px;font-size:11px;color:var(--light);font-weight:600;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">
-      <div>${DRILL_LABELS[currentKey]||currentKey}</div><div>Registros</div><div></div><div>Horas Abonadas</div><div></div>
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:6px 6px 8px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      ${drillPathIndicator}
+    </div>
+    <div style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;padding:2px 6px 6px;font-size:10px;color:var(--light);font-weight:700;text-transform:uppercase;letter-spacing:.4px">
+      <div>${DRILL_LABELS[currentKey]||currentKey}</div><div colspan="2">Registros</div><div></div><div colspan="2">Horas Abonadas</div>
     </div>
     ${rows}`;
 }
