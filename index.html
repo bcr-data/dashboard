@@ -9,12 +9,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:#fafafa;color:#18181b;font-size:14px;-webkit-font-smoothing:antialiased}
 :root{--bg:#fafafa;--surface:#fff;--border:#e4e4e7;--border-subtle:#f4f4f5;--text:#18181b;--text-2:#71717a;--text-3:#a1a1aa;--brand:#2151E5;--data:#3b82f6;--data-dark:#1e40af;--data-light:#93c5fd;--warn:#f59e0b;--danger:#dc2626;--success:#16a34a;--blue1:#1A2A6C;--blue2:#3b82f6;--blue3:#3b82f6;--blue4:#93c5fd;--blue5:#eff6ff;--dark:#18181b;--mid:#71717a;--light:#a1a1aa}
-.header{background:var(--surface);color:var(--text);padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)}
+.header{background:var(--surface);color:var(--text);padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;top:0;bottom:0;left:170px;right:0;background-image:url("data:image/svg+xml,%3Csvg width='300' height='520' viewBox='0 0 90 156' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23f7f8fa' stroke-width='0.55'%3E%3Cpath d='M22.5 0L45 13M45 13V39M45 39L22.5 52M22.5 52L0 39M0 39V13M0 13L22.5 0M22.5 52V78M67.5 0L90 13M90 13V39M90 39L67.5 52M67.5 52L45 39M45 39V13M45 13L67.5 0M67.5 52V78M22.5 78L45 91M45 91V117M45 117L22.5 130M22.5 130L0 117M0 117V91M0 91L22.5 78M22.5 130V156M67.5 78L90 91M90 91V117M90 117L67.5 130M67.5 130L45 117M45 117V91M45 91L67.5 78M67.5 130V156'/%3E%3Cpath d='M22.5 26L0 13M22.5 26L45 13M22.5 26V52'/%3E%3Cpath d='M0 65L22.5 52M0 65V91M90 65L67.5 52M90 65V91'/%3E%3Cpath d='M45 65L22.5 78M45 65L67.5 78M45 65V39'/%3E%3Cpath d='M67.5 104L45 91M67.5 104L90 91M67.5 104V130'/%3E%3Cpath d='M0 143L22.5 156M0 143V117M90 143L67.5 156M90 143V117'/%3E%3C/g%3E%3C/svg%3E");background-size:300px 520px;background-position:-70px -30px;-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 8%);mask-image:linear-gradient(90deg,transparent 0%,#000 8%);pointer-events:none}
+.header>*{position:relative;z-index:1}
 .logo-wrap{display:flex;align-items:center;gap:8px}
 .logo-wrap img{height:28px;width:auto}
 .header-divider{width:1px;height:20px;background:var(--border)}
-.header-title{flex:initial;text-align:left}.header-title h1{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.01em}.header-title p{font-size:12px;color:var(--text-3);margin-top:1px}
-.header-meta{font-size:12px;text-align:right;color:var(--text-3);margin-left:auto}
+.header-title{flex:initial;text-align:left}.header-title h1{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.01em}.header-title p{font-size:12px;color:var(--text-2);margin-top:1px}
+.header-meta{font-size:12px;text-align:right;color:var(--text-2);margin-left:auto}
 .filters{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
 .filter-group label{font-size:11px;font-weight:500;color:var(--text-2)}
@@ -98,7 +100,7 @@ tbody td{padding:8px 14px;color:var(--text)}
 .login-spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
 /* USER CHIP */
 .user-chip{display:flex;align-items:center;gap:8px;font-size:12px}
-.user-chip span{color:var(--text-3)}
+.user-chip span{color:#374151}
 .btn-logout{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 11px;font-size:12px;cursor:pointer;transition:background .15s ease}
 .btn-logout:hover{background:var(--border-subtle)}
 /* EXEMPTION */
