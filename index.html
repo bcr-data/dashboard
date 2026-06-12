@@ -328,7 +328,7 @@ async function triggerWebhookRefresh() {
     await fetch('https://eventos.55telecom.com/webhook/35b9bcbf-9ad4-428d-a372-a7d78a62bd05', { method:'GET', mode:'no-cors' });
     // Aguarda 1.5s para o webhook processar, depois recarrega os dados
     await new Promise(r => setTimeout(r, 20000));
-    await init();
+    location.reload();
   } catch(e) {
     console.warn('[refresh] webhook error:', e);
   } finally {
