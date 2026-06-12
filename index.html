@@ -66,7 +66,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .kpi-label{font-size:12px;color:var(--text-2);margin-top:8px}
 .kpi-sub{font-size:11px;color:var(--text-3);margin-top:3px}
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.chart-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border)}
+.chart-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:380px}
 .chart-card.full{grid-column:1/-1}
 .bar-accent{width:4px;height:16px;background:#2151E5;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
@@ -78,8 +78,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .toggle-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .legend-row{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:var(--text-2)}
 .legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:4px}
-.funnel-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border)}
-.funnel-wrap{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.funnel-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:380px}
+.funnel-wrap{display:flex;flex-direction:column;gap:4px;margin-top:4px;flex:1;overflow-y:auto;max-height:340px}
 .funnel-level-title{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px}
 .funnel-bar-row{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:8px;transition:background .12s ease}
 .funnel-bar-row:hover{background:var(--border-subtle)}
@@ -92,6 +92,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .funnel-breadcrumb span{color:var(--data-dark);cursor:pointer;font-weight:500}
 .funnel-breadcrumb span:hover{text-decoration:underline}
 .funnel-hint{font-size:11px;color:var(--text-3);margin-top:8px}
+td.registro-ponto{white-space:pre-line;font-size:12px;line-height:1.6}
 .table-card{background:var(--surface);border-radius:12px;padding:0;border:1px solid var(--border);overflow:hidden}
 .table-card>div:first-child{padding:14px 18px;border-bottom:1px solid var(--border-subtle)}
 .table-wrap{overflow-x:auto;max-height:380px;overflow-y:auto}
@@ -248,6 +249,7 @@ const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
 const TABLE  = 'absenteeism';
 const TABLE_EX = 'exemptions';
+const TABLE_TC = 'time_cards';
 const PAGE   = 5000;
 
 // Supabase client
@@ -302,9 +304,18 @@ window.msToggleOpt  = msToggleOpt;
 window.msClear      = msClear;
 window.msFilter     = msFilter;
 window.msRemoveChip = msRemoveChip;
+window.setLateMode   = setLateMode;
+window.setLateFunnelRoot = setLateFunnelRoot;
+window.lateFunnelDrillDown = lateFunnelDrillDown;
+window.lateFunnelDrillUp   = lateFunnelDrillUp;
+window.setLateMatrixDrillMode = setLateMatrixDrillMode;
+window.lateMatrixDrillDown    = lateMatrixDrillDown;
+window.lateMatrixDrillUp      = lateMatrixDrillUp;
 window.setTrendMode = setTrendMode;
 window.setAbsMode   = setAbsMode;
 window.setHoursMode = setHoursMode;
+window.hoursDrillDown = hoursDrillDown;
+window.hoursDrillUp   = hoursDrillUp;
 window.setFunnelRoot= setFunnelRoot;
 window.drillDown    = drillDown;
 window.drillUp      = drillUp;
@@ -378,13 +389,15 @@ const calcAbs = rows => {
 
 let allData=[], filteredData=[], sortDir={};
 let exemptionMap={};
+let timeCardsMap={};
 let loadedDateStart='', loadedDateEnd='';
 // Multiselect state
 const msSel={sup:new Set(), team:new Set(), emp:new Set()};
 const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos'};
-let absMode='team', hoursMode='team', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[];
-let chartAbs=null, chartHours=null, chartTrend=null, chartExAxis=null, chartExDrill=null, chartExMatrix=null;
+let absMode='team', hoursMode='supervisor', hoursDrillPath=[], lateMode='supervisor', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[], lateFunnelRoot='supervisor', lateFunnelPath=[];
+let chartAbs=null, chartHours=null, chartLate=null, chartLateFunnel=null, chartTrend=null, chartExAxis=null, chartExDrill=null, chartExMatrix=null;
 let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDrillMode='answered_by', exMatrixDrillPath=[];
+let lateMatrixDrillMode='supervisor', lateMatrixDrillPath=[];
 let tablePage=0;
 const TABLE_PAGE_SIZE=100;
 
@@ -444,6 +457,32 @@ async function fetchExemptions(dateStart, dateEnd) {
   return map;
 }
 
+async function fetchTimeCards(dateStart, dateEnd) {
+  let rows=[], offset=0, total=null;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session ? session.access_token : SB_KEY;
+  while(true) {
+    const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
+    let url = `${SB_URL}/rest/v1/${TABLE_TC}?select=*&order=date.asc`;
+    if(dateStart) url += `&date=gte.${dateStart}`;
+    if(dateEnd)   url += `&date=lte.${dateEnd}`;
+    const res = await fetch(url, { headers });
+    if(!res.ok) { console.error('time_cards fetch failed:', res.status); return {}; }
+    if(total===null){ const cr=res.headers.get('Content-Range'); if(cr) total=parseInt(cr.split('/')[1])||null; }
+    const page = await res.json();
+    rows.push(...page);
+    if(total!==null && rows.length>=total) break;
+    if(page.length<PAGE) break;
+    offset+=PAGE;
+  }
+  const map={};
+  rows.forEach(tc => {
+    const k=(tc.employee_name||'').trim()+'|'+(tc.date||'');
+    map[k]=tc;
+  });
+  return map;
+}
+
 function processRows(rows) {
   allData = [];
   let exHits = 0, exAllDay = 0;
@@ -484,11 +523,13 @@ async function init() {
   const py=past30.getFullYear(), pm=String(past30.getMonth()+1).padStart(2,'0'), pd=String(past30.getDate()).padStart(2,'0');
   const defaultStart=`${py}-${pm}-${pd}`, defaultEnd=today.toISOString().slice(0,10);
   try {
-    const [rows, exMap] = await Promise.all([
+    const [rows, exMap, tcMap] = await Promise.all([
       fetchAll(defaultStart, defaultEnd),
-      fetchExemptions(defaultStart, defaultEnd)
+      fetchExemptions(defaultStart, defaultEnd),
+      fetchTimeCards(defaultStart, defaultEnd)
     ]);
     exemptionMap = exMap;
+    timeCardsMap = tcMap;
     processRows(rows);
     if(!allData.length){ showError('Nenhum registro encontrado para o período selecionado.'); return; }
     filteredData=[...allData];
@@ -507,8 +548,9 @@ async function applyFilters() {
   if(ds!==loadedDateStart || de!==loadedDateEnd) {
     document.getElementById('app').innerHTML='<div class="loading"><div class="spinner"></div>Atualizando...</div>';
     try {
-      const [rows, exMap] = await Promise.all([fetchAll(ds,de), fetchExemptions(ds,de)]);
+      const [rows, exMap, tcMap] = await Promise.all([fetchAll(ds,de), fetchExemptions(ds,de), fetchTimeCards(ds,de)]);
       exemptionMap = exMap;
+      timeCardsMap = tcMap;
       processRows(rows);
       loadedDateStart=ds; loadedDateEnd=de;
       funnelPath=[]; populateFilters(); buildLayout();
@@ -696,50 +738,74 @@ function buildLayout() {
           <div style="font-size:11px;color:var(--light);margin-top:6px;" id="trend-hint">Clique em um mês para ver a evolução diária</div>
         </div>
       </div>
-      <div class="charts-row">
-        <div class="chart-card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:460px;gap:12px">
+
+        <!-- Linha 1: ABS Drill Down | Previsto vs Trabalhado -->
+        <div class="funnel-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span><span id="abs-chart-title">ABS (%) por equipe</span></div>
+            <div class="card-title"><span class="bar-accent"></span>ABS % — Drill Down</div>
             <div class="toggle-group">
-              <button class="toggle-btn active" id="abs-btn-team" onclick="setAbsMode('team')">Equipe</button>
-              <button class="toggle-btn" id="abs-btn-emp" onclick="setAbsMode('emp')">Colaborador</button>
+              <button class="toggle-btn active" id="fn-btn-supervisor" onclick="setFunnelRoot('supervisor')">Supervisor</button>
+              <button class="toggle-btn" id="fn-btn-team" onclick="setFunnelRoot('team')">Equipe</button>
+              <button class="toggle-btn" id="fn-btn-name" onclick="setFunnelRoot('name')">Colaborador</button>
             </div>
           </div>
           <div class="legend-row">
-            <span><span class="legend-dot" style="background:#3b82f6"></span>ABS %</span>
+            <span><span class="legend-dot" style="background:#dc2626"></span>ABS %</span>
             <span><span class="legend-dot" style="background:#f59e0b"></span>Meta 3%</span>
           </div>
-          <div style="max-height:320px;overflow-y:auto;"><div style="position:relative;" id="chart-abs-wrap"><canvas id="chartAbs"></canvas></div></div>
+          <div class="funnel-breadcrumb" id="funnel-breadcrumb"></div>
+          <div class="funnel-wrap" id="funnel-wrap"></div>
+          <div class="funnel-hint" id="funnel-hint">Clique em uma barra para detalhar</div>
         </div>
         <div class="chart-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span><span id="hours-chart-title">Previsto vs trabalhado — equipe</span></div>
+            <div class="card-title"><span class="bar-accent"></span><span id="hours-chart-title">Previsto vs trabalhado — supervisor</span></div>
             <div class="toggle-group">
-              <button class="toggle-btn active" id="hours-btn-team" onclick="setHoursMode('team')">Equipe</button>
+              <button class="toggle-btn active" id="hours-btn-supervisor" onclick="setHoursMode('supervisor')">Supervisor</button>
+              <button class="toggle-btn" id="hours-btn-team" onclick="setHoursMode('team')">Equipe</button>
               <button class="toggle-btn" id="hours-btn-emp" onclick="setHoursMode('emp')">Colaborador</button>
             </div>
           </div>
+          <div class="funnel-breadcrumb" id="hours-breadcrumb"></div>
           <div class="legend-row">
             <span><span class="legend-dot" style="background:#1e40af"></span>Previsto</span>
             <span><span class="legend-dot" style="background:#93c5fd"></span>Trabalhado</span>
           </div>
-          <div style="max-height:320px;overflow-y:auto;"><div style="position:relative;" id="chart-hours-wrap"><canvas id="chartHours"></canvas></div></div>
+          <div style="overflow-y:auto;flex:1"><div style="position:relative;" id="chart-hours-wrap"><canvas id="chartHours"></canvas></div></div>
         </div>
-      </div>
-      <div class="funnel-card">
-        <div class="card-header">
-          <div class="card-title"><span class="bar-accent"></span>ABS % — Drill Down</div>
-          <div class="toggle-group">
-            <button class="toggle-btn active" id="fn-btn-supervisor" onclick="setFunnelRoot('supervisor')">Supervisor</button>
-            <button class="toggle-btn" id="fn-btn-team" onclick="setFunnelRoot('team')">Equipe</button>
-            <button class="toggle-btn" id="fn-btn-name" onclick="setFunnelRoot('name')">Colaborador</button>
+
+        <!-- Linha 2: Atraso Drill Down | Matriz de Atraso -->
+        <div class="funnel-card">
+          <div class="card-header">
+            <div class="card-title"><span class="bar-accent"></span>Total Atraso Operacional — 1ª Entrada — Drill Down</div>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="lf-btn-supervisor" onclick="setLateFunnelRoot('supervisor')">Supervisor</button>
+              <button class="toggle-btn" id="lf-btn-team" onclick="setLateFunnelRoot('team')">Equipe</button>
+              <button class="toggle-btn" id="lf-btn-name" onclick="setLateFunnelRoot('name')">Colaborador</button>
+            </div>
           </div>
+          <div class="funnel-breadcrumb" id="late-funnel-breadcrumb"></div>
+          <div class="funnel-wrap" id="late-funnel-wrap"></div>
+          <div class="funnel-hint" id="late-funnel-hint">Clique em uma barra para detalhar</div>
         </div>
-        <div class="funnel-breadcrumb" id="funnel-breadcrumb"></div>
-        <div class="funnel-wrap" id="funnel-wrap" style="max-height:320px;overflow-y:auto;"></div>
-        <div class="funnel-hint" id="funnel-hint">Clique em uma barra para detalhar</div>
-      </div>
-      <div class="charts-row">
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title"><span class="bar-accent"></span>Matriz de Atraso — 1ª Entrada</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div class="funnel-breadcrumb" id="late-matrix-breadcrumb" style="margin-bottom:0"></div>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="lm-btn-supervisor" onclick="setLateMatrixDrillMode('supervisor')">Supervisor</button>
+                <button class="toggle-btn"        id="lm-btn-team"       onclick="setLateMatrixDrillMode('team')">Equipe</button>
+                <button class="toggle-btn"        id="lm-btn-name"       onclick="setLateMatrixDrillMode('name')">Colaborador</button>
+              </div>
+            </div>
+          </div>
+          <div style="overflow-y:auto;overflow-x:auto;flex:1" id="late-matrix-wrap"></div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="late-matrix-hint">Clique em uma linha para detalhar</div>
+        </div>
+
+        <!-- Linha 3: Abonos Drill Down | Matriz de Abonos -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title"><span class="bar-accent"></span><span id="ex-drill-title">Abonos — Drill Down (Supervisor)</span></div>
@@ -756,7 +822,7 @@ function buildLayout() {
             <span><span class="legend-dot" style="background:#1e40af"></span>Registros</span>
             <span><span class="legend-dot" style="background:#93c5fd"></span>Horas abonadas</span>
           </div>
-          <div style="max-height:400px;overflow-y:auto;"><div style="position:relative;" id="chart-ex-drill-wrap"><canvas id="chartExDrill" role="img" aria-label="Drill down de abonos"></canvas></div></div>
+          <div style="overflow-y:auto;flex:1"><div style="position:relative;" id="chart-ex-drill-wrap"><canvas id="chartExDrill" role="img" aria-label="Drill down de abonos"></canvas></div></div>
           <div style="font-size:11px;color:var(--light);margin-top:6px;" id="ex-drill-hint">Clique em uma barra para detalhar</div>
         </div>
         <div class="chart-card">
@@ -771,9 +837,10 @@ function buildLayout() {
               </div>
             </div>
           </div>
-          <div style="max-height:420px;overflow-y:auto;overflow-x:auto;" id="ex-matrix-wrap"></div>
+          <div style="overflow-y:auto;overflow-x:auto;flex:1" id="ex-matrix-wrap"></div>
           <div style="font-size:11px;color:var(--light);margin-top:6px;" id="ex-matrix-hint">Clique em uma linha para detalhar</div>
         </div>
+
       </div>
       <div class="table-card">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -786,20 +853,24 @@ function buildLayout() {
               <th onclick="sortTable(0)">Colaborador ↕</th>
               <th onclick="sortTable(1)">Equipe ↕</th>
               <th onclick="sortTable(2)">Supervisor ↕</th>
-              <th onclick="sortTable(3)">Data ↕</th>
-              <th onclick="sortTable(4)">Mês ↕</th>
-              <th onclick="sortTable(5)">Previsto ↕</th>
-              <th onclick="sortTable(6)">Trabalhado ↕</th>
-              <th onclick="sortTable(7)">Ausência ↕</th>
-              <th onclick="sortTable(8)">ABS % ↕</th>
-              <th>Total Abonado</th>
-              <th>Tipo de Abono</th>
-              <th>Status</th>
-              <th>Solicitação</th>
-              <th>Aprovada por</th>
-              <th>Dia todo</th>
-              <th>Horário Início Abono</th>
-              <th>Horário Fim Abono</th>
+              <th onclick="sortTable(3)">Cargo ↕</th>
+              <th onclick="sortTable(4)">Data ↕</th>
+              <th onclick="sortTable(5)">Mês ↕</th>
+              <th onclick="sortTable(6)">Registro Ponto ↕</th>
+              <th onclick="sortTable(7)">Jornada ↕</th>
+              <th onclick="sortTable(8)">Total Atraso ↕</th>
+              <th onclick="sortTable(9)">Previsto ↕</th>
+              <th onclick="sortTable(10)">Trabalhado ↕</th>
+              <th onclick="sortTable(11)">Ausência ↕</th>
+              <th onclick="sortTable(12)">ABS % ↕</th>
+              <th onclick="sortTable(13)">Total Abonado ↕</th>
+              <th onclick="sortTable(14)">Tipo de Abono ↕</th>
+              <th onclick="sortTable(15)">Status ↕</th>
+              <th onclick="sortTable(16)">Solicitação ↕</th>
+              <th onclick="sortTable(17)">Aprovada por ↕</th>
+              <th onclick="sortTable(18)">Dia todo ↕</th>
+              <th onclick="sortTable(19)">Horário Início Abono ↕</th>
+              <th onclick="sortTable(20)">Horário Fim Abono ↕</th>
               <th>Possui Anexo</th>
               <th>Observação</th>
             </tr></thead>
@@ -815,24 +886,42 @@ function buildLayout() {
         </div>
       </div>
     </div>`;
-  chartAbs=null; chartHours=null; chartTrend=null; chartExAxis=null; chartExDrill=null; chartExMatrix=null; exDrillPath=[]; exMatrixDrillPath=[];
+  chartAbs=null; chartHours=null; chartLate=null; chartLateFunnel=null; chartTrend=null; chartExAxis=null; chartExDrill=null; chartExMatrix=null; exDrillPath=[]; exMatrixDrillPath=[]; lateMatrixDrillPath=[]; hoursDrillPath=[];
 }
 
-function renderAll(){ renderKPIs(); renderTrendChart(); renderChartAbs(); renderChartHours(); renderFunnel(); renderExAxisChart(); renderExDrillChart(); renderExMatrixChart(); renderTableBody(); }
+function renderAll(){ renderKPIs(); renderTrendChart(); renderLateChart(); renderChartHours(); renderFunnel(); renderLateFunnel(); renderLateMatrix(); renderExAxisChart(); renderExDrillChart(); renderExMatrixChart(); renderTableBody(); }
 
 function renderKPIs(){
   const d=dedupeRows(filteredData);
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
-  // Total Abonos e Total Abonado: exclui apenas Pendente e Reprovada
   const excluidos = new Set(['Pendente','Reprovada']);
   const aprovados=d.filter(r=>r.exemption && !excluidos.has((r.exemption.solicitation_status||'').trim()));
   const totAbonos=aprovados.length;
   const totAbonado=aprovados.reduce((s,r)=>s+(r.abonado||0),0);
-  // Formata: valor principal = horas, subtexto ao lado = minutos
+  // Total Atraso: soma de late_arrival dos colaboradores no período filtrado
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const seenTc = new Set();
+  let totAtrasMin = 0;
+  let totRegAtraso = 0;
+  d.forEach(r => {
+    const k = r.name.trim()+'|'+r.date;
+    if(seenTc.has(k)) return;
+    seenTc.add(k);
+    const tc = timeCardsMap[k];
+    if(tc && tc.late_arrival) {
+      totAtrasMin += toMin(tc.late_arrival);
+      totRegAtraso++;
+    }
+  });
+  const totAtrasH = totAtrasMin / 60;
   const fmtKpi = h => {
     const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+    return {main:`${hh}h`, sub2: mm>0?`${mm}min`:''};
+  };
+  const fmtKpiMin = min => {
+    const hh=Math.floor(min/60), mm=Math.round(min%60);
     return {main:`${hh}h`, sub2: mm>0?`${mm}min`:''};
   };
   const fmtSimple = h => { const hh=Math.floor(h),mm=Math.round((h-hh)*60); return mm>0?`${hh}h ${String(mm).padStart(2,'0')}min`:`${hh}h`; };
@@ -840,9 +929,23 @@ function renderKPIs(){
     const {main,sub2}=fmtKpi(h);
     return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:5px">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}</div><div class="kpi-label">${label}</div><div class="kpi-sub">${sub}</div></div>`;
   };
+  const mkHoraKpiMin=(label,min,sub)=>{
+    const {main,sub2}=fmtKpiMin(min);
+    return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:5px">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}</div><div class="kpi-label">${label}</div><div class="kpi-sub">${sub}</div></div>`;
+  };
+  const mkHoraKpiMinCount=(label,min,count,sub)=>{
+    const {main,sub2}=fmtKpiMin(min);
+    return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;white-space:nowrap">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}<span style="font-size:11px;font-weight:400;color:var(--text-3)">|</span><span style="font-size:11px;font-weight:500;color:var(--mid)">${count} atr.</span></div><div class="kpi-label">${label}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
+  };
   const mkKpi=(label,val,sub)=>`<div class="kpi"><div class="kpi-val">${val}</div><div class="kpi-label">${label}</div><div class="kpi-sub">${sub}</div></div>`;
+  // Colaboradores com registro de ponto no período
+  const colsComPonto = new Set(
+    d.filter(r => timeCardsMap[r.name.trim()+'|'+r.date]).map(r => r.name)
+  ).size;
+  const colsTotal = new Set(filteredData.map(r=>r.name)).size;
+
   document.getElementById('kpi-row').innerHTML=[
-    mkKpi('Colaboradores',   new Set(filteredData.map(r=>r.name)).size, 'no período'),
+    `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">${colsComPonto}<span style="font-size:11px;font-weight:400;color:var(--text-3)">|</span><span style="font-size:11px;font-weight:500;color:var(--mid)">${colsTotal} prev.</span></div><div class="kpi-label">Colaboradores</div><div class="kpi-sub">com registro de ponto</div></div>`,
     mkHoraKpi('Total previsto',   totP, 'horas esperadas'),
     mkHoraKpi('Total trabalhado', totT, pct.toFixed(1)+'% do previsto'),
     mkHoraKpi('Total ausências',  totA, 'horas faltantes'),
@@ -850,6 +953,7 @@ function renderKPIs(){
     mkKpi('Reg. c/ falta',   regFalta, 'registros com ausência'),
     mkKpi('Total Abonos',    totAbonos, 'registros abonados'),
     mkHoraKpi('Total Abonado', totAbonado, 'horas abonadas'),
+    mkHoraKpiMinCount('Total Atraso', totAtrasMin, totRegAtraso, 'operacional'),
   ].join('');
 }
 
@@ -919,17 +1023,18 @@ function setAbsMode(m){
 }
 
 function renderChartAbs(){
+  const wrap=document.getElementById('chart-abs-wrap');
+  if(!wrap) return;
   const key=absMode==='team'?'team':'name';
   const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
   const labels=e.map(x=>absMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
   const vals=e.map(x=>x.abs);
   const colors=vals.map(v=>v>=5?'#dc2626':v>=3?'#f59e0b':'#3b82f6');
   const maxVal=Math.max(...vals,3)*1.3;
-  const wrap=document.getElementById('chart-abs-wrap');
   wrap.style.height=Math.max(200,labels.length*(absMode==='emp'?20:30)+60)+'px';
   if(chartAbs)chartAbs.destroy();
   const absLabelPlugin={id:'absLabel',afterDatasetsDraw(chart){
-    const{ctx,scales:{x,y}}=chart;
+    const{ctx}=chart;
     chart.data.datasets[0].data.forEach((val,i)=>{
       if(!val) return;
       const bar=chart.getDatasetMeta(0).data[i];
@@ -959,33 +1064,60 @@ function renderChartAbs(){
 }
 
 function setHoursMode(m){
-  hoursMode=m;
-  document.getElementById('hours-btn-team').classList.toggle('active',m==='team');
-  document.getElementById('hours-btn-emp').classList.toggle('active',m==='emp');
-  document.getElementById('hours-chart-title').textContent=m==='team'?'Previsto vs trabalhado — equipe':'Previsto vs trabalhado — colaborador';
+  hoursMode=m; hoursDrillPath=[];
+  ['supervisor','team','emp'].forEach(k=>{
+    const el=document.getElementById('hours-btn-'+k);
+    if(el) el.classList.toggle('active',m===k);
+  });
+  const titles={supervisor:'supervisor',team:'equipe',emp:'colaborador'};
+  document.getElementById('hours-chart-title').textContent='Previsto vs trabalhado — '+titles[m];
   renderChartHours();
 }
+function hoursDrillDown(val){ hoursDrillPath.push(val); renderChartHours(); }
+function hoursDrillUp(idx){ hoursDrillPath=idx===-1?[]:hoursDrillPath.slice(0,idx+1); renderChartHours(); }
 
 function renderChartHours(){
-  const key=hoursMode==='team'?'team':'name';
-  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>{
-    const u=dedupeRows(v);
-    return {k, prev:u.reduce((s,r)=>s+r.previsto,0), trab:u.reduce((s,r)=>s+r.trabalhado,0), abs:calcAbs(v)};
-  }).sort((a,b)=>b.abs-a.abs);
-  const labels=e.map(x=>hoursMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
-  const prev=e.map(x=>+x.prev.toFixed(1)), trab=e.map(x=>+x.trab.toFixed(1));
-  const maxVal=Math.max(...prev,...trab,1)*1.25;
   const wrap=document.getElementById('chart-hours-wrap');
+  if(!wrap) return;
+
+  // Sequência de drill: supervisor → team → name
+  const SEQ={supervisor:['supervisor','team','name'], team:['team','name'], emp:['name']};
+  const seq=SEQ[hoursMode];
+  const depth=hoursDrillPath.length;
+  const groupKey=seq[Math.min(depth,seq.length-1)];
+  const canDrill=depth<seq.length-1;
+
+  // Filtrar por drill path
+  let rows=filteredData;
+  hoursDrillPath.forEach((val,i)=>{ rows=rows.filter(r=>r[seq[i]]===val); });
+
+  // Breadcrumb
+  const bc=document.getElementById('hours-breadcrumb');
+  if(bc){
+    bc.innerHTML='<span onclick="hoursDrillUp(-1)" style="color:var(--data-dark);cursor:pointer;font-weight:500">Início</span>';
+    hoursDrillPath.forEach((v,i)=>{
+      bc.innerHTML+=` › <span onclick="hoursDrillUp(${i})" style="color:var(--data-dark);cursor:pointer;font-weight:500">${v.length>20?v.slice(0,20)+'…':v}</span>`;
+    });
+  }
+
+  const e=Object.entries(groupBy(rows,groupKey)).map(([k,v])=>{
+    const u=dedupeRows(v);
+    return {k, prev:+u.reduce((s,r)=>s+r.previsto,0).toFixed(1), trab:+u.reduce((s,r)=>s+r.trabalhado,0).toFixed(1)};
+  }).sort((a,b)=>b.prev-a.prev);
+
+  const labels=e.map(x=>hoursMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
+  const prev=e.map(x=>x.prev), trab=e.map(x=>x.trab);
+  const maxVal=Math.max(...prev,...trab,1)*1.25;
   wrap.style.height=Math.max(200,labels.length*(hoursMode==='emp'?20:30)+60)+'px';
   if(chartHours)chartHours.destroy();
+
   const hoursLabelPlugin={id:'hoursLabel',afterDatasetsDraw(chart){
     const{ctx}=chart;
     chart.data.datasets.forEach((ds,di)=>{
       const meta=chart.getDatasetMeta(di);
       if(meta.hidden) return;
       meta.data.forEach((bar,i)=>{
-        const val=ds.data[i];
-        if(!val) return;
+        const val=ds.data[i]; if(!val) return;
         ctx.save();
         ctx.fillStyle='#71717a';ctx.font=`500 ${hoursMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
         ctx.textAlign='left';ctx.textBaseline='middle';
@@ -994,26 +1126,104 @@ function renderChartHours(){
       });
     });
   }};
+
   chartHours=new Chart(document.getElementById('chartHours'),{
     type:'bar',
     data:{labels,datasets:[
-      {label:'Previsto',data:prev,backgroundColor:'#1e40af',borderRadius:3},
-      {label:'Trabalhado',data:trab,backgroundColor:'#93c5fd',borderRadius:3}
+      {label:'Previsto',   data:prev, backgroundColor:'#1e40af',borderRadius:3},
+      {label:'Trabalhado', data:trab, backgroundColor:'#93c5fd',borderRadius:3}
     ]},
     options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}h`}}
+      },
       scales:{
         x:{display:false,max:maxVal},
         y:{grid:{display:false},ticks:{font:{size:hoursMode==='emp'?10:12}}}
+      },
+      onClick(evt,els){
+        if(!canDrill||!els.length) return;
+        const idx=els[0].index;
+        hoursDrillDown(e[idx].k);
       }
     },
     plugins:[hoursLabelPlugin]
   });
 }
 
+function setLateMode(m){
+  lateMode=m;
+  ['supervisor','team','emp'].forEach(k=>document.getElementById('late-btn-'+k).classList.toggle('active',m===k));
+  renderLateChart();
+}
+
+function renderLateChart(){
+  const wrap = document.getElementById('chart-late-wrap');
+  if(!wrap) return;
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const seen = new Set();
+  const lateByKey = {};
+  const countByKey = {};
+  filteredData.forEach(r => {
+    const tcKey = r.name.trim()+'|'+r.date;
+    if(seen.has(tcKey)) return;
+    seen.add(tcKey);
+    const tc = timeCardsMap[tcKey];
+    const min = tc && tc.late_arrival ? toMin(tc.late_arrival) : 0;
+    if(!min) return;
+    let gk;
+    if(lateMode==='supervisor') gk = r.supervisor;
+    else if(lateMode==='team')  gk = r.team;
+    else                        gk = r.name;
+    lateByKey[gk]  = (lateByKey[gk]||0)  + min;
+    countByKey[gk] = (countByKey[gk]||0) + 1;
+  });
+  const sorted = Object.entries(lateByKey).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const labels = sorted.map(([k])=>k);
+  const values = sorted.map(([,v])=>v);
+  const counts = sorted.map(([k])=>countByKey[k]||0);
+  const maxVal = Math.max(...values, 1);
+  const barH = 28, minH = 200;
+  wrap.style.height = Math.max(minH, labels.length * barH) + 'px';
+  if(chartLate) chartLate.destroy();
+  const lateLabelPlugin = {
+    id:'lateLabel',
+    afterDatasetsDraw(chart){
+      const {ctx}=chart;
+      chart.data.datasets.forEach((ds,di)=>{
+        const meta=chart.getDatasetMeta(di);
+        meta.data.forEach((bar,i)=>{
+          const val=ds.data[i]; if(!val) return;
+          const hh=Math.floor(val/60), mm=Math.round(val%60);
+          const timeLabel = hh>0 ? (mm>0?`${hh}h${mm}min`:`${hh}h`) : `${mm}min`;
+          const cnt = counts[i];
+          const label = `${timeLabel} | ${cnt} atraso${cnt>1?'s':''}`;
+          ctx.save(); ctx.fillStyle='#71717a';
+          ctx.font='500 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+          ctx.textAlign='left'; ctx.textBaseline='middle';
+          ctx.fillText(label, bar.x+4, bar.y); ctx.restore();
+        });
+      });
+    }
+  };
+  chartLate = new Chart(document.getElementById('chartLate'),{
+    type:'bar',
+    data:{ labels, datasets:[{ data:values, backgroundColor:'#dc2626', borderRadius:3 }] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ display:false, max: maxVal * 1.25 },
+        y:{ grid:{display:false}, ticks:{font:{size:lateMode==='emp'?10:12}} }
+      }
+    },
+    plugins:[lateLabelPlugin]
+  });
+}
+
 function setFunnelRoot(r){
-  funnelRoot=r; funnelPath=[];
   ['supervisor','team','name'].forEach(k=>document.getElementById('fn-btn-'+k).classList.toggle('active',r===k));
   renderFunnel();
 }
@@ -1041,8 +1251,9 @@ function renderFunnel(){
   if(funnelPath.length) bc.innerHTML+=` › <strong>${levelLabel}</strong>`;
   document.getElementById('funnel-wrap').innerHTML=`<div class="funnel-level-title">${levelLabel}</div>`+items.map(item=>{
     const w=item.abs/maxAbs*100, cls=item.abs>=5?'danger':item.abs>=3?'warn':'';
+    const metaW = Math.min(3/maxAbs*100, 100);
     const esc=item.label.replace(/'/g,"\\'");
-    return `<div class="funnel-bar-row" onclick="${canDrill?`drillDown('${item.key}','${esc}')`:''}" style="cursor:${canDrill?'pointer':'default'}"><div class="funnel-label">${item.label}</div><div class="funnel-bar-bg"><div class="funnel-bar-fill ${cls}" style="width:${w}%"></div></div><div class="funnel-pct">${item.abs.toFixed(2)}%</div></div>`;
+    return `<div class="funnel-bar-row" onclick="${canDrill?`drillDown('${item.key}','${esc}')`:''}" style="cursor:${canDrill?'pointer':'default'}"><div class="funnel-label">${item.label}</div><div class="funnel-bar-bg" style="position:relative"><div class="funnel-bar-fill ${cls}" style="width:${w}%"></div><div style="position:absolute;top:0;bottom:0;left:${metaW}%;width:2px;background:#f59e0b;opacity:0.8;pointer-events:none"></div></div><div class="funnel-pct">${item.abs.toFixed(2)}%</div></div>`;
   }).join('');
   document.getElementById('funnel-hint').textContent=canDrill?'Clique em uma barra para detalhar':'';
 }
@@ -1053,7 +1264,180 @@ function getItems(rows,key){
 function drillDown(key,val){ funnelPath.push({key,val}); renderFunnel(); }
 function drillUp(idx){ funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1); renderFunnel(); }
 
+// ── LATE FUNNEL ───────────────────────────────────────────────────────────────
+function setLateFunnelRoot(r){
+  lateFunnelRoot=r; lateFunnelPath=[];
+  ['supervisor','team','name'].forEach(k=>document.getElementById('lf-btn-'+k).classList.toggle('active',r===k));
+  renderLateFunnel();
+}
+function lateFunnelDrillDown(key,val){ lateFunnelPath.push({key,val}); renderLateFunnel(); }
+function lateFunnelDrillUp(idx){ lateFunnelPath=idx===-1?[]:lateFunnelPath.slice(0,idx+1); renderLateFunnel(); }
+
+function renderLateFunnel(){
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const fmtMin = min => { const hh=Math.floor(min/60), mm=Math.round(min%60); return hh>0?(mm>0?`${hh}h${mm}min`:`${hh}h`):`${mm}min`; };
+
+  let rows=filteredData;
+  lateFunnelPath.forEach(s=>{ rows=rows.filter(r=>r[s.key]===s.val); });
+  const depth=lateFunnelPath.length;
+  let levelLabel, groupKey;
+  if(lateFunnelRoot==='supervisor'){
+    if(depth===0){ levelLabel='Supervisor'; groupKey='supervisor'; }
+    else if(depth===1){ levelLabel='Equipe'; groupKey='team'; }
+    else { levelLabel='Colaborador'; groupKey='name'; }
+  } else if(lateFunnelRoot==='team'){
+    if(depth===0){ levelLabel='Equipe'; groupKey='team'; }
+    else { levelLabel='Colaborador'; groupKey='name'; }
+  } else {
+    levelLabel='Colaborador'; groupKey='name';
+  }
+
+  // Calcular atraso por grupo (deduplicado por colaborador/dia)
+  const seen = new Set();
+  const lateByGroup = {};
+  const countByGroup = {};
+  rows.forEach(r => {
+    const tcKey = r.name.trim()+'|'+r.date;
+    if(seen.has(tcKey)) return;
+    seen.add(tcKey);
+    const tc = timeCardsMap[tcKey];
+    const min = tc && tc.late_arrival ? toMin(tc.late_arrival) : 0;
+    if(!min) return;
+    const gk = r[groupKey];
+    lateByGroup[gk]  = (lateByGroup[gk]||0)  + min;
+    countByGroup[gk] = (countByGroup[gk]||0) + 1;
+  });
+
+  const items = Object.entries(lateByGroup).sort((a,b)=>b[1]-a[1]);
+  const maxVal = Math.max(...items.map(([,v])=>v), 1);
+  const canDrill = (lateFunnelRoot==='supervisor'&&depth<2)||(lateFunnelRoot==='team'&&depth<1);
+
+  const bc = document.getElementById('late-funnel-breadcrumb');
+  bc.innerHTML = '<span onclick="lateFunnelDrillUp(-1)">Início</span>';
+  lateFunnelPath.forEach((s,i)=>{ bc.innerHTML+=` › <span onclick="lateFunnelDrillUp(${i})">${s.val}</span>`; });
+  if(lateFunnelPath.length) bc.innerHTML+=` › <strong>${levelLabel}</strong>`;
+
+  document.getElementById('late-funnel-wrap').innerHTML =
+    `<div class="funnel-level-title">${levelLabel}</div>` +
+    items.map(([label, min]) => {
+      const w = min/maxVal*100;
+      const cnt = countByGroup[label]||0;
+      const esc = label.replace(/'/g,"\\'");
+      return `<div class="funnel-bar-row" onclick="${canDrill?`lateFunnelDrillDown('${groupKey}','${esc}')`:''}" style="cursor:${canDrill?'pointer':'default'}">
+        <div class="funnel-label">${label}</div>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill danger" style="width:${w}%"></div></div>
+        <div class="funnel-pct" style="min-width:110px;text-align:right">${fmtMin(min)} <span style="font-size:10px;font-weight:400;color:var(--text-3)">| ${cnt}</span></div>
+      </div>`;
+    }).join('');
+  document.getElementById('late-funnel-hint').textContent = canDrill ? 'Clique em uma barra para detalhar' : '';
+}
+
 function renderTableBody(){ tablePage=0; renderTablePage(); }
+
+// ── MATRIZ DE ATRASO ─────────────────────────────────────────────────────────
+const LATE_CATS = [
+  { key:'pontual',   label:'Pontual',         min:1,  max:5  },
+  { key:'leve',      label:'Atraso leve',     min:6,  max:10 },
+  { key:'moderado',  label:'Atraso moderado', min:11, max:30 },
+  { key:'grave',     label:'Atraso grave',    min:31, max:Infinity },
+];
+const LATE_MATRIX_SEQS = {
+  'supervisor': ['supervisor','team','name'],
+  'team':       ['team','name'],
+  'name':       ['name']
+};
+
+function setLateMatrixDrillMode(m){
+  lateMatrixDrillMode=m; lateMatrixDrillPath=[];
+  ['supervisor','team','name'].forEach(k=>document.getElementById('lm-btn-'+k).classList.toggle('active',m===k));
+  renderLateMatrix();
+}
+function lateMatrixDrillDown(val){ lateMatrixDrillPath.push(val); renderLateMatrix(); }
+function lateMatrixDrillUp(idx){ lateMatrixDrillPath=idx===-1?[]:lateMatrixDrillPath.slice(0,idx+1); renderLateMatrix(); }
+
+function renderLateMatrix(){
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const fmtMin = min => { const hh=Math.floor(min/60), mm=Math.round(min%60); return hh>0?(mm>0?`${hh}h${mm}min`:`${hh}h`):`${mm}min`; };
+  const catOf  = min => {
+    if(!min || min === 0) return null; // sem atraso, ignora
+    return LATE_CATS.find(c => min>=c.min && min<=c.max)?.key || null;
+  };
+
+  const seq = LATE_MATRIX_SEQS[lateMatrixDrillMode];
+  const depth = lateMatrixDrillPath.length;
+  const groupKey = seq[Math.min(depth, seq.length-1)];
+  const canDrill = depth < seq.length-1;
+
+  // Filtrar rows pelo drill path
+  let rows = filteredData;
+  lateMatrixDrillPath.forEach((val,i) => { rows = rows.filter(r => r[seq[i]]===val); });
+
+  // Acumular por grupo e categoria — deduplica por name|date (mesmo padrão do KPI)
+  const seen = new Set();
+  const rowMap = {};
+  rows.forEach(r => {
+    const tcKey = r.name.trim()+'|'+r.date;
+    if(seen.has(tcKey)) return;
+    seen.add(tcKey);
+    const tc = timeCardsMap[tcKey];
+    const min = tc && tc.late_arrival ? toMin(tc.late_arrival) : 0;
+    const cat = catOf(min);
+    if(!cat) return;
+    const gk = r[groupKey];
+    if(!rowMap[gk]) rowMap[gk] = { _total:{min:0,count:0}, pontual:{min:0,count:0}, leve:{min:0,count:0}, moderado:{min:0,count:0}, grave:{min:0,count:0} };
+    rowMap[gk][cat].min   += min;
+    rowMap[gk][cat].count += 1;
+    rowMap[gk]._total.min   += min;
+    rowMap[gk]._total.count += 1;
+  });
+
+  const rowsSorted = Object.entries(rowMap).sort((a,b)=>b[1]._total.min - a[1]._total.min);
+
+  // Breadcrumb
+  const bc = document.getElementById('late-matrix-breadcrumb');
+  bc.innerHTML = '<span onclick="lateMatrixDrillUp(-1)" style="color:var(--blue2);cursor:pointer;font-weight:600">Início</span>';
+  lateMatrixDrillPath.forEach((v,i)=>{
+    bc.innerHTML += ` › <span onclick="lateMatrixDrillUp(${i})" style="color:var(--blue2);cursor:pointer;font-weight:600">${v.length>18?v.slice(0,18)+'…':v}</span>`;
+  });
+
+  const dimLabel = lateMatrixDrillMode==='supervisor'?['Supervisor','Equipe','Colaborador'][depth]: lateMatrixDrillMode==='team'?['Equipe','Colaborador'][depth]:'Colaborador';
+
+  const colColors = { pontual:'#16a34a', leve:'#f59e0b', moderado:'#f97316', grave:'#dc2626' };
+
+  const hdrCols = LATE_CATS.map(c=>`<th style="min-width:110px;text-align:center;padding:6px 8px;background:var(--bg);font-size:11px;font-weight:500;color:var(--text-2);white-space:nowrap;border-bottom:2px solid ${colColors[c.key]}">${c.label}</th>`).join('');
+
+  const bodyRows = rowsSorted.map(([rowKey, rv]) => {
+    const esc = rowKey.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const cells = LATE_CATS.map(c => {
+      const v = rv[c.key];
+      if(!v || v.count===0) return `<td style="text-align:center;padding:5px 8px;font-size:11px"><span style="color:#ccc">—</span></td>`;
+      return `<td style="text-align:center;padding:5px 8px;background:#fafafa;font-size:11px">
+        <div style="font-weight:600;color:${colColors[c.key]}">${fmtMin(v.min)}</div>
+        <div style="color:var(--text-3);font-size:10px">${v.count} atr.</div>
+      </td>`;
+    }).join('');
+    const tot = rv._total;
+    return `<tr onclick="${canDrill?`lateMatrixDrillDown('${esc}')`:''}"
+      style="cursor:${canDrill?'pointer':'default'};border-bottom:1px solid var(--border)"
+      onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
+      <td style="padding:6px 10px;font-size:12px;color:var(--dark);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc}">${rowKey}</td>
+      ${cells}
+      <td style="text-align:center;padding:5px 10px;background:var(--border-subtle);font-size:11px;font-weight:600;color:var(--dark)">${fmtMin(tot.min)}<div style="color:var(--text-3);font-size:10px;font-weight:400">${tot.count} atr.</div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('late-matrix-wrap').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto">
+      <thead><tr>
+        <th style="padding:6px 10px;background:var(--bg);color:var(--text-2);font-size:11px;font-weight:500;text-align:left;white-space:nowrap">${dimLabel}</th>
+        ${hdrCols}
+        <th style="min-width:80px;text-align:center;padding:6px 8px;background:var(--border-subtle);color:var(--text-2);font-size:11px;font-weight:500">Total</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>`;
+
+  document.getElementById('late-matrix-hint').textContent = canDrill ? 'Clique em uma linha para detalhar' : '';
+}
 
 function renderTablePage(){
   const all=dedupeRows(filteredData);
@@ -1084,12 +1468,30 @@ function renderTablePage(){
     // ABS cell tag
     const absTag = isAllDay?`<span class="exempt-tag allday">Abono Dia</span>`
                   :ex?`<span class="exempt-tag">Abono</span>`:'';
+    // Time card lookup
+    const tcKey = r.name.trim()+'|'+r.date;
+    const tc = timeCardsMap[tcKey] || null;
+    const registroPonto = tc ? (tc.registro_ponto || '—') : '—';
+    const lateArrival = tc ? (tc.late_arrival || null) : null;
+    const jobTitle = tc ? (tc.job_title_name || '—') : '—';
+    const shiftName = tc ? (tc.shift_name || '—') : '—';
+    let lateTag = '—';
+    if(lateArrival) {
+      const [lh, lm] = lateArrival.split(':').map(Number);
+      const totalMin = lh * 60 + lm;
+      const lateColor = totalMin > 10 ? '#dc2626' : '#16a34a';
+      lateTag = `<span style="font-weight:600;color:${lateColor}">${lateArrival}</span>`;
+    }
     return `<tr ${rowClass}>
       <td>${r.name}</td>
       <td>${r.team}</td>
       <td>${r.supervisor}</td>
+      <td>${jobTitle}</td>
       <td>${r.date}</td>
       <td>${monthLabel(r.month)}</td>
+      <td class="registro-ponto">${registroPonto}</td>
+      <td style="font-size:11px;color:var(--text-2);max-width:160px;white-space:normal;word-break:break-word">${shiftName}</td>
+      <td style="text-align:center">${lateTag}</td>
       <td>${r.previsto.toFixed(1)}h</td>
       <td>${r.trabalhado.toFixed(1)}h</td>
       <td>${r.ausencia.toFixed(1)}h</td>
@@ -1120,9 +1522,49 @@ function tablePageChange(dir){
 
 function sortTable(col){
   const dir=sortDir[col]=!sortDir[col];
-  const keys=['name','team','supervisor','date','month','previsto','trabalhado','ausencia'];
-  if(col===8){ filteredData.sort((a,b)=>{ const av=a.previsto>0?a.ausencia/a.previsto:0,bv=b.previsto>0?b.ausencia/b.previsto:0; return dir?av-bv:bv-av; }); }
-  else{ filteredData.sort((a,b)=>dir?(a[keys[col]]>b[keys[col]]?1:-1):(a[keys[col]]<b[keys[col]]?1:-1)); }
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=(hhmm||'').split(':').map(Number); return h*60+m; };
+  filteredData.sort((a,b)=>{
+    let av,bv;
+    switch(col){
+      case 0:  av=a.name;       bv=b.name;       break;
+      case 1:  av=a.team;       bv=b.team;       break;
+      case 2:  av=a.supervisor; bv=b.supervisor; break;
+      case 3: { // Cargo: vem do timeCardsMap
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=(ta&&ta.job_title_name)||''; bv=(tb&&tb.job_title_name)||''; break;
+      }
+      case 4:  av=a.date;       bv=b.date;       break;
+      case 5:  av=a.month;      bv=b.month;      break;
+      case 6: { // Registro Ponto
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=(ta&&ta.registro_ponto)||''; bv=(tb&&tb.registro_ponto)||''; break;
+      }
+      case 7: { // Jornada
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=(ta&&ta.shift_name)||''; bv=(tb&&tb.shift_name)||''; break;
+      }
+      case 8: { // Total Atraso
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=toMin(ta&&ta.late_arrival); bv=toMin(tb&&tb.late_arrival);
+        return dir?av-bv:bv-av;
+      }
+      case 9:  return dir?a.previsto-b.previsto:b.previsto-a.previsto;
+      case 10: return dir?a.trabalhado-b.trabalhado:b.trabalhado-a.trabalhado;
+      case 11: return dir?a.ausencia-b.ausencia:b.ausencia-a.ausencia;
+      case 12: { const ap=a.previsto>0?a.ausencia/a.previsto:0,bp=b.previsto>0?b.ausencia/b.previsto:0; return dir?ap-bp:bp-ap; }
+      case 13: return dir?a.abonado-b.abonado:b.abonado-a.abonado;
+      case 14: av=a.exemption&&a.exemption.exemption_type||''; bv=b.exemption&&b.exemption.exemption_type||''; break;
+      case 15: av=a.exemption&&a.exemption.status||''; bv=b.exemption&&b.exemption.status||''; break;
+      case 16: av=a.exemption&&a.exemption.solicitation_status||''; bv=b.exemption&&b.exemption.solicitation_status||''; break;
+      case 17: av=a.exemption&&a.exemption.answered_by||''; bv=b.exemption&&b.exemption.answered_by||''; break;
+      case 18: av=a.exemption&&a.exemption.all_day||''; bv=b.exemption&&b.exemption.all_day||''; break;
+      case 19: av=a.exemption&&a.exemption.start_time||''; bv=b.exemption&&b.exemption.start_time||''; break;
+      case 20: av=a.exemption&&a.exemption.end_time||''; bv=b.exemption&&b.exemption.end_time||''; break;
+      default: av=''; bv='';
+    }
+    if(av===undefined)av=''; if(bv===undefined)bv='';
+    return dir?(av>bv?1:-1):(av<bv?1:-1);
+  });
   tablePage=0; renderTablePage();
 }
 
@@ -1317,19 +1759,20 @@ function renderExDrillChart(){
 
 // ── GRÁFICO 2: Matriz ─────────────────────────────────────────────────────────
 const MATRIX_SEQUENCES = {
-  'answered_by':   ['answered_by','employee_name','status','observation'],
+  'answered_by':   ['answered_by','team_name','employee_name','status','observation'],
   'employee_name': ['employee_name','status','observation'],
   'status':        ['status','observation']
 };
 const MATRIX_LABELS = {
-  'answered_by':'Supervisor','employee_name':'Colaborador',
+  'answered_by':'Supervisor','team_name':'Equipe','employee_name':'Colaborador',
   'status':'Status','observation':'Observação'
 };
 
 function setExMatrixDrillMode(m){
   exMatrixDrillMode=m; exMatrixDrillPath=[];
   ['answered_by','employee_name','status'].forEach(k=>{
-    document.getElementById('ex-matrix-btn-'+k).classList.toggle('active',m===k);
+    const el = document.getElementById('ex-matrix-btn-'+k);
+    if(el) el.classList.toggle('active',m===k);
   });
   renderExMatrixChart();
 }
@@ -1350,10 +1793,16 @@ function renderExMatrixChart(){
   const currentKey = seq[Math.min(depth, seq.length-1)];
   const canDrill = depth < seq.length-1;
 
+  // Helper: pega o valor correto dependendo do campo
+  const getField = (r, fk) => {
+    if(fk === 'team_name') return r.team || 'N/A';
+    return (r.exemption[fk]||'N/A').trim();
+  };
+
   let exRows = getExemptions();
   exMatrixDrillPath.forEach((val,i) => {
     const fk = seq[i];
-    exRows = exRows.filter(r => (r.exemption[fk]||'N/A').trim()===val);
+    exRows = exRows.filter(r => getField(r, fk)===val);
   });
 
   // Colunas: solicitation_status únicos (sem NULL)
@@ -1367,7 +1816,7 @@ function renderExMatrixChart(){
   // Linhas: currentKey
   const rowMap = {};
   exRows.forEach(r => {
-    const rowKey = (r.exemption[currentKey]||'N/A').trim() || 'N/A';
+    const rowKey = getField(r, currentKey);
     const sol = (r.exemption.solicitation_status||'').trim();
     if(!rowMap[rowKey]) rowMap[rowKey] = {_total:{count:0,horas:0}};
     cols.forEach(c => { if(!rowMap[rowKey][c]) rowMap[rowKey][c]={count:0,horas:0}; });
