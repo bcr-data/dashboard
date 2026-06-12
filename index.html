@@ -79,7 +79,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .legend-row{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:var(--text-2)}
 .legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:4px}
 .funnel-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border)}
-.funnel-wrap{display:flex;flex-direction:column;gap:4px;margin-top:4px;max-height:222px;overflow-y:auto}
+.funnel-wrap{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .funnel-level-title{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px}
 .funnel-bar-row{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:8px;transition:background .12s ease}
 .funnel-bar-row:hover{background:var(--border-subtle)}
@@ -134,6 +134,10 @@ tbody td{padding:8px 14px;color:var(--text)}
 .user-chip span{color:#374151}
 .btn-logout{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 11px;font-size:12px;cursor:pointer;transition:background .15s ease}
 .btn-logout:hover{background:var(--border-subtle)}
+.btn-refresh{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 9px;font-size:14px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease;display:flex;align-items:center;justify-content:center;line-height:1}
+.btn-refresh:hover{background:var(--border-subtle);color:var(--brand);border-color:var(--brand)}
+.btn-refresh.refreshing{color:var(--brand);border-color:var(--brand);animation:spin .7s linear infinite}
+@keyframes refreshPulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
 /* EXEMPTION */
 .badge-exemption{background:#dbeafe;color:#1e40af;border:none}
 .badge-exempt-allday{background:#fef3c7;color:#92400e;border:none}
@@ -182,6 +186,7 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
   </div>
   <div class="header-meta" id="header-meta">
     <div class="user-chip">
+      <button class="btn-refresh" id="btn-refresh" title="Atualizar dashboard" onclick="triggerWebhookRefresh()">↻</button>
       <span id="user-email-display"></span>
     </div>
   </div>
@@ -312,6 +317,27 @@ window.exDrillUp      = exDrillUp;
 window.setExMatrixDrillMode = setExMatrixDrillMode;
 window.exMatrixDrillDown    = exMatrixDrillDown;
 window.exMatrixDrillUp      = exMatrixDrillUp;
+
+async function triggerWebhookRefresh() {
+  const btn = document.getElementById('btn-refresh');
+  if(!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add('refreshing');
+  btn.title = 'Atualizando...';
+  try {
+    await fetch('https://eventos.55telecom.com/webhook/35b9bcbf-9ad4-428d-a372-a7d78a62bd05', { method:'GET', mode:'no-cors' });
+    // Aguarda 1.5s para o webhook processar, depois recarrega os dados
+    await new Promise(r => setTimeout(r, 1500));
+    await init();
+  } catch(e) {
+    console.warn('[refresh] webhook error:', e);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('refreshing');
+    btn.title = 'Atualizar dashboard';
+  }
+}
+window.triggerWebhookRefresh = triggerWebhookRefresh;
 
 // Button + Enter key listeners
 document.getElementById('btn-login').addEventListener('click', doLogin);
