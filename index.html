@@ -1460,8 +1460,8 @@ function renderTablePage(){
     const exObs   = ex?(ex.observation||'—'):'—';
     // Total abonado formatado
     const abonadoH = r.abonado||0;
-    const abonadoHH = Math.floor(abonadoH), abonadoMM = Math.round((abonadoH-abonadoHH)*60);
-    const abonadoFmt = abonadoH>0 ? (abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`) : '—';
+    const fmtHHMM = h => { const hh=Math.floor(h), mm=Math.round((h-hh)*60); return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
+    const abonadoFmt = abonadoH>0 ? fmtHHMM(abonadoH) : '—';
     const abonadoTag = abonadoH>0 ? `<span class="badge badge-exemption">${abonadoFmt}</span>` : '—';
     // Row highlight class when exemption present
     const rowClass= isAllDay?'style="background:#fffbeb"':'';
@@ -1492,9 +1492,9 @@ function renderTablePage(){
       <td class="registro-ponto">${registroPonto}</td>
       <td style="font-size:11px;color:var(--text-2);max-width:160px;white-space:normal;word-break:break-word">${shiftName}</td>
       <td style="text-align:center">${lateTag}</td>
-      <td>${r.previsto.toFixed(1)}h</td>
-      <td>${r.trabalhado.toFixed(1)}h</td>
-      <td>${r.ausencia.toFixed(1)}h</td>
+      <td>${fmtHHMM(r.previsto)}</td>
+      <td>${fmtHHMM(r.trabalhado)}</td>
+      <td>${fmtHHMM(r.ausencia)}</td>
       <td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span>${absTag}</div></td>
       <td>${abonadoTag}</td>
       <td>${exType}</td>
