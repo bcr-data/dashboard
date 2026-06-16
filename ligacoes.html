@@ -700,17 +700,25 @@ function buildDashboard(data, sla) {
           {label:'Atendidas',  data:atendVals, backgroundColor:'rgba(22,163,74,.80)',  borderSkipped:false},
           {label:'Abandonadas',data:abandVals, backgroundColor:'rgba(220,38,38,.75)',  borderSkipped:false},
         ]},
-        plugins:[],
+        plugins:[ChartDataLabels],
         options:{
           indexAxis:'y',
           responsive:true,
           maintainAspectRatio:false,
-          layout:{padding:{right:48}},
+          layout:{padding:{right:60}},
           barPercentage:0.9,
           categoryPercentage:0.7,
           plugins:{
             legend:{position:'top',labels:{boxWidth:10,font:{size:11},color:'#71717a'}},
-            tooltip:{callbacks:{afterBody:items=>[`Total: ${fmtN(totals[items[0].dataIndex])}`]}}
+            tooltip:{callbacks:{afterBody:items=>[`Total: ${fmtN(totals[items[0].dataIndex])}`]}},
+            datalabels:{
+              anchor:'end',
+              align:'right',
+              formatter:v=>v>0?fmtN(v):'',
+              font:{size:9},
+              color:'#71717a',
+              clip:false
+            }
           },
           scales:{
             x:{beginAtZero:true,stacked:false,display:false,grid:{display:false},ticks:{display:false}},
