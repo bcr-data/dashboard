@@ -374,8 +374,8 @@ async function loadData() {
         SUM(Atendidas) as Atendidas,
         SUM(Abandonadas) as Abandonadas,
         SUM(CASE WHEN TME_seg <= ${sla} THEN Atendidas ELSE 0 END) as Atend_no_SLA,
-        SUM(CASE WHEN TMA_seg <= 3600 THEN Atendidas * TMA_seg ELSE 0 END) / NULLIF(SUM(CASE WHEN TMA_seg <= 3600 THEN Atendidas ELSE 0 END),0) as TMA_medio,
-        SUM(CASE WHEN TME_seg <= 3600 THEN (Atendidas + Abandonadas) * TME_seg ELSE 0 END) / NULLIF(SUM(CASE WHEN TME_seg <= 3600 THEN (Atendidas + Abandonadas) ELSE 0 END),0) as TME_medio
+        SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as TMA_medio,
+        SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as TME_medio
       FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
       ${where}
       GROUP BY Data, Hora
@@ -410,7 +410,7 @@ function buildDashboard(data, sla) {
   const totAband = data.reduce((a,r) => a + (r.Abandonadas||0), 0);
   const totSLA   = data.reduce((a,r) => a + (r.Atend_no_SLA||0), 0);
   const tmaGlobal = data.reduce((a,r) => a + (r.TMA_medio||0)*(r.Atendidas||0), 0) / (totAtend||1);
-  const tmeGlobal = data.reduce((a,r) => a + (r.TME_medio||0)*((r.Atendidas||0)+(r.Abandonadas||0)), 0) / (totLig||1);
+  const tmeGlobal = data.reduce((a,r) => a + (r.TME_medio||0)*(r.Total_Ligacoes||0), 0) / (totLig||1);
   const ns = totLig > 0 ? (totSLA / totLig * 100) : 0;
 
   // Group by date
@@ -425,8 +425,8 @@ function buildDashboard(data, sla) {
     b.sla   += r.Atend_no_SLA||0;
     b.tmaSum += (r.TMA_medio||0)*(r.Atendidas||0);
     b.tmaW   += r.Atendidas||0;
-    b.tmeSum += (r.TME_medio||0)*((r.Atendidas||0)+(r.Abandonadas||0));
-    b.tmeW   += (r.Atendidas||0)+(r.Abandonadas||0);
+    b.tmeSum += (r.TME_medio||0)*(r.Total_Ligacoes||0);
+    b.tmeW   += r.Total_Ligacoes||0;
   });
   dates = Object.keys(byDate).sort((a,b) => parseDate(a).localeCompare(parseDate(b)));
 
@@ -1060,11 +1060,11 @@ function buildDashboard(data, sla) {
           SUM(Atendidas) as atend,
           SUM(Abandonadas) as aband,
           SUM(CASE WHEN TME_seg <= ${slav} THEN Atendidas ELSE 0 END) as atend_sla,
-          SUM(CASE WHEN TMA_seg <= 3600 THEN Atendidas * TMA_seg ELSE 0 END) / NULLIF(SUM(CASE WHEN TMA_seg <= 3600 THEN Atendidas ELSE 0 END),0) as tma_atend,
-          SUM(CASE WHEN TMA_seg <= 3600 THEN Abandonadas * TMA_seg ELSE 0 END) / NULLIF(SUM(CASE WHEN TMA_seg <= 3600 THEN Abandonadas ELSE 0 END),0) as tma_aband,
-          SUM(CASE WHEN TME_seg <= 3600 THEN Atendidas * TME_seg ELSE 0 END) / NULLIF(SUM(CASE WHEN TME_seg <= 3600 THEN Atendidas ELSE 0 END),0) as tme_atend,
-          SUM(CASE WHEN TME_seg <= 3600 THEN Abandonadas * TME_seg ELSE 0 END) / NULLIF(SUM(CASE WHEN TME_seg <= 3600 THEN Abandonadas ELSE 0 END),0) as tme_aband,
-          SUM(CASE WHEN TME_seg <= 3600 THEN (Atendidas+Abandonadas)*TME_seg ELSE 0 END) / NULLIF(SUM(CASE WHEN TME_seg <= 3600 THEN (Atendidas+Abandonadas) ELSE 0 END),0) as tme_total
+          SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma_atend,
+          SUM(TMA_seg) / NULLIF(SUM(Abandonadas), 0) as tma_aband,
+          SUM(TME_seg) / NULLIF(SUM(Atendidas), 0) as tme_atend,
+          SUM(TME_seg) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
+          SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
         FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
         ${where4}
         GROUP BY ${groupField}
