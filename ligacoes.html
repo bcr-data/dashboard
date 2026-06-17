@@ -713,14 +713,14 @@ function buildDashboard(data, sla) {
       </div>
       <div class="chart-card">
         <div class="card-header">
-          <div><div class="card-title">SLA por Dia × Hora</div><div class="card-sub">% atendidas dentro do SLA</div></div>
+          <div><div class="card-title">CSAT por Dia × Hora</div><div class="card-sub">% satisfação por hora</div></div>
           <div class="dim-group">
-            <button class="time-toggle active" id="hm-sla-dim-data" onclick="setHeatmapDim('sla','data')">Data</button>
-            <button class="time-toggle" id="hm-sla-dim-mes" onclick="setHeatmapDim('sla','mes')">Mês</button>
-            <button class="time-toggle" id="hm-sla-dim-dow" onclick="setHeatmapDim('sla','dow')">Dia Sem.</button>
+            <button class="time-toggle active" id="hm-csat-dim-data" onclick="setHeatmapDim('csat','data')">Data</button>
+            <button class="time-toggle" id="hm-csat-dim-mes" onclick="setHeatmapDim('csat','mes')">Mês</button>
+            <button class="time-toggle" id="hm-csat-dim-dow" onclick="setHeatmapDim('csat','dow')">Dia Sem.</button>
           </div>
         </div>
-        <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-sla"></div></div>
+        <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-csat"></div></div>
       </div>
     </div>
 
@@ -738,8 +738,17 @@ function buildDashboard(data, sla) {
         </div>
       </div>
       <div class="chart-card">
-        <div class="card-header"><div><div class="card-title">Pareto de Abandono por Hora</div><div class="card-sub">Horas com maior volume de abandonos</div></div></div>
-        <div class="chart-body"><canvas id="chart-pareto"></canvas></div>
+        <div class="card-header" style="align-items:center">
+          <div><div class="card-title">Matriz CSAT</div><div class="card-sub" id="csat-matrix-sub">Satisfeitos, Neutros e Ruins</div></div>
+          <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
+            <button id="btn-csat-mx-equipe" class="time-toggle active" onclick="loadCsatMatrix('equipe')">Equipe</button>
+            <button id="btn-csat-mx-fila"   class="time-toggle"        onclick="loadCsatMatrix('fila')">Fila</button>
+            <button id="btn-csat-mx-colab"  class="time-toggle"        onclick="loadCsatMatrix('colab')">Colaborador</button>
+          </div>
+        </div>
+        <div class="chart-body-scroll">
+          <div id="csat-matrix" style="min-width:500px"></div>
+        </div>
       </div>
     </div>
 
@@ -773,7 +782,7 @@ function buildDashboard(data, sla) {
   document.getElementById('btn-tme-colab').addEventListener('click', () => loadTmeMatrix('colaborador'));
   document.getElementById('btn-matrix-back').addEventListener('click', () => { matrixDrillFila = null; loadMainMatrix(null); });
 
-  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
+  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
 
   // ── VOLUME + NS% (mixed bar + line) ──
   destroyChart('vol');
@@ -799,7 +808,7 @@ function buildDashboard(data, sla) {
           color:(ctx)=>ctx.dataset.yAxisID==='y2'?'#71717a':'#71717a',
           clip:false
         },
-        legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}},
+        legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
         tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
       },
       scales:{
@@ -957,7 +966,7 @@ function buildDashboard(data, sla) {
             color:'#71717a',
             clip:false
           },
-          legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}},
+          legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='%CSAT'?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
@@ -1034,7 +1043,7 @@ function buildDashboard(data, sla) {
           barPercentage:0.9,
           categoryPercentage:0.7,
           plugins:{
-            legend:{position:'top',labels:{boxWidth:10,font:{size:11},color:'#71717a'}},
+            legend:{position:'top',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a'}},
             tooltip:{callbacks:{afterBody:items=>[`Total: ${fmtN(totals[items[0].dataIndex])}`]}},
             datalabels:{
               anchor:'end',
@@ -1084,21 +1093,12 @@ function buildDashboard(data, sla) {
 
   // TME Matrix loaded via loadTmeMatrix()
 
-  // Pareto
-  const paretoH = {};
-  data.forEach(r => { const h=r.Hora?String(r.Hora).padStart(2,'0').slice(0,2):'00'; paretoH[h]=(paretoH[h]||0)+(r.Abandonadas||0); });
-  const paretoEntries = Object.entries(paretoH).sort((a,b)=>b[1]-a[1]);
-  destroyChart('pareto');
-  charts.pareto = new Chart(document.getElementById('chart-pareto'), {
-    type:'bar',
-    data:{labels:paretoEntries.map(e=>e[0]+'h'),datasets:[{label:'Abandonos',data:paretoEntries.map(e=>e[1]),backgroundColor:'rgba(220,38,38,.75)',borderRadius:4,borderSkipped:false}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#f4f4f5'},ticks:{font:{size:10},color:'#a1a1aa'}},y:{grid:{display:false},ticks:{font:{size:11},color:'#71717a'}}}}
-  });
-
   // Load async matrices after dashboard renders
   setTimeout(() => {
     loadTmeMatrix('fila');
     loadMainMatrix(null);
+    loadCsatMatrix('equipe');
+    buildHeatmap('heatmap-csat','csat');
   }, 0);
 }
 
@@ -1219,10 +1219,10 @@ function buildDashboard(data, sla) {
       if (window.renderCsatChart) window.renderCsatChart();
     }
     buildHeatmap('heatmap-vol','vol');
-    buildHeatmap('heatmap-sla','sla');
+    buildHeatmap('heatmap-csat','csat');
   };
 
-  const hmDim = {vol:'data', sla:'data'};
+  const hmDim = {vol:'data', csat:'data'};
   const DOW_LABELS_FULL = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
   window.setHeatmapDim = function(chart, dim) {
@@ -1239,10 +1239,24 @@ function buildDashboard(data, sla) {
     buildHeatmap('heatmap-'+chart, chart);
   };
 
+  // csatHour lookup built from csatRawRows
+  function buildCsatHourMap() {
+    const map = {};
+    csatRawRows.forEach(r => {
+      const h = r.Hora != null ? String(r.Hora).padStart(2,'0') : '00';
+      const k = r.Data+'_'+h;
+      if (!map[k]) map[k] = {resp:0, sat:0};
+      map[k].resp += r.respondidas||0;
+      map[k].sat  += r.satisfeito||0;
+    });
+    return map;
+  }
+
   function buildHeatmap(id, type) {
-    const dim = type==='vol' ? hmDim.vol : hmDim.sla;
+    const dim = hmDim[type] || 'data';
     const hourHeaders = allHours.map(h=>'<th>'+h+'h</th>').join('');
     let html = '<table class="heatmap-table"><thead><tr><th></th>'+hourHeaders+'</tr></thead><tbody>';
+    const csatMap = type==='csat' ? buildCsatHourMap() : null;
 
     function addRow(rowLabel, getRecFn) {
       html += '<tr><td class="row-label">'+rowLabel+'</td>';
@@ -1253,6 +1267,10 @@ function buildDashboard(data, sla) {
           const bg = heatColor(v, maxVol, 'vol');
           const tc = v/maxVol>0.5?'#fff':'#71717a';
           html += '<td style="background:'+bg+';color:'+tc+'" title="'+rowLabel+' '+h+'h: '+v+'">'+(v||'')+'</td>';
+        } else if (type==='csat') {
+          const pct = rec.resp>0?(rec.sat/rec.resp*100):null;
+          const bg = pct!=null ? heatColor(pct, 100, 'sla') : '#f4f4f5';
+          html += '<td style="background:'+bg+';color:#fff" title="'+rowLabel+' '+h+'h: '+(pct!=null?Math.round(pct)+'%':'—')+'">'+(pct!=null?Math.round(pct)+'%':'')+'</td>';
         } else {
           const nsv = rec.tot>0?(rec.sla/rec.tot*100):0;
           const bg = heatColor(nsv, 100, 'sla');
@@ -1263,22 +1281,40 @@ function buildDashboard(data, sla) {
     }
 
     if (dim === 'data') {
-      showDates.forEach(d => addRow(d, h => byHour[d+'_'+h]||{}));
+      const rowDates = type==='csat'
+        ? [...new Set(csatRawRows.map(r=>r.Data))].sort((a,b)=>a.localeCompare(b))
+        : showDates;
+      rowDates.forEach(d => addRow(d, h => {
+        if (type==='csat') return csatMap[d+'_'+h]||{};
+        return byHour[d+'_'+h]||{};
+      }));
     } else if (dim === 'mes') {
-      const months = [...new Set(allDates.map(d=>getMonthLabel(d)))];
+      const srcDates = type==='csat' ? [...new Set(csatRawRows.map(r=>r.Data))] : allDates;
+      const months = [...new Set(srcDates.map(d=>getMonthLabel(d)))];
       months.forEach(m => {
-        const mDates = allDates.filter(d=>getMonthLabel(d)===m);
+        const mDates = srcDates.filter(d=>getMonthLabel(d)===m);
         addRow(m, h => {
+          if (type==='csat') {
+            const agg={resp:0,sat:0};
+            mDates.forEach(d=>{const r=csatMap[d+'_'+h]||{};agg.resp+=r.resp||0;agg.sat+=r.sat||0;});
+            return agg;
+          }
           const agg={lig:0,sla:0,tot:0};
           mDates.forEach(d=>{const r=byHour[d+'_'+h]||{};agg.lig+=r.lig||0;agg.sla+=r.sla||0;agg.tot+=r.tot||0;});
           return agg;
         });
       });
     } else if (dim === 'dow') {
+      const srcDates = type==='csat' ? [...new Set(csatRawRows.map(r=>r.Data))] : allDates;
       DOW_LABELS_FULL.forEach((label, dow) => {
-        const dowDates = allDates.filter(d=>getDOW(d)===dow);
+        const dowDates = srcDates.filter(d=>getDOW(d)===dow);
         if (!dowDates.length) return;
         addRow(label, h => {
+          if (type==='csat') {
+            const agg={resp:0,sat:0};
+            dowDates.forEach(d=>{const r=csatMap[d+'_'+h]||{};agg.resp+=r.resp||0;agg.sat+=r.sat||0;});
+            return agg;
+          }
           const agg={lig:0,sla:0,tot:0};
           dowDates.forEach(d=>{const r=byHour[d+'_'+h]||{};agg.lig+=r.lig||0;agg.sla+=r.sla||0;agg.tot+=r.tot||0;});
           return agg;
@@ -1287,8 +1323,90 @@ function buildDashboard(data, sla) {
     }
 
     html += '</tbody></table>';
-    document.getElementById(id).innerHTML = html;
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
   }
+
+  // ── CSAT MATRIX ──
+  let csatMatrixMode = 'equipe';
+
+  window.loadCsatMatrix = async function(mode) {
+    csatMatrixMode = mode;
+    ['equipe','fila','colab'].forEach(k => {
+      const btn = document.getElementById('btn-csat-mx-'+k);
+      if (!btn) return;
+      const active = k === mode;
+      btn.style.background = active ? 'var(--surface)' : 'transparent';
+      btn.style.color = active ? 'var(--text)' : 'var(--text-2)';
+      btn.style.boxShadow = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
+      if (active) btn.classList.add('active'); else btn.classList.remove('active');
+    });
+
+    const groupField = mode==='equipe' ? 'origem' : mode==='fila' ? 'queue_name' : 'name';
+    const labelCol   = mode==='equipe' ? 'Equipe'  : mode==='fila' ? 'Fila'       : 'Colaborador';
+    const dsv = document.getElementById('f-date-start').value;
+    const dev = document.getElementById('f-date-end').value;
+    let where = `WHERE Data BETWEEN DATE('${dsv}') AND DATE('${dev}')`;
+    where += sqlIn('origem',     [...msSel.equipe]);
+    where += sqlIn('queue_name', [...msSel.fila]);
+    where += sqlIn('name',       [...msSel.colab]);
+
+    document.getElementById('csat-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
+    try {
+      const rows = await queryBQ(`
+        SELECT ${groupField} as label,
+          SUM(Total_Pesquisas)             AS respondidas,
+          SUM(Total_Satisfeito)            AS satisfeito,
+          SUM(Total_Neutro)                AS neutro,
+          SUM(Total_Ruim)                  AS ruim,
+          SUM(Total_Encaminhadas_Pesquisa) AS encaminhadas
+        FROM \`bcrcx-wfm.BCRCX.csat\`
+        ${where}
+        GROUP BY ${groupField}
+        ORDER BY SUM(Total_Pesquisas) DESC
+      `);
+
+      let html = `<table class="matrix-table"><thead><tr>
+        <th style="text-align:left">${labelCol}</th>
+        <th>Encaminhadas</th><th>Respondidas</th><th>Aderência</th>
+        <th style="color:var(--success)">Satisfeitos</th><th>%</th>
+        <th style="color:var(--warn)">Neutros</th><th>%</th>
+        <th style="color:var(--danger)">Ruins</th><th>%</th>
+        <th>CSAT%</th>
+      </tr></thead><tbody>`;
+
+      rows.forEach(r => {
+        const enc  = r.encaminhadas||0;
+        const resp = r.respondidas||0;
+        const sat  = r.satisfeito||0;
+        const neu  = r.neutro||0;
+        const ruim = r.ruim||0;
+        const ader = enc>0 ? (resp/enc*100) : 0;
+        const csat = resp>0 ? (sat/resp*100) : 0;
+        const pSat = resp>0 ? (sat/resp*100)  : 0;
+        const pNeu = resp>0 ? (neu/resp*100)  : 0;
+        const pRui = resp>0 ? (ruim/resp*100) : 0;
+        html += `<tr>
+          <td>${r.label||'—'}</td>
+          <td>${fmtN(enc)}</td>
+          <td>${fmtN(resp)}</td>
+          <td>${ader.toFixed(1).replace('.',',')}%</td>
+          <td style="color:var(--success);font-weight:500">${fmtN(sat)}</td>
+          <td style="color:var(--success)">${pSat.toFixed(1).replace('.',',')}%</td>
+          <td style="color:var(--warn);font-weight:500">${fmtN(neu)}</td>
+          <td style="color:var(--warn)">${pNeu.toFixed(1).replace('.',',')}%</td>
+          <td style="color:var(--danger);font-weight:500">${fmtN(ruim)}</td>
+          <td style="color:var(--danger)">${pRui.toFixed(1).replace('.',',')}%</td>
+          <td style="font-weight:600">${csat.toFixed(1).replace('.',',')}%</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('csat-matrix').innerHTML = html;
+    } catch(e) {
+      document.getElementById('csat-matrix').innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`;
+    }
+  };
 
   // ── TME MATRIX (histogram replacement) ──
   let tmeDrillMode = 'fila';
