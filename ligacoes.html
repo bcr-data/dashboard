@@ -836,7 +836,7 @@ function buildDashboard(data, sla) {
           color:(ctx)=>ctx.dataset.yAxisID==='y2'?'#71717a':'#71717a',
           clip:false
         },
-        legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';i.pointStyleWidth=6;}return i;})}}},
+        legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';i.pointStyleWidth=4;}return i;})}}},
         tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
       },
       scales:{
@@ -1487,7 +1487,7 @@ function buildDashboard(data, sla) {
             align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
             font:{size:8}, color:'#71717a', clip:false
           },
-          legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';i.pointStyleWidth=6;}return i;})}}},
+          legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';i.pointStyleWidth=4;}return i;})}}},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
