@@ -568,6 +568,10 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   loadData();
 });
 
+// ── CSAT DATA (outer scope so buildHeatmap can access before loadCsat completes) ──
+let csatByDate = {};
+let csatRawRows = [];
+
 // ── BUILD DASHBOARD ──
 function buildDashboard(data, sla) {
   if (!data.length) {
@@ -845,9 +849,6 @@ function buildDashboard(data, sla) {
   const colab  = [...msSel.colab];
 
   // ── CSAT ──
-  let csatByDate = {};
-  let csatRawRows = [];
-
   async function loadCsat() {
     let whereCsat = `WHERE Data BETWEEN DATE('${ds}') AND DATE('${de}')`;
         whereCsat += sqlIn('origem', equipe);
@@ -893,6 +894,7 @@ function buildDashboard(data, sla) {
       if (aderSub) aderSub.textContent = fmtN(totEnc)+' pesq. encaminhadas';
 
       renderCsatChart(dates);
+      buildHeatmap('heatmap-csat','csat');
     } catch(e) {
       const kpiSub = document.getElementById('kpi-csat-sub');
       if (kpiSub) kpiSub.textContent = 'Erro ao carregar';
@@ -1098,7 +1100,6 @@ function buildDashboard(data, sla) {
     loadTmeMatrix('fila');
     loadMainMatrix(null);
     loadCsatMatrix('equipe');
-    buildHeatmap('heatmap-csat','csat');
   }, 0);
 }
 
@@ -1369,9 +1370,9 @@ function buildDashboard(data, sla) {
       let html = `<table class="matrix-table"><thead><tr>
         <th style="text-align:left">${labelCol}</th>
         <th>Encaminhadas</th><th>Respondidas</th><th>Aderência</th>
-        <th style="color:var(--success)">Satisfeitos</th><th>%</th>
-        <th style="color:var(--warn)">Neutros</th><th>%</th>
-        <th style="color:var(--danger)">Ruins</th><th>%</th>
+        <th>Satisfeitos</th><th>%</th>
+        <th>Neutros</th><th>%</th>
+        <th>Ruins</th><th>%</th>
         <th>CSAT%</th>
       </tr></thead><tbody>`;
 
@@ -1391,12 +1392,12 @@ function buildDashboard(data, sla) {
           <td>${fmtN(enc)}</td>
           <td>${fmtN(resp)}</td>
           <td>${ader.toFixed(1).replace('.',',')}%</td>
-          <td style="color:var(--success);font-weight:500">${fmtN(sat)}</td>
-          <td style="color:var(--success)">${pSat.toFixed(1).replace('.',',')}%</td>
-          <td style="color:var(--warn);font-weight:500">${fmtN(neu)}</td>
-          <td style="color:var(--warn)">${pNeu.toFixed(1).replace('.',',')}%</td>
-          <td style="color:var(--danger);font-weight:500">${fmtN(ruim)}</td>
-          <td style="color:var(--danger)">${pRui.toFixed(1).replace('.',',')}%</td>
+          <td>${fmtN(sat)}</td>
+          <td>${pSat.toFixed(1).replace('.',',')}%</td>
+          <td>${fmtN(neu)}</td>
+          <td>${pNeu.toFixed(1).replace('.',',')}%</td>
+          <td>${fmtN(ruim)}</td>
+          <td>${pRui.toFixed(1).replace('.',',')}%</td>
           <td style="font-weight:600">${csat.toFixed(1).replace('.',',')}%</td>
         </tr>`;
       });
