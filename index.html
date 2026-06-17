@@ -83,7 +83,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .funnel-level-title{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px}
 .funnel-bar-row{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:8px;transition:background .12s ease}
 .funnel-bar-row:hover{background:var(--border-subtle)}
-.funnel-label{font-size:12px;color:var(--text);min-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.funnel-label{font-size:12px;color:var(--text);min-width:160px;max-width:220px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35}
 .funnel-bar-bg{flex:1;height:14px;background:var(--border-subtle);border-radius:4px;overflow:hidden}
 .funnel-bar-fill{height:100%;border-radius:4px;background:var(--data);transition:width .3s ease}
 .funnel-bar-fill.warn{background:var(--warn)}.funnel-bar-fill.danger{background:var(--danger)}
@@ -103,7 +103,9 @@ thead th:hover{color:var(--text)}
 tbody tr{border-bottom:1px solid var(--border-subtle);transition:background .12s ease}
 tbody tr:hover td{background:#f0f4ff}
 tbody td{padding:7px 12px;color:var(--text);background:#fff;text-align:right;white-space:nowrap;vertical-align:middle}
-tbody td:first-child{text-align:left;font-weight:400;color:var(--text);white-space:normal;word-break:break-all;overflow-wrap:anywhere;line-height:1.35;min-width:160px;background:var(--bg)}
+tbody td:first-child{text-align:left;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;min-width:160px;background:var(--bg)}
+/* Célula de dimensão reutilizável em matrizes e drills */
+.dim-cell{font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;padding:6px 10px;min-width:140px;max-width:200px}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
 .badge-ok{background:transparent;color:#15803d}.badge-ok::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--success)}
 .badge-warn{background:transparent;color:#b45309}.badge-warn::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--warn)}
@@ -1478,7 +1480,7 @@ function renderLateMatrix(){
     return `<tr onclick="${canDrill?`lateMatrixDrillDown('${esc}')`:''}"
       style="cursor:${canDrill?'pointer':'default'};border-bottom:1px solid var(--border)"
       onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
-      <td style="padding:6px 10px;font-size:12px;color:var(--dark);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc}">${rowKey}</td>
+      <td style="padding:6px 10px;font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;min-width:140px;max-width:200px" title="${esc}">${rowKey}</td>
       ${cells}
       <td style="text-align:center;padding:5px 10px;background:var(--border-subtle);font-size:11px;font-weight:600;color:var(--dark)">${fmtMin(tot.min)}<div style="color:var(--text-3);font-size:10px;font-weight:400">${tot.count} atr.</div></td>
     </tr>`;
@@ -1790,8 +1792,8 @@ function renderExDrillChart(){
     const cursor = canDrill ? 'pointer' : 'default';
     const hover = canDrill ? `onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''"` : '';
     return `<div ${hover} onclick="${canDrill?`exDrillDown('${esc}')`:''}\"
-      style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
-      <div style="font-size:12px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px" title="${esc}">${cat}</div>
+      style="display:grid;grid-template-columns:minmax(120px,180px) 1fr 52px 1fr 52px;gap:4px 6px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
+      <div style="font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35" title="${esc}">${cat}</div>
       <div style="display:flex;align-items:center;gap:4px">
         <div style="flex:1;background:#f4f4f5;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wR}%;height:100%;background:#1e40af;border-radius:3px"></div></div>
         <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${v.count} reg.</div>
@@ -1910,7 +1912,7 @@ function renderExMatrixChart(){
     }).join('');
     return `<tr onclick="${canDrill?`exMatrixDrillDown('${esc}')`:''}" style="cursor:${cursor};border-bottom:1px solid var(--border)"
       onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
-      <td style="padding:6px 10px;font-size:12px;color:var(--dark);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc}">${rk}</td>
+      <td style="padding:6px 10px;font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;min-width:140px;max-width:200px" title="${rk}">${rk}</td>
       ${cells}
       <td style="text-align:center;padding:5px 10px;font-size:11px;background:#fafafa;font-weight:600;color:var(--dark)">${rv._total.count}<div style="color:var(--mid);font-size:10px;font-weight:400">${fmtH(rv._total.horas)}</div></td>
     </tr>`;
