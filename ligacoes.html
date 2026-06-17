@@ -719,8 +719,7 @@ function buildDashboard(data, sla) {
             <button class="time-toggle" id="hm-vol-dim-colaborador"        onclick="setHeatmapDim('vol','colaborador')">Colaborador</button>
           </div>
         </div>
-        <div id="hm-vol-heatmap" class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-vol"></div></div>
-        <div id="hm-vol-grouped" class="chart-body-scroll" style="display:none"></div>
+        <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-vol"></div></div>
       </div>
       <div class="chart-card">
         <div class="card-header">
@@ -734,8 +733,7 @@ function buildDashboard(data, sla) {
             <button class="time-toggle" id="hm-csat-dim-colaborador"       onclick="setHeatmapDim('csat','colaborador')">Colaborador</button>
           </div>
         </div>
-        <div id="hm-csat-heatmap" class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-csat"></div></div>
-        <div id="hm-csat-grouped" class="chart-body-scroll" style="display:none"></div>
+        <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-csat"></div></div>
       </div>
     </div>
 
@@ -1272,58 +1270,6 @@ function buildDashboard(data, sla) {
       btn.style.boxShadow = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
       if (active) btn.classList.add('active'); else btn.classList.remove('active');
     });
-    // Show/hide heatmap vs grouped table
-    const isGrouped = ['equipe','fila','colaborador'].includes(dim);
-    const hmWrap  = document.getElementById('hm-'+chart+'-heatmap');
-    const grpEl   = document.getElementById('hm-'+chart+'-grouped');
-    if (hmWrap)  hmWrap.style.display  = isGrouped ? 'none' : '';
-    if (grpEl)   grpEl.style.display   = isGrouped ? ''     : 'none';
-
-    if (isGrouped) {
-      const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
-      const field    = fieldMap[dim];
-      const labelTxt = dim.charAt(0).toUpperCase()+dim.slice(1);
-      if (grpEl) grpEl.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
-
-      if (chart === 'csat') {
-        const agg = {};
-        csatRawRows.forEach(r => {
-          const key = r[field] || r[field.toLowerCase()] || '—';
-          if (!agg[key]) agg[key] = {enc:0, resp:0, sat:0};
-          agg[key].enc  += r.encaminhadas||0;
-          agg[key].resp += r.respondidas||0;
-          agg[key].sat  += r.satisfeito||0;
-        });
-        const rows2 = Object.entries(agg).sort((a,b)=>b[1].resp-a[1].resp).slice(0,50);
-        let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Encaminhadas</th><th>Respondidas</th><th>CSAT%</th></tr></thead><tbody>`;
-        rows2.forEach(([lbl,v]) => {
-          const pct = v.resp>0?(v.sat/v.resp*100):0;
-          html2 += `<tr><td>${lbl}</td><td>${fmtN(v.enc)}</td><td>${fmtN(v.resp)}</td><td>${pct.toFixed(1).replace('.',',')}%</td></tr>`;
-        });
-        html2 += '</tbody></table>';
-        if (grpEl) grpEl.innerHTML = html2;
-      } else {
-        // vol — BQ query
-        const dsv2 = document.getElementById('f-date-start').value;
-        const dev2 = document.getElementById('f-date-end').value;
-        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
-        wh += sqlIn('origem',     [...msSel.equipe]);
-        wh += sqlIn('queue_name', [...msSel.fila]);
-        wh += sqlIn('name',       [...msSel.colab]);
-        queryBQ(`SELECT ${field} as label, SUM(Total_Ligacoes) as lig, SUM(Atendidas) as atend, SUM(Abandonadas) as aband FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field} ORDER BY SUM(Total_Ligacoes) DESC LIMIT 100`)
-          .then(rows2 => {
-            let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>`;
-            rows2.forEach(r => {
-              const lbl = dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—');
-              html2 += `<tr><td>${lbl}</td><td>${fmtN(r.lig)}</td><td>${fmtN(r.atend)}</td><td>${fmtN(r.aband)}</td></tr>`;
-            });
-            html2 += '</tbody></table>';
-            if (grpEl) grpEl.innerHTML = html2;
-          }).catch(e => { if (grpEl) grpEl.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
-      }
-      return;
-    }
-
     buildHeatmap('heatmap-'+chart, chart);
   };
 
@@ -1342,81 +1288,125 @@ function buildDashboard(data, sla) {
 
   function buildHeatmap(id, type) {
     const dim = hmDim[type] || 'data';
-    // Grouped dims are handled separately; don't overwrite heatmap container
-    if (['equipe','fila','colaborador'].includes(dim)) return;
-    const hourHeaders = allHours.map(h=>'<th>'+h+'h</th>').join('');
-    let html = '<table class="heatmap-table"><thead><tr><th></th>'+hourHeaders+'</tr></thead><tbody>';
     const csatMap = type==='csat' ? buildCsatHourMap() : null;
+    const hourHeaders = allHours.map(h=>'<th>'+h+'h</th>').join('');
 
-    function addRow(rowLabel, getRecFn) {
-      html += '<tr><td class="row-label">'+rowLabel+'</td>';
-      allHours.forEach(h => {
-        const rec = getRecFn(h);
-        if (type==='vol') {
-          const v = rec.lig||0;
-          const bg = heatColor(v, maxVol, 'vol');
-          const tc = v/maxVol>0.5?'#fff':'#71717a';
-          html += '<td style="background:'+bg+';color:'+tc+'" title="'+rowLabel+' '+h+'h: '+v+'">'+(v||'')+'</td>';
-        } else if (type==='csat') {
-          const pct = rec.resp>0?(rec.sat/rec.resp*100):null;
-          const bg = pct!=null ? heatColor(pct, 100, 'sla') : '#f4f4f5';
-          html += '<td style="background:'+bg+';color:#fff" title="'+rowLabel+' '+h+'h: '+(pct!=null?Math.round(pct)+'%':'—')+'">'+(pct!=null?Math.round(pct)+'%':'')+'</td>';
-        } else {
-          const nsv = rec.tot>0?(rec.sla/rec.tot*100):0;
-          const bg = heatColor(nsv, 100, 'sla');
-          html += '<td style="background:'+bg+';color:#fff" title="'+rowLabel+' '+h+'h: '+Math.round(nsv)+'%">'+(rec.tot>0?Math.round(nsv)+'%':'')+'</td>';
-        }
+    function renderHtml(rowsData) {
+      let html = '<table class="heatmap-table"><thead><tr><th></th>'+hourHeaders+'</tr></thead><tbody>';
+      rowsData.forEach(({label, getVal}) => {
+        html += '<tr><td class="row-label">'+label+'</td>';
+        allHours.forEach(h => {
+          const rec = getVal(h);
+          if (type==='csat') {
+            const pct = rec.resp>0?(rec.sat/rec.resp*100):null;
+            const bg = pct!=null ? heatColor(pct, 100, 'sla') : '#f4f4f5';
+            html += '<td style="background:'+bg+';color:#fff">'+(pct!=null?Math.round(pct)+'%':'')+'</td>';
+          } else {
+            const v = rec.lig||0;
+            const bg = heatColor(v, maxVol, 'vol');
+            const tc = maxVol>0&&v/maxVol>0.5?'#fff':'#71717a';
+            html += '<td style="background:'+bg+';color:'+tc+'">'+(v||'')+'</td>';
+          }
+        });
+        html += '</tr>';
       });
-      html += '</tr>';
+      html += '</tbody></table>';
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = html;
     }
 
     if (dim === 'data') {
       const rowDates = type==='csat'
         ? [...new Set(csatRawRows.map(r=>r.Data))].sort((a,b)=>a.localeCompare(b))
         : showDates;
-      rowDates.forEach(d => addRow(d, h => {
-        if (type==='csat') return csatMap[d+'_'+h]||{};
-        return byHour[d+'_'+h]||{};
-      }));
+      renderHtml(rowDates.map(d => ({
+        label: d,
+        getVal: h => type==='csat' ? (csatMap[d+'_'+h]||{}) : (byHour[d+'_'+h]||{})
+      })));
     } else if (dim === 'mes') {
       const srcDates = type==='csat' ? [...new Set(csatRawRows.map(r=>r.Data))] : allDates;
       const months = [...new Set(srcDates.map(d=>getMonthLabel(d)))];
-      months.forEach(m => {
+      renderHtml(months.map(m => {
         const mDates = srcDates.filter(d=>getMonthLabel(d)===m);
-        addRow(m, h => {
-          if (type==='csat') {
-            const agg={resp:0,sat:0};
-            mDates.forEach(d=>{const r=csatMap[d+'_'+h]||{};agg.resp+=r.resp||0;agg.sat+=r.sat||0;});
-            return agg;
-          }
-          const agg={lig:0,sla:0,tot:0};
-          mDates.forEach(d=>{const r=byHour[d+'_'+h]||{};agg.lig+=r.lig||0;agg.sla+=r.sla||0;agg.tot+=r.tot||0;});
-          return agg;
-        });
-      });
+        return { label: m, getVal: h => {
+          if (type==='csat') { const a={resp:0,sat:0}; mDates.forEach(d=>{const r=csatMap[d+'_'+h]||{};a.resp+=r.resp||0;a.sat+=r.sat||0;}); return a; }
+          const a={lig:0,sla:0,tot:0}; mDates.forEach(d=>{const r=byHour[d+'_'+h]||{};a.lig+=r.lig||0;a.sla+=r.sla||0;a.tot+=r.tot||0;}); return a;
+        }};
+      }));
     } else if (dim === 'dow') {
       const srcDates = type==='csat' ? [...new Set(csatRawRows.map(r=>r.Data))] : allDates;
-      DOW_LABELS_FULL.forEach((label, dow) => {
+      const rows3 = DOW_LABELS_FULL.map((label, dow) => {
         const dowDates = srcDates.filter(d=>getDOW(d)===dow);
-        if (!dowDates.length) return;
-        addRow(label, h => {
-          if (type==='csat') {
-            const agg={resp:0,sat:0};
-            dowDates.forEach(d=>{const r=csatMap[d+'_'+h]||{};agg.resp+=r.resp||0;agg.sat+=r.sat||0;});
-            return agg;
-          }
-          const agg={lig:0,sla:0,tot:0};
-          dowDates.forEach(d=>{const r=byHour[d+'_'+h]||{};agg.lig+=r.lig||0;agg.sla+=r.sla||0;agg.tot+=r.tot||0;});
-          return agg;
+        if (!dowDates.length) return null;
+        return { label, getVal: h => {
+          if (type==='csat') { const a={resp:0,sat:0}; dowDates.forEach(d=>{const r=csatMap[d+'_'+h]||{};a.resp+=r.resp||0;a.sat+=r.sat||0;}); return a; }
+          const a={lig:0,sla:0,tot:0}; dowDates.forEach(d=>{const r=byHour[d+'_'+h]||{};a.lig+=r.lig||0;a.sla+=r.sla||0;a.tot+=r.tot||0;}); return a;
+        }};
+      }).filter(Boolean);
+      renderHtml(rows3);
+    } else if (['equipe','fila','colaborador'].includes(dim)) {
+      const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
+      const field = fieldMap[dim];
+      const el = document.getElementById(id);
+
+      if (type === 'csat') {
+        // Build heatmap rows from csatRawRows grouped by field × hour
+        const byFieldHour = {};
+        csatRawRows.forEach(r => {
+          const key = r[field] || '—';
+          const h   = r.Hora != null ? String(Math.floor(r.Hora)).padStart(2,'0') : '00';
+          const k   = key+'___'+h;
+          if (!byFieldHour[k]) byFieldHour[k] = {resp:0, sat:0};
+          byFieldHour[k].resp += r.respondidas||0;
+          byFieldHour[k].sat  += r.satisfeito||0;
         });
-      });
+        const keys = [...new Set(csatRawRows.map(r=>r[field]||'—'))];
+        const totals = {};
+        keys.forEach(k => { totals[k] = csatRawRows.filter(r=>(r[field]||'—')===k).reduce((a,r)=>a+(r.respondidas||0),0); });
+        const sorted = keys.sort((a,b)=>totals[b]-totals[a]).slice(0,30);
+        renderHtml(sorted.map(key => ({
+          label: key,
+          getVal: h => byFieldHour[key+'___'+h.padStart(2,'0')] || {}
+        })));
+      } else {
+        // vol — needs BQ query for field × hour breakdown
+        const dsv2 = document.getElementById('f-date-start').value;
+        const dev2 = document.getElementById('f-date-end').value;
+        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
+        wh += sqlIn('origem',     [...msSel.equipe]);
+        wh += sqlIn('queue_name', [...msSel.fila]);
+        wh += sqlIn('name',       [...msSel.colab]);
+        if (el) el.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
+        queryBQ(`SELECT ${field} as grp, Hora, SUM(Total_Ligacoes) as lig FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field}, Hora ORDER BY SUM(Total_Ligacoes) DESC`)
+          .then(rows2 => {
+            const byGrpHour = {};
+            const grpTotals = {};
+            rows2.forEach(r => {
+              const g = r.grp||'—';
+              const h = r.Hora!=null ? String(Math.floor(r.Hora)).padStart(2,'0') : '00';
+              if (!byGrpHour[g+'___'+h]) byGrpHour[g+'___'+h] = {lig:0};
+              byGrpHour[g+'___'+h].lig += r.lig||0;
+              grpTotals[g] = (grpTotals[g]||0)+(r.lig||0);
+            });
+            const maxV = Math.max(1, ...Object.values(byGrpHour).map(v=>v.lig||0));
+            const grps = Object.keys(grpTotals).sort((a,b)=>grpTotals[b]-grpTotals[a]).slice(0,30);
+            let html = '<table class="heatmap-table"><thead><tr><th></th>'+hourHeaders+'</tr></thead><tbody>';
+            grps.forEach(g => {
+              html += '<tr><td class="row-label">'+g+'</td>';
+              allHours.forEach(h => {
+                const v = (byGrpHour[g+'___'+h]||{}).lig||0;
+                const bg = heatColor(v, maxV, 'vol');
+                const tc = maxV>0&&v/maxV>0.5?'#fff':'#71717a';
+                html += '<td style="background:'+bg+';color:'+tc+'">'+(v||'')+'</td>';
+              });
+              html += '</tr>';
+            });
+            html += '</tbody></table>';
+            if (el) el.innerHTML = html;
+          }).catch(e => { if (el) el.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
+      }
     }
-
-    html += '</tbody></table>';
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
   }
-
   // CSAT grouped by equipe/fila/colaborador for CSAT por Período chart
   window.renderCsatGrouped = function(dim) {
     const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
