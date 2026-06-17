@@ -96,12 +96,14 @@ td.registro-ponto{white-space:pre-line;font-size:12px;line-height:1.6}
 .table-card{background:var(--surface);border-radius:12px;padding:0;border:1px solid var(--border);overflow:hidden}
 .table-card>div:first-child{padding:14px 18px;border-bottom:1px solid var(--border-subtle)}
 .table-wrap{overflow-x:auto;max-height:380px;overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{position:sticky;top:0;background:var(--bg);color:var(--text-2);font-weight:500;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:11px;cursor:pointer;white-space:nowrap;transition:color .15s ease}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{position:sticky;top:0;background:var(--bg);color:var(--text-2);font-weight:500;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;cursor:pointer;white-space:nowrap;transition:color .15s ease;text-align:right}
+thead th:first-child{text-align:left}
 thead th:hover{color:var(--text)}
 tbody tr{border-bottom:1px solid var(--border-subtle);transition:background .12s ease}
-tbody tr:hover{background:var(--bg)}
-tbody td{padding:8px 14px;color:var(--text)}
+tbody tr:hover td{background:#f0f4ff}
+tbody td{padding:7px 12px;color:var(--text);background:#fff;text-align:right;white-space:nowrap;vertical-align:middle}
+tbody td:first-child{text-align:left;font-weight:400;color:var(--text);white-space:normal;word-break:break-all;overflow-wrap:anywhere;line-height:1.35;min-width:160px;background:var(--bg)}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
 .badge-ok{background:transparent;color:#15803d}.badge-ok::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--success)}
 .badge-warn{background:transparent;color:#b45309}.badge-warn::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--warn)}
