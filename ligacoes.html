@@ -665,10 +665,13 @@ function buildDashboard(data, sla) {
         <div class="card-header">
           <div><div class="card-title">CSAT por Período</div></div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
-            <button class="tf-btn active" id="tf-csat-data" onclick="setChartDim('csat','data')">Data</button>
-            <button class="tf-btn" id="tf-csat-mes" onclick="setChartDim('csat','mes')">Mês</button>
-            <button class="tf-btn" id="tf-csat-dow" onclick="setChartDim('csat','dow')">Dia Sem.</button>
-            <button class="tf-btn" id="tf-csat-hora" onclick="setChartDim('csat','hora')">Hora</button>
+            <button class="tf-btn active" id="tf-csat-data"   onclick="setChartDim('csat','data')">Data</button>
+            <button class="tf-btn" id="tf-csat-mes"           onclick="setChartDim('csat','mes')">Mês</button>
+            <button class="tf-btn" id="tf-csat-dow"           onclick="setChartDim('csat','dow')">Dia Sem.</button>
+            <button class="tf-btn" id="tf-csat-hora"          onclick="setChartDim('csat','hora')">Hora</button>
+            <button class="tf-btn" id="tf-csat-equipe"        onclick="setChartDim('csat','equipe')">Equipe</button>
+            <button class="tf-btn" id="tf-csat-fila"          onclick="setChartDim('csat','fila')">Fila</button>
+            <button class="tf-btn" id="tf-csat-colaborador"   onclick="setChartDim('csat','colaborador')">Colaborador</button>
           </div>
         </div>
         <div class="chart-body"><canvas id="chart-csat"></canvas></div>
@@ -708,9 +711,12 @@ function buildDashboard(data, sla) {
         <div class="card-header">
           <div><div class="card-title">Volume por Dia × Hora</div><div class="card-sub">Total de ligações</div></div>
           <div class="dim-group">
-            <button class="time-toggle active" id="hm-vol-dim-data" onclick="setHeatmapDim('vol','data')">Data</button>
-            <button class="time-toggle" id="hm-vol-dim-mes" onclick="setHeatmapDim('vol','mes')">Mês</button>
-            <button class="time-toggle" id="hm-vol-dim-dow" onclick="setHeatmapDim('vol','dow')">Dia Sem.</button>
+            <button class="time-toggle active" id="hm-vol-dim-data"        onclick="setHeatmapDim('vol','data')">Data</button>
+            <button class="time-toggle" id="hm-vol-dim-mes"                onclick="setHeatmapDim('vol','mes')">Mês</button>
+            <button class="time-toggle" id="hm-vol-dim-dow"                onclick="setHeatmapDim('vol','dow')">Dia Sem.</button>
+            <button class="time-toggle" id="hm-vol-dim-equipe"             onclick="setHeatmapDim('vol','equipe')">Equipe</button>
+            <button class="time-toggle" id="hm-vol-dim-fila"               onclick="setHeatmapDim('vol','fila')">Fila</button>
+            <button class="time-toggle" id="hm-vol-dim-colaborador"        onclick="setHeatmapDim('vol','colaborador')">Colaborador</button>
           </div>
         </div>
         <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-vol"></div></div>
@@ -719,9 +725,12 @@ function buildDashboard(data, sla) {
         <div class="card-header">
           <div><div class="card-title">CSAT por Dia × Hora</div><div class="card-sub">% satisfação por hora</div></div>
           <div class="dim-group">
-            <button class="time-toggle active" id="hm-csat-dim-data" onclick="setHeatmapDim('csat','data')">Data</button>
-            <button class="time-toggle" id="hm-csat-dim-mes" onclick="setHeatmapDim('csat','mes')">Mês</button>
-            <button class="time-toggle" id="hm-csat-dim-dow" onclick="setHeatmapDim('csat','dow')">Dia Sem.</button>
+            <button class="time-toggle active" id="hm-csat-dim-data"       onclick="setHeatmapDim('csat','data')">Data</button>
+            <button class="time-toggle" id="hm-csat-dim-mes"               onclick="setHeatmapDim('csat','mes')">Mês</button>
+            <button class="time-toggle" id="hm-csat-dim-dow"               onclick="setHeatmapDim('csat','dow')">Dia Sem.</button>
+            <button class="time-toggle" id="hm-csat-dim-equipe"            onclick="setHeatmapDim('csat','equipe')">Equipe</button>
+            <button class="time-toggle" id="hm-csat-dim-fila"              onclick="setHeatmapDim('csat','fila')">Fila</button>
+            <button class="time-toggle" id="hm-csat-dim-colaborador"       onclick="setHeatmapDim('csat','colaborador')">Colaborador</button>
           </div>
         </div>
         <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-csat"></div></div>
@@ -733,8 +742,9 @@ function buildDashboard(data, sla) {
         <div class="card-header" style="align-items:center">
           <div><div class="card-title">Distribuição por Tempo de Espera</div><div class="card-sub">Ligações por faixa de TME</div></div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
-            <button id="btn-tme-fila" style="border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;background:var(--surface);color:var(--text);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">Fila</button>
-            <button id="btn-tme-colab" style="border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;background:transparent;color:var(--text-2);font-weight:500">Colaborador</button>
+            <button class="tf-btn active" id="btn-tme-equipe"   onclick="loadTmeMatrix('equipe')">Equipe</button>
+            <button class="tf-btn" id="btn-tme-fila"            onclick="loadTmeMatrix('fila')">Fila</button>
+            <button class="tf-btn" id="btn-tme-colab"           onclick="loadTmeMatrix('colaborador')">Colaborador</button>
           </div>
         </div>
         <div id="tme-matrix-wrap" class="chart-body-scroll">
@@ -745,9 +755,9 @@ function buildDashboard(data, sla) {
         <div class="card-header" style="align-items:center">
           <div><div class="card-title">Matriz CSAT</div><div class="card-sub" id="csat-matrix-sub">Satisfeitos, Neutros e Ruins</div></div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
-            <button id="btn-csat-mx-equipe" class="time-toggle active" onclick="loadCsatMatrix('equipe')">Equipe</button>
-            <button id="btn-csat-mx-fila"   class="time-toggle"        onclick="loadCsatMatrix('fila')">Fila</button>
-            <button id="btn-csat-mx-colab"  class="time-toggle"        onclick="loadCsatMatrix('colab')">Colaborador</button>
+            <button class="tf-btn active" id="btn-csat-mx-equipe"      onclick="loadCsatMatrix('equipe')">Equipe</button>
+            <button class="tf-btn" id="btn-csat-mx-fila"               onclick="loadCsatMatrix('fila')">Fila</button>
+            <button class="tf-btn" id="btn-csat-mx-colab"              onclick="loadCsatMatrix('colab')">Colaborador</button>
           </div>
         </div>
         <div class="chart-body-scroll">
@@ -1177,7 +1187,7 @@ function buildDashboard(data, sla) {
   }
 
   function setTfBtnActive(chart, dim) {
-    ['data','mes','dow','hora'].forEach(d => {
+    ['data','mes','dow','hora','equipe','fila','colaborador'].forEach(d => {
       const btn = document.getElementById('tf-'+chart+'-'+d);
       if (!btn) return;
       const active = d === dim;
@@ -1217,7 +1227,11 @@ function buildDashboard(data, sla) {
         labels.map(l=>agg[l]?.tmeW>0?+(agg[l].tmeSum/agg[l].tmeW).toFixed(1):0)
       ]);
     } else if (chart === 'csat') {
-      if (window.renderCsatChart) window.renderCsatChart();
+      if (['equipe','fila','colaborador'].includes(dim)) {
+        if (window.renderCsatGrouped) window.renderCsatGrouped(dim);
+      } else {
+        if (window.renderCsatChart) window.renderCsatChart();
+      }
     }
     buildHeatmap('heatmap-vol','vol');
     buildHeatmap('heatmap-csat','csat');
@@ -1228,7 +1242,7 @@ function buildDashboard(data, sla) {
 
   window.setHeatmapDim = function(chart, dim) {
     hmDim[chart] = dim;
-    ['data','mes','dow'].forEach(d => {
+    ['data','mes','dow','equipe','fila','colaborador'].forEach(d => {
       const btn = document.getElementById('hm-'+chart+'-dim-'+d);
       if (!btn) return;
       const active = d === dim;
@@ -1321,12 +1335,106 @@ function buildDashboard(data, sla) {
           return agg;
         });
       });
+    } else if (['equipe','fila','colaborador'].includes(dim)) {
+      // Group by BQ field — use rawData for vol, csatRawRows for csat
+      const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
+      const field = fieldMap[dim];
+      if (type === 'csat') {
+        const grouped = {};
+        csatRawRows.forEach(r => {
+          const key = r[field] || '—';
+          if (!grouped[key]) grouped[key] = {resp:0, sat:0};
+          grouped[key].resp += r.respondidas||0;
+          grouped[key].sat  += r.satisfeito||0;
+        });
+        const rows2 = Object.entries(grouped).sort((a,b)=>b[1].resp-a[1].resp).slice(0,30);
+        let html2 = '<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">'+dim.charAt(0).toUpperCase()+dim.slice(1)+'</th><th>Respondidas</th><th>CSAT%</th></tr></thead><tbody>';
+        rows2.forEach(([lbl,v])=>{
+          const pct = v.resp>0?(v.sat/v.resp*100):0;
+          html2+=`<tr><td>${lbl}</td><td>${fmtN(v.resp)}</td><td>${pct.toFixed(1).replace('.',',')}%</td></tr>`;
+        });
+        html2+='</tbody></table>';
+        const el2=document.getElementById(id); if(el2) el2.innerHTML=html2; return;
+      } else {
+        const grouped = {};
+        rawData.forEach(r => {
+          const key = r[field==='origem'?'origem':field==='queue_name'?'queue_name':'name'] || '—';
+          if (!grouped[key]) grouped[key] = {lig:0,atend:0,aband:0};
+          grouped[key].lig   += r.Total_Ligacoes||0;
+          grouped[key].atend += r.Atendidas||0;
+          grouped[key].aband += r.Abandonadas||0;
+        });
+        // rawData uses different field names — map them
+        const grouped2 = {};
+        rawData.forEach(r => {
+          const fval = field==='origem' ? r.origem : field==='queue_name' ? r.queue_name : r.name;
+          const key = (fval||'—');
+          if (!grouped2[key]) grouped2[key] = {lig:0,atend:0,aband:0};
+          grouped2[key].lig   += r.Total_Ligacoes||0;
+          grouped2[key].atend += r.Atendidas||0;
+          grouped2[key].aband += r.Abandonadas||0;
+        });
+        const rows2 = Object.entries(grouped2).sort((a,b)=>b[1].lig-a[1].lig).slice(0,30);
+        let html2 = '<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">'+dim.charAt(0).toUpperCase()+dim.slice(1)+'</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>';
+        rows2.forEach(([lbl,v])=>{
+          html2+=`<tr><td>${lbl}</td><td>${fmtN(v.lig)}</td><td>${fmtN(v.atend)}</td><td>${fmtN(v.aband)}</td></tr>`;
+        });
+        html2+='</tbody></table>';
+        const el2=document.getElementById(id); if(el2) el2.innerHTML=html2; return;
+      }
     }
 
     html += '</tbody></table>';
     const el = document.getElementById(id);
     if (el) el.innerHTML = html;
   }
+
+  // CSAT grouped by equipe/fila/colaborador for CSAT por Período chart
+  window.renderCsatGrouped = function(dim) {
+    const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
+    const field = fieldMap[dim];
+    const grouped = {};
+    csatRawRows.forEach(r => {
+      const key = r[field] || '—';
+      if (!grouped[key]) grouped[key] = {enc:0, resp:0, sat:0};
+      grouped[key].enc  += r.encaminhadas||0;
+      grouped[key].resp += r.respondidas||0;
+      grouped[key].sat  += r.satisfeito||0;
+    });
+    const entries = Object.entries(grouped).sort((a,b)=>b[1].resp-a[1].resp).slice(0,20);
+    const labels = entries.map(([l])=>l);
+    const enc    = entries.map(([,v])=>v.enc);
+    const resp   = entries.map(([,v])=>v.resp);
+    const pct    = entries.map(([,v])=>v.resp>0?+(v.sat/v.resp*100).toFixed(1):0);
+    destroyChart('csat');
+    charts.csat = new Chart(document.getElementById('chart-csat'), {
+      type:'bar',
+      data:{ labels, datasets:[
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'Respondidas', data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y2'},
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          datalabels:{
+            display:true,
+            formatter:(v,ctx)=>ctx.dataset.yAxisID==='y2'?(v>0?v.toFixed(1).replace('.',',')+'%':''):( v>0?fmtN(v):''),
+            anchor:(ctx)=>ctx.dataset.yAxisID==='y2'?'center':'end',
+            align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
+            font:{size:8}, color:'#71717a', clip:false
+          },
+          legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
+          tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:15}},
+          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
+          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,max:100,position:'right'}
+        }
+      }
+    });
+  };
 
   // ── CSAT MATRIX ──
   let csatMatrixMode = 'equipe';
@@ -1415,13 +1523,19 @@ function buildDashboard(data, sla) {
 
   async function loadTmeMatrix(mode) {
     tmeDrillMode = mode;
-    const groupField = mode === 'fila' ? 'queue_name' : 'name';
-    document.getElementById('btn-tme-fila').style.background = mode==='fila'?'var(--surface)':'transparent';
-    document.getElementById('btn-tme-fila').style.color = mode==='fila'?'var(--text)':'var(--text-2)';
-    document.getElementById('btn-tme-fila').style.boxShadow = mode==='fila'?'0 1px 2px rgba(0,0,0,.06)':'none';
-    document.getElementById('btn-tme-colab').style.background = mode==='colaborador'?'var(--surface)':'transparent';
-    document.getElementById('btn-tme-colab').style.color = mode==='colaborador'?'var(--text)':'var(--text-2)';
-    document.getElementById('btn-tme-colab').style.boxShadow = mode==='colaborador'?'0 1px 2px rgba(0,0,0,.06)':'none';
+    const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
+    const groupField = fieldMap[mode] || 'queue_name';
+    const labelMap   = {equipe:'Equipe', fila:'Fila', colaborador:'Colaborador'};
+    ['equipe','fila','colab'].forEach(k => {
+      const id = k==='colab'?'btn-tme-colab':k==='fila'?'btn-tme-fila':'btn-tme-equipe';
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const active = (k==='colab'?'colaborador':k) === mode;
+      btn.style.background = active ? 'var(--surface)' : 'transparent';
+      btn.style.color = active ? 'var(--text)' : 'var(--text-2)';
+      btn.style.boxShadow = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
+      if (active) btn.classList.add('active'); else btn.classList.remove('active');
+    });
 
     const dsv = document.getElementById('f-date-start').value;
     const dev = document.getElementById('f-date-end').value;
@@ -1454,7 +1568,7 @@ function buildDashboard(data, sla) {
       const cols = ['0–10s','11–20s','21–30s','31–60s','61–120s','>120s'];
       const bKeys = ['b0','b1','b2','b3','b4','b5'];
       const headerCols = cols.map(c=>'<th>'+c+'</th>').join('');
-      let html = '<table class="matrix-table"><thead><tr><th>'+(mode==="fila"?'Fila':'Colaborador')+'</th>'+headerCols+'<th>Total</th></tr></thead><tbody>';
+      let html = '<table class="matrix-table"><thead><tr><th>'+(labelMap[mode]||'Fila')+'</th>'+headerCols+'<th>Total</th></tr></thead><tbody>';
       rows.forEach(r => {
         const lbl = mode==='fila' ? (r.label||'').replace(/^[^-]+-/,'') || r.label : (r.label||'—');
         const tot = r.total||0;
