@@ -1105,7 +1105,19 @@ function buildDashboard(data, sla) {
 
   // buildHeatmap defined in time filter section below
 
-  buildHeatmap('heatmap-vol','vol');
+  // Rebuild heatmaps respecting current dim and visibility
+  function rebuildHeatmaps() {
+    ['vol','csat'].forEach(chart => {
+      const dim = hmDim[chart] || 'data';
+      const isGrouped = ['equipe','fila','colaborador'].includes(dim);
+      const hmWrap  = document.getElementById('hm-'+chart+'-heatmap');
+      const grpEl   = document.getElementById('hm-'+chart+'-grouped');
+      if (hmWrap)  hmWrap.style.display  = isGrouped ? 'none' : '';
+      if (grpEl)   grpEl.style.display   = isGrouped ? ''     : 'none';
+      buildHeatmap('heatmap-'+chart, chart);
+    });
+  }
+  rebuildHeatmaps();
 
   // TME Matrix loaded via loadTmeMatrix()
 
@@ -1263,9 +1275,55 @@ function buildDashboard(data, sla) {
     // Show/hide heatmap vs grouped table
     const isGrouped = ['equipe','fila','colaborador'].includes(dim);
     const hmWrap  = document.getElementById('hm-'+chart+'-heatmap');
-    const grouped = document.getElementById('hm-'+chart+'-grouped');
+    const grpEl   = document.getElementById('hm-'+chart+'-grouped');
     if (hmWrap)  hmWrap.style.display  = isGrouped ? 'none' : '';
-    if (grouped) grouped.style.display = isGrouped ? ''     : 'none';
+    if (grpEl)   grpEl.style.display   = isGrouped ? ''     : 'none';
+
+    if (isGrouped) {
+      const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
+      const field    = fieldMap[dim];
+      const labelTxt = dim.charAt(0).toUpperCase()+dim.slice(1);
+      if (grpEl) grpEl.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
+
+      if (chart === 'csat') {
+        const agg = {};
+        csatRawRows.forEach(r => {
+          const key = r[field] || r[field.toLowerCase()] || '—';
+          if (!agg[key]) agg[key] = {enc:0, resp:0, sat:0};
+          agg[key].enc  += r.encaminhadas||0;
+          agg[key].resp += r.respondidas||0;
+          agg[key].sat  += r.satisfeito||0;
+        });
+        const rows2 = Object.entries(agg).sort((a,b)=>b[1].resp-a[1].resp).slice(0,50);
+        let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Encaminhadas</th><th>Respondidas</th><th>CSAT%</th></tr></thead><tbody>`;
+        rows2.forEach(([lbl,v]) => {
+          const pct = v.resp>0?(v.sat/v.resp*100):0;
+          html2 += `<tr><td>${lbl}</td><td>${fmtN(v.enc)}</td><td>${fmtN(v.resp)}</td><td>${pct.toFixed(1).replace('.',',')}%</td></tr>`;
+        });
+        html2 += '</tbody></table>';
+        if (grpEl) grpEl.innerHTML = html2;
+      } else {
+        // vol — BQ query
+        const dsv2 = document.getElementById('f-date-start').value;
+        const dev2 = document.getElementById('f-date-end').value;
+        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
+        wh += sqlIn('origem',     [...msSel.equipe]);
+        wh += sqlIn('queue_name', [...msSel.fila]);
+        wh += sqlIn('name',       [...msSel.colab]);
+        queryBQ(`SELECT ${field} as label, SUM(Total_Ligacoes) as lig, SUM(Atendidas) as atend, SUM(Abandonadas) as aband FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field} ORDER BY SUM(Total_Ligacoes) DESC LIMIT 100`)
+          .then(rows2 => {
+            let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>`;
+            rows2.forEach(r => {
+              const lbl = dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—');
+              html2 += `<tr><td>${lbl}</td><td>${fmtN(r.lig)}</td><td>${fmtN(r.atend)}</td><td>${fmtN(r.aband)}</td></tr>`;
+            });
+            html2 += '</tbody></table>';
+            if (grpEl) grpEl.innerHTML = html2;
+          }).catch(e => { if (grpEl) grpEl.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
+      }
+      return;
+    }
+
     buildHeatmap('heatmap-'+chart, chart);
   };
 
@@ -1284,6 +1342,8 @@ function buildDashboard(data, sla) {
 
   function buildHeatmap(id, type) {
     const dim = hmDim[type] || 'data';
+    // Grouped dims are handled separately; don't overwrite heatmap container
+    if (['equipe','fila','colaborador'].includes(dim)) return;
     const hourHeaders = allHours.map(h=>'<th>'+h+'h</th>').join('');
     let html = '<table class="heatmap-table"><thead><tr><th></th>'+hourHeaders+'</tr></thead><tbody>';
     const csatMap = type==='csat' ? buildCsatHourMap() : null;
@@ -1350,54 +1410,6 @@ function buildDashboard(data, sla) {
           return agg;
         });
       });
-    } else if (['equipe','fila','colaborador'].includes(dim)) {
-      const fieldMap  = {equipe:'origem', fila:'queue_name', colaborador:'name'};
-      const field     = fieldMap[dim];
-      const labelTxt  = dim.charAt(0).toUpperCase()+dim.slice(1);
-      const groupedId = id.replace('heatmap-','hm-').replace(/-vol$/, '-vol-grouped').replace(/-csat$/, '-csat-grouped');
-      const hmWrap2   = id === 'heatmap-vol' ? document.getElementById('hm-vol-heatmap') : document.getElementById('hm-csat-heatmap');
-      const grouped   = document.getElementById(id === 'heatmap-vol' ? 'hm-vol-grouped' : 'hm-csat-grouped');
-      if (hmWrap2) hmWrap2.style.display = 'none';
-      if (grouped) { grouped.style.display = ''; grouped.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>'; }
-
-      if (type === 'csat') {
-        // csatRawRows has fields: origem, queue_name, name (from BQ query)
-        const agg = {};
-        csatRawRows.forEach(r => {
-          const key = r[field] || r[field.toLowerCase()] || '—';
-          if (!agg[key]) agg[key] = {enc:0, resp:0, sat:0};
-          agg[key].enc  += r.encaminhadas||0;
-          agg[key].resp += r.respondidas||0;
-          agg[key].sat  += r.satisfeito||0;
-        });
-        const rows2 = Object.entries(agg).sort((a,b)=>b[1].resp-a[1].resp).slice(0,50);
-        let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Encaminhadas</th><th>Respondidas</th><th>CSAT%</th></tr></thead><tbody>`;
-        rows2.forEach(([lbl,v]) => {
-          const pct = v.resp>0?(v.sat/v.resp*100):0;
-          html2 += `<tr><td>${lbl}</td><td>${fmtN(v.enc)}</td><td>${fmtN(v.resp)}</td><td>${pct.toFixed(1).replace('.',',')}%</td></tr>`;
-        });
-        html2 += '</tbody></table>';
-        if (grouped) grouped.innerHTML = html2;
-      } else {
-        // vol grouped — BQ query
-        const dsv2 = document.getElementById('f-date-start').value;
-        const dev2 = document.getElementById('f-date-end').value;
-        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
-        wh += sqlIn('origem',     [...msSel.equipe]);
-        wh += sqlIn('queue_name', [...msSel.fila]);
-        wh += sqlIn('name',       [...msSel.colab]);
-        queryBQ(`SELECT ${field} as label, SUM(Total_Ligacoes) as lig, SUM(Atendidas) as atend, SUM(Abandonadas) as aband FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field} ORDER BY SUM(Total_Ligacoes) DESC LIMIT 100`)
-          .then(rows2 => {
-            let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>`;
-            rows2.forEach(r => {
-              const lbl = dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—');
-              html2 += `<tr><td>${lbl}</td><td>${fmtN(r.lig)}</td><td>${fmtN(r.atend)}</td><td>${fmtN(r.aband)}</td></tr>`;
-            });
-            html2 += '</tbody></table>';
-            if (grouped) grouped.innerHTML = html2;
-          }).catch(e => { if (grouped) grouped.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
-      }
-      return;
     }
 
     html += '</tbody></table>';
