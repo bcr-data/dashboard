@@ -102,7 +102,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .heatmap-table{border-collapse:separate;border-spacing:2px;font-size:10px}
 .heatmap-table th{padding:2px 4px;color:var(--text-3);font-weight:500;text-align:center;white-space:nowrap;font-size:10px}
 .heatmap-table td{width:32px;height:24px;text-align:center;border-radius:4px;font-size:9px;font-weight:600;cursor:default}
-.heatmap-table .row-label{color:#18181b;font-size:10px;font-weight:400;text-align:right;padding-right:6px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;background:transparent;max-width:90px;line-height:1.35;vertical-align:middle}
+.heatmap-table .row-label{color:#18181b;font-size:10px;font-weight:400;text-align:right;padding-right:6px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;background:transparent;max-width:140px;line-height:1.35;vertical-align:middle}
 
 /* ── HISTOGRAM ── */
 .hist-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
@@ -1431,8 +1431,9 @@ function buildDashboard(data, sla) {
         const totals = {};
         keys.forEach(k => { totals[k] = csatRawRows.filter(r=>(r[field]||'—')===k).reduce((a,r)=>a+(r.respondidas||0),0); });
         const sorted = keys.sort((a,b)=>totals[b]-totals[a]).slice(0,30);
+        const fmtCsatKey = k => dim==='fila' ? (k.includes('-')?k.split('-').slice(1).join('-'):k) : k;
         renderHtml(sorted.map(key => ({
-          label: key,
+          label: (typeof fmtCsatKey!=='undefined'?fmtCsatKey(key):key),
           getVal: h => byFieldHour[key+'___'+h.padStart(2,'0')] || {}
         })));
       } else {
@@ -1457,9 +1458,10 @@ function buildDashboard(data, sla) {
             });
             const maxV = Math.max(1, ...Object.values(byGrpHour).map(v=>v.lig||0));
             const grps = Object.keys(grpTotals).sort((a,b)=>grpTotals[b]-grpTotals[a]).slice(0,30);
+            const fmtGrp = g => hmDim['vol']==='fila' ? (g.includes('-')?g.split('-').slice(1).join('-'):g) : g;
             let html = '<table class="heatmap-table"><thead><tr><th></th>'+hourHeaders+'</tr></thead><tbody>';
             grps.forEach(g => {
-              html += '<tr><td class="row-label">'+g+'</td>';
+              html += '<tr><td class="row-label">'+(typeof fmtGrp!=='undefined'?fmtGrp(g):g)+'</td>';
               allHours.forEach(h => {
                 const v = (byGrpHour[g+'___'+h]||{}).lig||0;
                 const bg = heatColor(v, maxV, 'vol');
