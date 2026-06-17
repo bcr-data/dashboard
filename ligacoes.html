@@ -102,7 +102,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .heatmap-table{border-collapse:separate;border-spacing:2px;font-size:10px}
 .heatmap-table th{padding:2px 4px;color:var(--text-3);font-weight:500;text-align:center;white-space:nowrap;font-size:10px}
 .heatmap-table td{width:32px;height:24px;text-align:center;border-radius:4px;font-size:9px;font-weight:600;cursor:default}
-.heatmap-table .row-label{color:var(--text-2);font-size:10px;font-weight:500;text-align:right;padding-right:6px;white-space:nowrap;background:transparent}
+.heatmap-table .row-label{color:#2151E5;font-size:10px;font-weight:400;text-align:right;padding-right:6px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;background:transparent;max-width:160px;line-height:1.35;vertical-align:middle}
 
 /* ── HISTOGRAM ── */
 .hist-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
@@ -127,8 +127,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .matrix-table{width:100%;border-collapse:collapse;font-size:11px}
 .matrix-table thead th{position:sticky;top:0;background:#fff;color:var(--text-2);font-weight:500;padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;z-index:2}
 .matrix-table thead th:first-child{text-align:left;position:sticky;left:0;z-index:3;background:var(--bg)}
-.matrix-table tbody td{padding:7px 12px;border-bottom:1px solid var(--border-subtle);text-align:right;white-space:nowrap;color:var(--text);background:#fff}
-.matrix-table tbody td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:1;font-weight:500;cursor:pointer;color:var(--text)}
+.matrix-table tbody td{padding:7px 12px;border-bottom:1px solid var(--border-subtle);text-align:right;white-space:nowrap;color:var(--text);background:#fff;vertical-align:middle}
+.matrix-table tbody td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:1;font-weight:400;cursor:pointer;color:#2151E5;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;max-width:220px}
 .matrix-table tbody tr:hover td{background:#f0f4ff}
 .matrix-table tbody tr:hover td:first-child{background:#e8eef8}
 .matrix-row-fila td:first-child{color:var(--text);font-weight:400}
