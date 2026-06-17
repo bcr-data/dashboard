@@ -1213,7 +1213,7 @@ function buildDashboard(data, sla) {
     byHour[k].tot += r.Total_Ligacoes||0;
   });
 
-  showDates = [...allDates].sort((a,b)=>b.localeCompare(a));
+  showDates = [...allDates].sort((a,b)=>{const p=s=>{const[d,m,y]=s.split('-');return y+m+d;};return p(b).localeCompare(p(a));});
   maxVol = Math.max(1,...showDates.flatMap(d=>allHours.map(h=>(byHour[`${d}_${h}`]||{}).lig||0)));
 
   // heatColor defined in outer scope
@@ -1473,7 +1473,7 @@ if (el) {
 
     if (dim === 'data') {
       const rowDates = type==='csat'
-        ? [...new Set(csatRawRows.map(r=>r.Data))].sort((a,b)=>b.localeCompare(a))
+        ? [...new Set(csatRawRows.map(r=>r.Data))].sort((a,b)=>{const p=s=>{const[d,m,y]=s.split('-');return y+m+d;};return p(b).localeCompare(p(a));})
         : showDates;
       renderHtml(rowDates.map(d => ({
         label: d,
