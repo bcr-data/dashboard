@@ -683,10 +683,12 @@ function buildDashboard(data, sla) {
         <div class="card-header">
           <div><div class="card-title">TMA e TME ao longo do tempo</div></div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
-            <button class="tf-btn active" id="tf-tma-data" onclick="setChartDim('tma','data')">Data</button>
-            <button class="tf-btn" id="tf-tma-mes" onclick="setChartDim('tma','mes')">Mês</button>
-            <button class="tf-btn" id="tf-tma-dow" onclick="setChartDim('tma','dow')">Dia Sem.</button>
-            <button class="tf-btn" id="tf-tma-hora" onclick="setChartDim('tma','hora')">Hora</button>
+            <button class="tf-btn active" id="tf-tma-data"   onclick="setChartDim('tma','data')">Data</button>
+            <button class="tf-btn" id="tf-tma-mes"            onclick="setChartDim('tma','mes')">Mês</button>
+            <button class="tf-btn" id="tf-tma-dow"            onclick="setChartDim('tma','dow')">Dia Sem.</button>
+            <button class="tf-btn" id="tf-tma-hora"           onclick="setChartDim('tma','hora')">Hora</button>
+            <button class="tf-btn" id="tf-tma-equipe"         onclick="setChartDim('tma','equipe')">Equipe</button>
+            <button class="tf-btn" id="tf-tma-fila"           onclick="setChartDim('tma','fila')">Fila</button>
           </div>
         </div>
         <div class="chart-body"><canvas id="chart-tmatme"></canvas></div>
@@ -1240,10 +1242,35 @@ function buildDashboard(data, sla) {
         labels.map(()=>80)
       ]);
     } else if (chart === 'tma' && charts.tmatme) {
-      updateChartData(charts.tmatme, labels, [
-        labels.map(l=>agg[l]?.tmaW>0?+(agg[l].tmaSum/agg[l].tmaW).toFixed(1):0),
-        labels.map(l=>agg[l]?.tmeW>0?+(agg[l].tmeSum/agg[l].tmeW).toFixed(1):0)
-      ]);
+      if (['equipe','fila'].includes(dim)) {
+        const field = dim === 'equipe' ? 'origem' : 'queue_name';
+        const dsv2 = document.getElementById('f-date-start').value;
+        const dev2 = document.getElementById('f-date-end').value;
+        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
+        wh += sqlIn('origem',     [...msSel.equipe]);
+        wh += sqlIn('queue_name', [...msSel.fila]);
+        wh += sqlIn('name',       [...msSel.colab]);
+        queryBQ(`
+          SELECT ${field} as label,
+            SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma,
+            SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme
+          FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
+          ${wh}
+          GROUP BY ${field}
+          ORDER BY SUM(Total_Ligacoes) DESC
+          LIMIT 30
+        `).then(rows2 => {
+          const lbls  = rows2.map(r => dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—'));
+          const tmaVs = rows2.map(r => +(r.tma||0).toFixed(1));
+          const tmeVs = rows2.map(r => +(r.tme||0).toFixed(1));
+          updateChartData(charts.tmatme, lbls, [tmaVs, tmeVs]);
+        }).catch(e => console.warn('TMA grouped error', e));
+      } else {
+        updateChartData(charts.tmatme, labels, [
+          labels.map(l=>agg[l]?.tmaW>0?+(agg[l].tmaSum/agg[l].tmaW).toFixed(1):0),
+          labels.map(l=>agg[l]?.tmeW>0?+(agg[l].tmeSum/agg[l].tmeW).toFixed(1):0)
+        ]);
+      }
     } else if (chart === 'csat') {
       if (['equipe','fila','colaborador'].includes(dim)) {
         if (window.renderCsatGrouped) window.renderCsatGrouped(dim);
