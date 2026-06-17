@@ -924,6 +924,7 @@ function buildDashboard(data, sla) {
   }
 
   function renderCsatChart(labelsOrDim) {
+    window.renderCsatChart = renderCsatChart;
     // Accept either a labels array (dim=data) or call with aggregation
     const currentDim = chartDims.csat || 'data';
     const {labels, agg} = aggregateCsatByDim(currentDim);
@@ -1215,7 +1216,7 @@ function buildDashboard(data, sla) {
         labels.map(l=>agg[l]?.tmeW>0?+(agg[l].tmeSum/agg[l].tmeW).toFixed(1):0)
       ]);
     } else if (chart === 'csat') {
-      renderCsatChart(labels);
+      if (window.renderCsatChart) window.renderCsatChart();
     }
     buildHeatmap('heatmap-vol','vol');
     buildHeatmap('heatmap-sla','sla');
