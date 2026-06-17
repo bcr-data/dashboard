@@ -357,6 +357,11 @@ window.msClear = msClear;
 window.msFilter = msFilter;
 window.msRemoveChip = msRemoveChip;
 
+function sqlIn(field, vals) {
+  if (!vals || !vals.length) return '';
+  return ' AND ' + field + " IN ('" + vals.map(v => v.replace(/'/g, "''")).join("','") + "')";
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 
 const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
@@ -512,17 +517,10 @@ async function loadData() {
   const colab = document.getElementById('f-colaborador').value;
   const sla = parseInt(document.getElementById('f-sla').value) || 20;
 
-  const msEquipeVals = [...msSel.equipe];
-  const msFilaVals   = [...msSel.fila];
-  const msColabVals  = [...msSel.colab];
-  function inClause(field, vals) {
-    if(!vals.length) return '';
-    return ` AND ${field} IN (${vals.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
-  }
   let where = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(ds)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(de)}')`;
-  where += inClause('origem', msEquipeVals);
-  where += inClause('queue_name', msFilaVals);
-  where += inClause('name', msColabVals);
+  where += sqlIn('origem', [...msSel.equipe]);
+  where += sqlIn('queue_name', [...msSel.fila]);
+  where += sqlIn('name', [...msSel.colab]);
 
   try {
     const data = await queryBQ(`
@@ -825,7 +823,7 @@ function buildDashboard(data, sla) {
 
   async function loadCsat() {
     let whereCsat = `WHERE Data BETWEEN DATE('${ds}') AND DATE('${de}')`;
-    if (equipe.length) whereCsat += ` AND origem IN (${equipe.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
+        whereCsat += sqlIn('origem', equipe);
     if (fila.length)   whereCsat += ` AND queue_name IN (${fila.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
     if (colab.length)  whereCsat += ` AND name IN (${colab.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
 
@@ -929,9 +927,9 @@ function buildDashboard(data, sla) {
     document.getElementById('btn-drill-colab').style.boxShadow = mode==='colaborador' ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
 
     let where2 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(ds)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(de)}')`;
-    if (equipe) where2 += ` AND origem = '${equipe.replace(/'/g,"''")}'`;
-    if (fila)   where2 += ` AND queue_name = '${fila.replace(/'/g,"''")}'`;
-    if (colab)  where2 += ` AND name = '${colab.replace(/'/g,"''")}'`;
+    where2 += sqlIn('origem', equipe);
+    where2 += sqlIn('queue_name', fila);
+    where2 += sqlIn('name', colab);
 
     try {
       const limit = mode === 'fila' ? 50 : 50;
@@ -1256,9 +1254,9 @@ function buildDashboard(data, sla) {
     const filav = [...msSel.fila];
     const colabv = [...msSel.colab];
     let where3 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev)}')`;
-    if (equipev.length) where3 += ` AND origem IN (${equipev.map(v=>`'${v.replace(/'/g,\"''\")}'`).join(',')})`;
-    if (filav)   where3 += ` AND queue_name = '${filav.replace(/'/g,"''")}'`;
-    if (colabv)  where3 += ` AND name = '${colabv.replace(/'/g,"''")}'`;
+    where3 += sqlIn('origem', equipev);
+    where3 += sqlIn('queue_name', filav);
+    where3 += sqlIn('name', colabv);
 
     document.getElementById('tme-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
     try {
@@ -1331,9 +1329,9 @@ function buildDashboard(data, sla) {
     const slav = parseInt(document.getElementById('f-sla').value)||20;
 
     let where4 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev)}')`;
-    if (equipev.length) where4 += ` AND origem IN (${equipev.map(v=>`'${v.replace(/'/g,\"''\")}'`).join(',')})`;
-    if (filav)   where4 += ` AND queue_name = '${filav.replace(/'/g,"''")}'`;
-    if (colabv)  where4 += ` AND name = '${colabv.replace(/'/g,"''")}'`;
+        where4 += sqlIn('origem', equipev);
+    where4 += sqlIn('queue_name', filav);
+    where4 += sqlIn('name', colabv);
     if (filaFilter) where4 += ` AND queue_name = '${filaFilter.replace(/'/g,"''")}'`;
 
     let groupField, labelCol;
