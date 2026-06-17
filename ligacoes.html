@@ -122,7 +122,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 /* ── MATRIX TABLE ── */
 .matrix-card{background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-top:0}
 .matrix-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.matrix-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.01em}
+.matrix-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.01em;padding-left:10px;border-left:3px solid var(--brand)}
 .matrix-wrap{overflow:auto;max-height:420px}
 .matrix-table{width:100%;border-collapse:collapse;font-size:11px}
 .matrix-table thead th{position:sticky;top:0;background:#fff;color:var(--text-2);font-weight:500;padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;z-index:2}
@@ -803,7 +803,7 @@ function buildDashboard(data, sla) {
 
     <div class="matrix-card">
       <div class="matrix-header">
-        <div class="matrix-title">Matriz Fila → Operador</div>
+        <div class="matrix-title">Detalhamento por Dimensão e Período</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <div class="dim-group" id="matrix-dim-group">
             <button class="time-toggle" id="mx-dim-data"         onclick="setMatrixDim('data')">Data</button>
