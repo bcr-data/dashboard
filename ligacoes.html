@@ -1061,7 +1061,6 @@ function buildDashboard(data, sla) {
           SUM(Abandonadas) as aband,
           SUM(CASE WHEN TME_seg <= ${slav} THEN Atendidas ELSE 0 END) as atend_sla,
           SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma_atend,
-          SUM(TMA_seg) / NULLIF(SUM(Abandonadas), 0) as tma_aband,
           SUM(TME_seg_atendidas) / NULLIF(SUM(Atendidas), 0) as tme_atend,
           SUM(TME_seg_abandonadas) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
           SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
@@ -1072,7 +1071,7 @@ function buildDashboard(data, sla) {
         LIMIT 100
       `);
 
-      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA Atend','TMA Aband','TME Atend','TME Aband','TME Total'];
+      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total'];
       const colHeaders = cols.map(c=>'<th>'+c+'</th>').join('');
       let html = '<table class="matrix-table"><thead><tr><th>'+label+'</th>'+colHeaders+'</tr></thead><tbody>';
 
@@ -1093,7 +1092,6 @@ function buildDashboard(data, sla) {
         html += `<td>${tot>0?(aband/tot*100).toFixed(1).replace('.',',')+'%':'—'}</td>`;
         html += `<td><span class="ns-dot ${nsColor}"></span>${nsPct.toFixed(1).replace('.',',')}%</td>`;
         html += `<td>${fmtMmSs(r.tma_atend)}</td>`;
-        html += `<td>${fmtMmSs(r.tma_aband)}</td>`;
         html += `<td>${fmtMmSs(r.tme_atend)}</td>`;
         html += `<td>${fmtMmSs(r.tme_aband)}</td>`;
         html += `<td>${fmtMmSs(r.tme_total)}</td>`;
