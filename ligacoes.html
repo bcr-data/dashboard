@@ -810,7 +810,7 @@ function buildDashboard(data, sla) {
   document.getElementById('btn-tme-colab').addEventListener('click', () => loadTmeMatrix('colaborador'));
   document.getElementById('btn-matrix-back').addEventListener('click', () => { matrixDrillFila = null; loadMainMatrix(null); });
 
-  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
+  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
 
   // ── VOLUME + NS% (mixed bar + line) ──
   destroyChart('vol');
@@ -836,7 +836,7 @@ function buildDashboard(data, sla) {
           color:(ctx)=>ctx.dataset.yAxisID==='y2'?'#71717a':'#71717a',
           clip:false
         },
-        legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
+        legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
         tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
       },
       scales:{
@@ -978,7 +978,7 @@ function buildDashboard(data, sla) {
       data:{ labels, datasets:[
         {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
         {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y2'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
@@ -995,7 +995,7 @@ function buildDashboard(data, sla) {
             color:'#71717a',
             clip:false
           },
-          legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
+          legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='%CSAT'?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
@@ -1077,7 +1077,7 @@ function buildDashboard(data, sla) {
           barPercentage:0.9,
           categoryPercentage:0.7,
           plugins:{
-            legend:{position:'top',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a'}},
+            legend:{position:'top',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a'}},
             tooltip:{callbacks:{afterBody:items=>[`Total: ${fmtN(totals[items[0].dataIndex])}`]}},
             datalabels:{
               anchor:'end',
@@ -1475,7 +1475,7 @@ function buildDashboard(data, sla) {
       data:{ labels, datasets:[
         {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
         {label:'Respondidas', data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y2'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
@@ -1487,7 +1487,7 @@ function buildDashboard(data, sla) {
             align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
             font:{size:8}, color:'#71717a', clip:false
           },
-          legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
+          legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
