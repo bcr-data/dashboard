@@ -957,7 +957,7 @@ function renderKPIs(){
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
   const faltas   = d.filter(r => r.exemption && (r.exemption.all_day||'').toLowerCase()==='sim').length;
-  const ausencias = d.filter(r => r.ausencia > 0 && !(r.exemption && (r.exemption.all_day||'').toLowerCase()==='sim')).length;
+  const ausencias = d.filter(r => { const ad = (r.exemption?.all_day||'').toLowerCase(); return r.ausencia > 0 && (ad === 'não' || ad === 'nao' || ad === 'false'); }).length;
   const excluidos = new Set(['Pendente','Reprovada']);
   const aprovados=d.filter(r=>r.exemption && !excluidos.has((r.exemption.solicitation_status||'').trim()));
   const totAbonos=aprovados.length;
