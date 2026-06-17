@@ -610,22 +610,32 @@ function buildDashboard(data, sla) {
   charts.vol = new Chart(document.getElementById('chart-volume'), {
     type:'bar',
     data:{ labels:dates, datasets:[
-      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.75)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.70)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-      {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#2151E5',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
-      {label:'Meta 80%',type:'line',data:dates.map(()=>80),borderColor:'#f59e0b',borderDash:[5,3],pointRadius:0,borderWidth:1.5,yAxisID:'y2'},
+      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.40)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+      {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#a1a1aa',backgroundColor:'transparent',tension:.3,pointRadius:3,pointBackgroundColor:'#a1a1aa',borderWidth:2,yAxisID:'y2'},
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        datalabels:{display:false},
+        datalabels:{
+          display:true,
+          formatter:(v,ctx)=>{
+            if(ctx.dataset.yAxisID==='y2') return v>0?v.toFixed(1).replace('.',',')+'%':'';
+            return v>0?fmtN(v):'';
+          },
+          anchor:(ctx)=>ctx.dataset.yAxisID==='y2'?'center':'end',
+          align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
+          font:{size:8},
+          color:(ctx)=>ctx.dataset.yAxisID==='y2'?'#71717a':'#71717a',
+          clip:false
+        },
         legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}},
         tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
       },
       scales:{
         x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
         y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-        y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#2151E5',callback:v=>v+'%'},min:0,max:100,position:'right'}
+        y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#a1a1aa',callback:v=>v+'%'},min:0,max:100,position:'right'}
       }
     }
   });
@@ -719,21 +729,32 @@ function buildDashboard(data, sla) {
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
-        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(33,81,229,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'Respondidas',data:resp,backgroundColor:'rgba(22,163,74,.75)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#f59e0b',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:2,yAxisID:'y2'},
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'Respondidas',data:resp,backgroundColor:'rgba(30,64,175,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#7c3aed',pointBackgroundColor:'#7c3aed',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y2'},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
         plugins:{
-          datalabels:{display:false},
+          datalabels:{
+            display:true,
+            formatter:(v,ctx)=>{
+              if(ctx.dataset.yAxisID==='y2') return v>0?v.toFixed(1).replace('.',',')+'%':'';
+              return v>0?fmtN(v):'';
+            },
+            anchor:(ctx)=>ctx.dataset.yAxisID==='y2'?'center':'end',
+            align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
+            font:{size:8},
+            color:'#71717a',
+            clip:false
+          },
           legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}},
-          tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
+          tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='%CSAT'?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
           y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#f59e0b',callback:v=>v+'%'},min:0,max:100,position:'right'}
+          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#7c3aed',callback:v=>v+'%'},min:0,max:100,position:'right'}
         }
       }
     });
@@ -974,7 +995,6 @@ function buildDashboard(data, sla) {
         labels.map(l=>agg[l]?.atend||0),
         labels.map(l=>agg[l]?.aband||0),
         labels.map(l=>agg[l]?.lig>0?+(agg[l].sla/agg[l].lig*100).toFixed(1):0),
-        labels.map(()=>80)
       ]);
     } else if (chart === 'sla' && charts.sla) {
       updateChartData(charts.sla, labels, [
