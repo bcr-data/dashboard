@@ -462,12 +462,17 @@ function buildDashboard(data, sla) {
         <div class="kpi-label">Nível de Serviço</div>
         <div class="kpi-sub">% atendidas &lt;${sla}s</div>
       </div>
+      <div class="kpi" id="kpi-csat">
+        <div class="kpi-val" id="kpi-csat-val">—</div>
+        <div class="kpi-label">CSAT</div>
+        <div class="kpi-sub" id="kpi-csat-sub">Carregando...</div>
+      </div>
     </div>
 
     <div class="charts-row">
       <div class="chart-card">
         <div class="card-header">
-          <div><div class="card-title">Evolução do Volume</div></div>
+          <div><div class="card-title">Volumetria e Nível de Serviço por Período</div></div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
             <button class="tf-btn active" id="tf-vol-data" onclick="setChartDim('vol','data')">Data</button>
             <button class="tf-btn" id="tf-vol-mes" onclick="setChartDim('vol','mes')">Mês</button>
@@ -479,15 +484,15 @@ function buildDashboard(data, sla) {
       </div>
       <div class="chart-card">
         <div class="card-header">
-          <div><div class="card-title">Nível de Serviço × Meta</div></div>
+          <div><div class="card-title">CSAT por Período</div></div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
-            <button class="tf-btn active" id="tf-sla-data" onclick="setChartDim('sla','data')">Data</button>
-            <button class="tf-btn" id="tf-sla-mes" onclick="setChartDim('sla','mes')">Mês</button>
-            <button class="tf-btn" id="tf-sla-dow" onclick="setChartDim('sla','dow')">Dia Sem.</button>
-            <button class="tf-btn" id="tf-sla-hora" onclick="setChartDim('sla','hora')">Hora</button>
+            <button class="tf-btn active" id="tf-csat-data" onclick="setChartDim('csat','data')">Data</button>
+            <button class="tf-btn" id="tf-csat-mes" onclick="setChartDim('csat','mes')">Mês</button>
+            <button class="tf-btn" id="tf-csat-dow" onclick="setChartDim('csat','dow')">Dia Sem.</button>
+            <button class="tf-btn" id="tf-csat-hora" onclick="setChartDim('csat','hora')">Hora</button>
           </div>
         </div>
-        <div class="chart-body"><canvas id="chart-sla"></canvas></div>
+        <div class="chart-body"><canvas id="chart-csat"></canvas></div>
       </div>
     </div>
 
@@ -595,36 +600,34 @@ function buildDashboard(data, sla) {
 
   const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
 
-  // ── VOLUME (bar) ──
+  // ── VOLUME + NS% (mixed bar + line) ──
   destroyChart('vol');
   charts.vol = new Chart(document.getElementById('chart-volume'), {
     type:'bar',
     data:{ labels:dates, datasets:[
-      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.75)',borderRadius:3,borderSkipped:false},
-      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.70)',borderRadius:3,borderSkipped:false},
+      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.75)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.70)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+      {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#2151E5',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
+      {label:'Meta 80%',type:'line',data:dates.map(()=>80),borderColor:'#f59e0b',borderDash:[5,3],pointRadius:0,borderWidth:1.5,yAxisID:'y2'},
     ]},
-    options:{...chartDefaults, scales:{...chartDefaults.scales, x:{...chartDefaults.scales.x, stacked:false}, y:{...chartDefaults.scales.y, beginAtZero:true}},
-      plugins:{...chartDefaults.plugins,
-        datalabels:{display:true,anchor:'end',align:'end',formatter:v=>v>0?fmtN(v):'',font:{size:8},color:'#71717a',clip:false},
-        tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]].lig)}}
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        datalabels:{display:false},
+        legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}},
+        tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
+        y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
+        y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#2151E5',callback:v=>v+'%'},min:0,max:100,position:'right'}
       }
     }
   });
 
-  destroyChart('sla');
-  charts.sla = new Chart(document.getElementById('chart-sla'), {
-    type:'line',
-  });
-
-  destroyChart('sla');
-  charts.sla = new Chart(document.getElementById('chart-sla'), {
-    type:'line',
-    data:{ labels:dates, datasets:[
-      {label:'NS%',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#2151E5',backgroundColor:'rgba(33,81,229,.06)',tension:.3,fill:true,pointRadius:2,borderWidth:1.5},
-      {label:'Meta 80%',data:dates.map(()=>80),borderColor:'#f59e0b',borderDash:[5,3],pointRadius:0,borderWidth:1.5},
-    ]},
-    options:{...chartDefaults, scales:{...chartDefaults.scales, y:{...chartDefaults.scales.y,min:0,max:100,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'%'}}}}
-  });
+  // ── CSAT chart (bar + line) — loaded async after CSAT data arrives ──
+  destroyChart('csat');
+  charts.csat = null;
 
   destroyChart('tmatme');
   charts.tmatme = new Chart(document.getElementById('chart-tmatme'), {
@@ -646,6 +649,86 @@ function buildDashboard(data, sla) {
   const equipe = document.getElementById('f-equipe').value;
   const fila   = document.getElementById('f-fila').value;
   const colab  = document.getElementById('f-colaborador').value;
+
+  // ── CSAT ──
+  let csatByDate = {};
+
+  async function loadCsat() {
+    let whereCsat = `WHERE Data BETWEEN DATE('${ds}') AND DATE('${de}')`;
+    if (equipe) whereCsat += ` AND origem = '${equipe.replace(/'/g,"''")}'`;
+    if (fila)   whereCsat += ` AND queue_name = '${fila.replace(/'/g,"''")}'`;
+    if (colab)  whereCsat += ` AND name = '${colab.replace(/'/g,"''")}'`;
+
+    try {
+      const rows = await queryBQ(`
+        SELECT
+          FORMAT_DATE('%d-%m-%y', Data) AS Data,
+          SUM(Total_Encaminhadas_Pesquisa) AS encaminhadas,
+          SUM(Total_Pesquisas) AS respondidas,
+          SUM(Total_Satisfeito) AS satisfeito
+        FROM \`bcrcx-wfm.BCRCX.csat\`
+        ${whereCsat}
+        GROUP BY Data
+        ORDER BY Data
+      `);
+
+      csatByDate = {};
+      rows.forEach(r => {
+        csatByDate[r.Data] = {
+          enc: r.encaminhadas||0,
+          resp: r.respondidas||0,
+          sat: r.satisfeito||0
+        };
+      });
+
+      // KPI global
+      const totResp = rows.reduce((a,r)=>a+(r.respondidas||0),0);
+      const totSat  = rows.reduce((a,r)=>a+(r.satisfeito||0),0);
+      const csatPct = totResp > 0 ? (totSat/totResp*100) : 0;
+      const kpiVal = document.getElementById('kpi-csat-val');
+      const kpiSub = document.getElementById('kpi-csat-sub');
+      if (kpiVal) kpiVal.textContent = csatPct.toFixed(1).replace('.',',')+'%';
+      if (kpiSub) kpiSub.textContent = fmtN(totResp)+' pesquisas respondidas';
+
+      renderCsatChart(dates);
+    } catch(e) {
+      const kpiSub = document.getElementById('kpi-csat-sub');
+      if (kpiSub) kpiSub.textContent = 'Erro ao carregar';
+    }
+  }
+
+  function renderCsatChart(labels) {
+    destroyChart('csat');
+    const enc  = labels.map(d => csatByDate[d]?.enc||0);
+    const resp = labels.map(d => csatByDate[d]?.resp||0);
+    const pct  = labels.map(d => {
+      const r = csatByDate[d]; if (!r || !r.resp) return 0;
+      return +(r.sat/r.resp*100).toFixed(1);
+    });
+    charts.csat = new Chart(document.getElementById('chart-csat'), {
+      type:'bar',
+      data:{ labels, datasets:[
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(33,81,229,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'Respondidas',data:resp,backgroundColor:'rgba(22,163,74,.75)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#f59e0b',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:2,yAxisID:'y2'},
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          datalabels:{display:false},
+          legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#71717a',padding:12}},
+          tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
+          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
+          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#f59e0b',callback:v=>v+'%'},min:0,max:100,position:'right'}
+        }
+      }
+    });
+  }
+
+  loadCsat();
 
   async function loadDrillBar(mode) {
     drillMode = mode;
@@ -878,7 +961,9 @@ function buildDashboard(data, sla) {
     if (chart === 'vol' && charts.vol) {
       updateChartData(charts.vol, labels, [
         labels.map(l=>agg[l]?.atend||0),
-        labels.map(l=>agg[l]?.aband||0)
+        labels.map(l=>agg[l]?.aband||0),
+        labels.map(l=>agg[l]?.lig>0?+(agg[l].sla/agg[l].lig*100).toFixed(1):0),
+        labels.map(()=>80)
       ]);
     } else if (chart === 'sla' && charts.sla) {
       updateChartData(charts.sla, labels, [
@@ -890,6 +975,8 @@ function buildDashboard(data, sla) {
         labels.map(l=>agg[l]?.tmaW>0?+(agg[l].tmaSum/agg[l].tmaW).toFixed(1):0),
         labels.map(l=>agg[l]?.tmeW>0?+(agg[l].tmeSum/agg[l].tmeW).toFixed(1):0)
       ]);
+    } else if (chart === 'csat') {
+      renderCsatChart(labels);
     }
     buildHeatmap('heatmap-vol','vol');
     buildHeatmap('heatmap-sla','sla');
