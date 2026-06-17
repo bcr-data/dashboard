@@ -1727,25 +1727,42 @@ function buildDashboard(data, sla) {
 
     try {
       const rows = await queryBQ(`
-        SELECT ${groupField} as label,
-          SUM(Total_Ligacoes) as total,
-          SUM(Atendidas) as atend,
-          SUM(Abandonadas) as aband,
-          SUM(CASE WHEN TME_seg <= ${slav} THEN Atendidas ELSE 0 END) as atend_sla,
-          SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma_atend,
-          SUM(TME_seg_atendidas) / NULLIF(SUM(Atendidas), 0) as tme_atend,
-          SUM(TME_seg_abandonadas) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
-          SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
-        FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
-        ${where4}
-        GROUP BY label
-        ORDER BY ${filaFilter ? 'SUM(Total_Ligacoes) DESC' : orderBy}
+        WITH calls AS (
+          SELECT ${groupField} as label,
+            SUM(Total_Ligacoes) as total,
+            SUM(Atendidas) as atend,
+            SUM(Abandonadas) as aband,
+            SUM(CASE WHEN TME_seg <= ${slav} THEN Atendidas ELSE 0 END) as atend_sla,
+            SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma_atend,
+            SUM(TME_seg_atendidas) / NULLIF(SUM(Atendidas), 0) as tme_atend,
+            SUM(TME_seg_abandonadas) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
+            SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
+          FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
+          ${where4}
+          GROUP BY label
+        ),
+        csat_agg AS (
+          SELECT ${groupField.replace('queue_name','queue_name').replace('CAST(Hora AS STRING)','CAST(Hora AS STRING)').replace("FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))","FORMAT_DATE('%A', Data)").replace("FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))","FORMAT_DATE('%m/%y', Data)")} as label,
+            SUM(Total_Encaminhadas_Pesquisa) as enc,
+            SUM(Total_Pesquisas) as resp,
+            SUM(Total_Satisfeito) as sat
+          FROM \`bcrcx-wfm.BCRCX.csat\`
+          WHERE Data BETWEEN DATE('${dsv}') AND DATE('${dev}')
+          ${sqlIn('origem', equipev).replace('AND','AND')}
+          ${sqlIn('queue_name', filav)}
+          ${sqlIn('name', colabv)}
+          GROUP BY label
+        )
+        SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat
+        FROM calls c LEFT JOIN csat_agg s ON c.label = s.label
+        ORDER BY ${filaFilter ? 'c.total DESC' : orderBy.replace('label','c.label').replace('SUM(Total_Ligacoes) DESC','c.total DESC')}
         LIMIT 100
       `);
 
-      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total'];
+      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Aderência','CSAT%'];
       const colHeaders = cols.map(c=>'<th>'+c+'</th>').join('');
-      let html = '<table class="matrix-table"><thead><tr><th>'+labelCol+'</th>'+colHeaders+'</tr></thead><tbody>';
+      let html = `<div style="display:flex;justify-content:flex-end;padding:4px 8px"><button onclick="window.exportMatrixCSV()" class="btn-reset" style="padding:4px 10px;font-size:11px">⬇ Exportar CSV</button></div>`;
+      html += '<table class="matrix-table"><thead><tr><th>'+labelCol+'</th>'+colHeaders+'</tr></thead><tbody>';
 
       rows.forEach(r => {
         const canDrill = !filaFilter && matrixDim === 'fila';
@@ -1764,16 +1781,64 @@ function buildDashboard(data, sla) {
         html += `<td>${tot>0?(atend/tot*100).toFixed(1).replace('.',',')+'%':'—'}</td>`;
         html += `<td>${fmtN(aband)}</td>`;
         html += `<td>${tot>0?(aband/tot*100).toFixed(1).replace('.',',')+'%':'—'}</td>`;
-        html += `<td><span class="ns-dot ${nsColor}"></span>${nsPct.toFixed(1).replace('.',',')}%</td>`;
+        html += `<td>${nsPct.toFixed(1).replace('.',',')}%</td>`;
         html += `<td>${fmtMmSs(r.tma_atend)}</td>`;
         html += `<td>${fmtMmSs(r.tme_atend)}</td>`;
         html += `<td>${fmtMmSs(r.tme_aband)}</td>`;
         html += `<td>${fmtMmSs(r.tme_total)}</td>`;
+        const enc  = r.enc||0;
+        const resp = r.resp||0;
+        const sat  = r.sat||0;
+        const ader = enc>0  ? (resp/enc*100).toFixed(1).replace('.',',')+'%' : '—';
+        const csat = resp>0 ? (sat/resp*100).toFixed(1).replace('.',',')+'%' : '—';
+        html += `<td>${fmtN(enc)}</td>`;
+        html += `<td>${fmtN(resp)}</td>`;
+        html += `<td>${ader}</td>`;
+        html += `<td>${csat}</td>`;
         html += '</tr>';
       });
 
       html += '</tbody></table>';
       document.getElementById('main-matrix').innerHTML = html;
+
+      // Store for CSV export
+      window._matrixRows = rows;
+      window._matrixLabelCol = labelCol;
+      window.exportMatrixCSV = function() {
+        const header = [window._matrixLabelCol,'Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Aderência','CSAT%'];
+        const lines = [header.join(';')];
+        (window._matrixRows||[]).forEach(r => {
+          const tot   = r.total||0;
+          const atend = r.atend||0;
+          const aband = r.aband||0;
+          const ns    = tot>0?((r.atend_sla||0)/tot*100):0;
+          const enc   = r.enc||0;
+          const resp  = r.resp||0;
+          const sat   = r.sat||0;
+          const ader  = enc>0?(resp/enc*100):0;
+          const csat  = resp>0?(sat/resp*100):0;
+          lines.push([
+            r.label||'—',
+            tot, atend,
+            (tot>0?(atend/tot*100):0).toFixed(1).replace('.',',')+'%',
+            aband,
+            (tot>0?(aband/tot*100):0).toFixed(1).replace('.',',')+'%',
+            ns.toFixed(1).replace('.',',')+'%',
+            fmtMmSs(r.tma_atend),
+            fmtMmSs(r.tme_atend),
+            fmtMmSs(r.tme_aband),
+            fmtMmSs(r.tme_total),
+            enc, resp,
+            ader.toFixed(1).replace('.',',')+'%',
+            csat.toFixed(1).replace('.',',')+'%'
+          ].join(';'));
+        });
+        const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = 'matriz_ligacoes.csv'; a.click();
+        URL.revokeObjectURL(url);
+      };
     } catch(e) { document.getElementById('main-matrix').innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; }
   }
 
