@@ -512,10 +512,7 @@ async function loadData() {
   document.getElementById('app').innerHTML = '<div class="loading"><div class="spinner"></div>Buscando dados...</div>';
   const ds = document.getElementById('f-date-start').value;
   const de = document.getElementById('f-date-end').value;
-  const equipe = document.getElementById('f-equipe').value;
-  const fila = document.getElementById('f-fila').value;
-  const colab = document.getElementById('f-colaborador').value;
-  const sla = parseInt(document.getElementById('f-sla').value) || 20;
+  const sla = 20;
 
   let where = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(ds)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(de)}')`;
   where += sqlIn('origem', [...msSel.equipe]);
@@ -1326,7 +1323,7 @@ function buildDashboard(data, sla) {
     const equipev = [...msSel.equipe];
     const filav = [...msSel.fila];
     const colabv = [...msSel.colab];
-    const slav = parseInt(document.getElementById('f-sla').value)||20;
+    const slav = 20;
 
     let where4 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev)}')`;
         where4 += sqlIn('origem', equipev);
