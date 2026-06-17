@@ -137,6 +137,21 @@ tbody td:first-child{text-align:left;font-weight:400;color:var(--text);white-spa
 .user-chip span{color:#374151}
 .btn-logout{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 11px;font-size:12px;cursor:pointer;transition:background .15s ease}
 .btn-logout:hover{background:var(--border-subtle)}
+/* NAV MENU */
+.nav-menu-wrap{position:relative}
+.btn-nav{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:5px 8px;font-size:13px;cursor:pointer;transition:background .15s ease,border-color .15s ease;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:32px;height:32px}
+.btn-nav:hover{background:var(--border-subtle);border-color:var(--text-3)}
+.btn-nav span{display:block;width:14px;height:1.5px;background:var(--text-2);border-radius:1px;transition:background .15s ease}
+.btn-nav:hover span,.btn-nav.open span{background:var(--text)}
+.btn-nav span:last-child{width:10px}
+.nav-dropdown{position:absolute;top:calc(100% + 6px);right:0;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.09);z-index:200;overflow:hidden;display:none}
+.nav-dropdown.open{display:block}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:13px;color:var(--text);text-decoration:none;cursor:pointer;transition:background .1s ease}
+.nav-item:hover{background:var(--border-subtle)}
+.nav-item.active{color:var(--brand);font-weight:500}
+.nav-item svg{flex-shrink:0;opacity:.6}
+.nav-item.active svg{opacity:1}
+.nav-sep{height:1px;background:var(--border-subtle);margin:3px 0}
 .btn-refresh{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 9px;font-size:14px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease;display:flex;align-items:center;justify-content:center;line-height:1}
 .btn-refresh:hover{background:var(--border-subtle);color:var(--brand);border-color:var(--brand)}
 .btn-refresh.refreshing{color:var(--brand);border-color:var(--brand);animation:spin .7s linear infinite}
@@ -191,6 +206,26 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
     <div class="user-chip">
       <button class="btn-refresh" id="btn-refresh" title="Atualizar dashboard" onclick="triggerWebhookRefresh()">↻</button>
       <span id="user-email-display"></span>
+      <div class="nav-menu-wrap">
+        <button class="btn-nav" id="btn-nav" title="Menu" onclick="navToggle()">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <a class="nav-item active" href="./index.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Absenteísmo
+          </a>
+          <a class="nav-item" href="./ligacoes.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.96 1.18 2 2 0 012.93 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            Ligações
+          </a>
+          <div class="nav-sep"></div>
+          <span class="nav-item" onclick="doLogout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -352,7 +387,21 @@ async function triggerWebhookRefresh() {
 }
 window.triggerWebhookRefresh = triggerWebhookRefresh;
 
-// Button + Enter key listeners
+// NAV MENU
+function navToggle() {
+  const btn = document.getElementById('btn-nav');
+  const dd  = document.getElementById('nav-dropdown');
+  const open = dd.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+document.addEventListener('click', e => {
+  const wrap = document.querySelector('.nav-menu-wrap');
+  if(wrap && !wrap.contains(e.target)) {
+    document.getElementById('nav-dropdown')?.classList.remove('open');
+    document.getElementById('btn-nav')?.classList.remove('open');
+  }
+});
+window.navToggle = navToggle;
 document.getElementById('btn-login').addEventListener('click', doLogin);
 ['login-email','login-password'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
