@@ -782,11 +782,13 @@ function buildDashboard(data, sla) {
         <div class="matrix-title">Matriz Fila → Operador</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <div class="dim-group" id="matrix-dim-group">
-            <button class="time-toggle" id="mx-dim-equipe" onclick="setMatrixDim('equipe')">Equipe</button>
-            <button class="time-toggle active" id="mx-dim-fila" onclick="setMatrixDim('fila')">Fila</button>
-            <button class="time-toggle" id="mx-dim-colaborador" onclick="setMatrixDim('colaborador')">Colaborador</button>
-            <button class="time-toggle" id="mx-dim-data" onclick="setMatrixDim('data')">Data</button>
-            <button class="time-toggle" id="mx-dim-hora" onclick="setMatrixDim('hora')">Hora</button>
+            <button class="time-toggle" id="mx-dim-data"         onclick="setMatrixDim('data')">Data</button>
+            <button class="time-toggle" id="mx-dim-mes"          onclick="setMatrixDim('mes')">Mês</button>
+            <button class="time-toggle" id="mx-dim-dow"          onclick="setMatrixDim('dow')">Dia Sem.</button>
+            <button class="time-toggle" id="mx-dim-hora"         onclick="setMatrixDim('hora')">Hora</button>
+            <button class="time-toggle" id="mx-dim-equipe"       onclick="setMatrixDim('equipe')">Equipe</button>
+            <button class="time-toggle active" id="mx-dim-fila"  onclick="setMatrixDim('fila')">Fila</button>
+            <button class="time-toggle" id="mx-dim-colaborador"  onclick="setMatrixDim('colaborador')">Colaborador</button>
           </div>
           <span style="font-size:11px;color:var(--text-3)" id="matrix-breadcrumb"></span>
           <button id="btn-matrix-back" style="display:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;background:var(--surface);color:var(--text-2)">← Voltar</button>
@@ -1675,7 +1677,7 @@ function buildDashboard(data, sla) {
   window.setMatrixDim = function(dim) {
     matrixDim = dim;
     matrixDrillFila = null;
-    ['equipe','fila','colaborador','data','hora'].forEach(d => {
+    ['data','mes','dow','hora','equipe','fila','colaborador'].forEach(d => {
       const btn = document.getElementById('mx-dim-'+d);
       if (!btn) return;
       const active = d === dim;
@@ -1701,14 +1703,22 @@ function buildDashboard(data, sla) {
     where4 += sqlIn('name', colabv);
     if (filaFilter) where4 += ` AND queue_name = '${filaFilter.replace(/'/g,"''")}'`;
 
-    let groupField, labelCol;
+    let groupField, labelCol, orderBy = 'SUM(Total_Ligacoes) DESC';
     if (filaFilter) {
       groupField = 'name'; labelCol = 'Operador';
     } else {
-      const dimMap = { equipe:'origem', fila:'queue_name', colaborador:'name', data:'Data', hora:'Hora' };
-      const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', hora:'Hora' };
+      const dimMap = {
+        equipe:'origem', fila:'queue_name', colaborador:'name',
+        data:'Data',
+        mes:`FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))`,
+        dow:`FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))`,
+        hora:'CAST(Hora AS STRING)'
+      };
+      const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
       groupField = dimMap[matrixDim] || 'queue_name';
-      labelCol = labelMap[matrixDim] || 'Fila';
+      labelCol   = labelMap[matrixDim] || 'Fila';
+      if (matrixDim === 'data' || matrixDim === 'mes') orderBy = 'label';
+      if (matrixDim === 'hora') orderBy = 'CAST(label AS INT64)';
     }
 
     document.getElementById('main-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div></div>';
@@ -1728,8 +1738,8 @@ function buildDashboard(data, sla) {
           SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
         FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
         ${where4}
-        GROUP BY ${groupField}
-        ORDER BY SUM(Total_Ligacoes) DESC
+        GROUP BY label
+        ORDER BY ${filaFilter ? 'SUM(Total_Ligacoes) DESC' : orderBy}
         LIMIT 100
       `);
 
@@ -1741,8 +1751,7 @@ function buildDashboard(data, sla) {
         const canDrill = !filaFilter && matrixDim === 'fila';
         const lbl = (matrixDim === 'fila' && !filaFilter)
           ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—'
-          : (r.label||'—');
-        const tot   = r.total||0;
+          : (r.label||'—');        const tot   = r.total||0;
         const atend = r.atend||0;
         const aband = r.aband||0;
         const nsPct = tot > 0 ? (r.atend_sla||0)/tot*100 : 0;
