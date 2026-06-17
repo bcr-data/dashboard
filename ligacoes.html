@@ -612,7 +612,7 @@ function buildDashboard(data, sla) {
     data:{ labels:dates, datasets:[
       {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
       {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.40)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-      {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#a1a1aa',backgroundColor:'transparent',tension:.3,pointRadius:3,pointBackgroundColor:'#a1a1aa',borderWidth:2,yAxisID:'y2'},
+      {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#94a3b8',backgroundColor:'transparent',tension:.3,pointRadius:3,pointBackgroundColor:'#94a3b8',borderWidth:2,yAxisID:'y2'},
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -635,7 +635,7 @@ function buildDashboard(data, sla) {
       scales:{
         x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
         y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-        y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#a1a1aa',callback:v=>v+'%'},min:0,max:100,position:'right'}
+        y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,max:100,position:'right'}
       }
     }
   });
@@ -731,7 +731,7 @@ function buildDashboard(data, sla) {
       data:{ labels, datasets:[
         {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
         {label:'Respondidas',data:resp,backgroundColor:'rgba(30,64,175,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#7c3aed',pointBackgroundColor:'#7c3aed',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y2'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#1e3a8a',pointBackgroundColor:'#1e3a8a',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y2'},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
@@ -754,7 +754,7 @@ function buildDashboard(data, sla) {
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
           y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#7c3aed',callback:v=>v+'%'},min:0,max:100,position:'right'}
+          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,max:100,position:'right'}
         }
       }
     });
