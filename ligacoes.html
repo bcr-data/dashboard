@@ -1062,8 +1062,8 @@ function buildDashboard(data, sla) {
           SUM(CASE WHEN TME_seg <= ${slav} THEN Atendidas ELSE 0 END) as atend_sla,
           SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma_atend,
           SUM(TMA_seg) / NULLIF(SUM(Abandonadas), 0) as tma_aband,
-          SUM(TME_seg) / NULLIF(SUM(Atendidas), 0) as tme_atend,
-          SUM(TME_seg) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
+          SUM(TME_seg_atendidas) / NULLIF(SUM(Atendidas), 0) as tme_atend,
+          SUM(TME_seg_abandonadas) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
           SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
         FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
         ${where4}
