@@ -837,6 +837,7 @@ function buildDashboard(data, sla) {
 
   // ── CSAT ──
   let csatByDate = {};
+  let csatRawRows = [];
 
   async function loadCsat() {
     let whereCsat = `WHERE Data BETWEEN DATE('${ds}') AND DATE('${de}')`;
@@ -848,22 +849,23 @@ function buildDashboard(data, sla) {
       const rows = await queryBQ(`
         SELECT
           FORMAT_DATE('%d-%m-%y', Data) AS Data,
+          EXTRACT(HOUR FROM DATETIME(Data, TIME(Hora,0,0))) AS Hora,
           SUM(Total_Encaminhadas_Pesquisa) AS encaminhadas,
           SUM(Total_Pesquisas) AS respondidas,
           SUM(Total_Satisfeito) AS satisfeito
         FROM \`bcrcx-wfm.BCRCX.csat\`
         ${whereCsat}
-        GROUP BY Data
+        GROUP BY Data, Hora
         ORDER BY Data
       `);
 
+      csatRawRows = rows;
       csatByDate = {};
       rows.forEach(r => {
-        csatByDate[r.Data] = {
-          enc: r.encaminhadas||0,
-          resp: r.respondidas||0,
-          sat: r.satisfeito||0
-        };
+        if (!csatByDate[r.Data]) csatByDate[r.Data] = {enc:0, resp:0, sat:0};
+        csatByDate[r.Data].enc  += r.encaminhadas||0;
+        csatByDate[r.Data].resp += r.respondidas||0;
+        csatByDate[r.Data].sat  += r.satisfeito||0;
       });
 
       // KPI global
@@ -888,12 +890,48 @@ function buildDashboard(data, sla) {
     }
   }
 
-  function renderCsatChart(labels) {
+  function aggregateCsatByDim(dim) {
+    const agg = {};
+    const empty = () => ({enc:0, resp:0, sat:0});
+    csatRawRows.forEach(r => {
+      let key;
+      if (dim === 'data') {
+        key = r.Data;
+      } else if (dim === 'mes') {
+        key = getMonthLabel(r.Data);
+      } else if (dim === 'dow') {
+        key = DOW_ORDER[getDOW(r.Data)];
+      } else if (dim === 'hora') {
+        const h = r.Hora != null ? String(r.Hora).padStart(2,'0') : '00';
+        key = h+'h';
+      } else {
+        key = r.Data;
+      }
+      if (!agg[key]) agg[key] = empty();
+      agg[key].enc  += r.encaminhadas||0;
+      agg[key].resp += r.respondidas||0;
+      agg[key].sat  += r.satisfeito||0;
+    });
+
+    let labels;
+    if (dim === 'data')  labels = dates;
+    else if (dim === 'mes')  labels = [...new Set(csatRawRows.map(r=>getMonthLabel(r.Data)))];
+    else if (dim === 'dow')  labels = DOW_ORDER.filter(d=>agg[d]);
+    else if (dim === 'hora') labels = allHours.filter(h=>agg[h+'h']).map(h=>h+'h');
+    else labels = dates;
+
+    return {labels, agg};
+  }
+
+  function renderCsatChart(labelsOrDim) {
+    // Accept either a labels array (dim=data) or call with aggregation
+    const currentDim = chartDims.csat || 'data';
+    const {labels, agg} = aggregateCsatByDim(currentDim);
     destroyChart('csat');
-    const enc  = labels.map(d => csatByDate[d]?.enc||0);
-    const resp = labels.map(d => csatByDate[d]?.resp||0);
-    const pct  = labels.map(d => {
-      const r = csatByDate[d]; if (!r || !r.resp) return 0;
+    const enc  = labels.map(l => agg[l]?.enc||0);
+    const resp = labels.map(l => agg[l]?.resp||0);
+    const pct  = labels.map(l => {
+      const r = agg[l]; if (!r || !r.resp) return 0;
       return +(r.sat/r.resp*100).toFixed(1);
     });
     charts.csat = new Chart(document.getElementById('chart-csat'), {
@@ -1084,7 +1122,7 @@ function buildDashboard(data, sla) {
   }
 
   // ── DIMENSION AGGREGATION ──
-  const chartDims = {vol:'data', sla:'data', tma:'data'};
+  const chartDims = {vol:'data', sla:'data', tma:'data', csat:'data'};
   const DOW_ORDER = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
   function aggregateByDim(dim) {
