@@ -1116,7 +1116,7 @@ function renderChartAbs(){
       plugins:{legend:{display:false}},
       scales:{
         x:{display:false,max:maxVal},
-        y:{grid:{display:false},ticks:{font:{size:absMode==='emp'?10:12,weight:'400'},color:'#18181b'}}
+        y:{grid:{display:false},ticks:{font:{size:absMode==='emp'?10:12}}}
       }
     },
     plugins:[absLabelPlugin]
@@ -1201,7 +1201,7 @@ function renderChartHours(){
       },
       scales:{
         x:{display:false,max:maxVal},
-        y:{grid:{display:false},ticks:{font:{size:hoursMode==='emp'?10:12,weight:'400'},color:'#18181b'}}
+        y:{grid:{display:false},ticks:{font:{size:hoursMode==='emp'?10:12}}}
       },
       onClick(evt,els){
         if(!canDrill||!els.length) return;
@@ -1276,7 +1276,7 @@ function renderLateChart(){
       plugins:{legend:{display:false}},
       scales:{
         x:{ display:false, max: maxVal * 1.25 },
-        y:{ grid:{display:false}, ticks:{font:{size:lateMode==='emp'?10:12,weight:'400'},color:'#18181b'} }
+        y:{ grid:{display:false}, ticks:{font:{size:lateMode==='emp'?10:12}} }
       }
     },
     plugins:[lateLabelPlugin]
