@@ -1039,7 +1039,7 @@ function renderTrendChart(){
     labels=days.map(d=>{ const[,mo,dy]=d.split('-'); return `${dy}/${mo}`; });
     datasets=groups.map((g,i)=>({
       label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
-      borderWidth:2.5, pointRadius:4, fill:false, tension:.3, spanGaps:true,
+      borderWidth:2.5, pointRadius:2, fill:false, tension:.3, spanGaps:true,
       data:days.map(day=>{ const r=dayData.filter(x=>x[groupKey]===g&&x.date===day); return r.length?calcAbs(r):null; })
     }));
     breadcrumb=`${monthLabel(trendDrillMonth)} › dias`;
@@ -1051,7 +1051,7 @@ function renderTrendChart(){
     labels=months.map(monthLabel);
     datasets=groups.map((g,i)=>({
       label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
-      borderWidth:2.5, pointRadius:5, fill:false, tension:.3, spanGaps:true,
+      borderWidth:2.5, pointRadius:2.5, fill:false, tension:.3, spanGaps:true,
       data:months.map(mo=>{ const r=filteredData.filter(d=>d[groupKey]===g&&d.month===mo); return r.length?calcAbs(r):null; })
     }));
     hint='Clique em um ponto para ver a evolução diária';
