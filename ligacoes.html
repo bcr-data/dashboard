@@ -43,7 +43,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:14px;max-width:1600px;margin:0 auto;width:100%}
 
 /* ── KPI CARDS ── */
-.kpi-row{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
+.kpi-row{display:grid;grid-template-columns:repeat(8,1fr);gap:12px}
 @media(max-width:1200px){.kpi-row{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border);transition:border-color .15s ease}
@@ -467,6 +467,11 @@ function buildDashboard(data, sla) {
         <div class="kpi-label">CSAT</div>
         <div class="kpi-sub" id="kpi-csat-sub">Carregando...</div>
       </div>
+      <div class="kpi" id="kpi-aderencia">
+        <div class="kpi-val" id="kpi-aderencia-val">—</div>
+        <div class="kpi-label">Aderência CSAT</div>
+        <div class="kpi-sub" id="kpi-aderencia-sub">Carregando...</div>
+      </div>
     </div>
 
     <div class="charts-row">
@@ -682,13 +687,19 @@ function buildDashboard(data, sla) {
       });
 
       // KPI global
+      const totEnc  = rows.reduce((a,r)=>a+(r.encaminhadas||0),0);
       const totResp = rows.reduce((a,r)=>a+(r.respondidas||0),0);
       const totSat  = rows.reduce((a,r)=>a+(r.satisfeito||0),0);
       const csatPct = totResp > 0 ? (totSat/totResp*100) : 0;
+      const aderPct = totEnc  > 0 ? (totResp/totEnc*100) : 0;
       const kpiVal = document.getElementById('kpi-csat-val');
       const kpiSub = document.getElementById('kpi-csat-sub');
       if (kpiVal) kpiVal.textContent = csatPct.toFixed(1).replace('.',',')+'%';
       if (kpiSub) kpiSub.textContent = fmtN(totResp)+' pesquisas respondidas';
+      const aderVal = document.getElementById('kpi-aderencia-val');
+      const aderSub = document.getElementById('kpi-aderencia-sub');
+      if (aderVal) aderVal.textContent = aderPct.toFixed(1).replace('.',',')+'%';
+      if (aderSub) aderSub.textContent = fmtN(totEnc)+' pesquisas encaminhadas';
 
       renderCsatChart(dates);
     } catch(e) {
