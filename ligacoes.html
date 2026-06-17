@@ -1106,7 +1106,6 @@ function buildDashboard(data, sla) {
   // buildHeatmap defined in time filter section below
 
   buildHeatmap('heatmap-vol','vol');
-  buildHeatmap('heatmap-sla','sla');
 
   // TME Matrix loaded via loadTmeMatrix()
 
@@ -1242,8 +1241,9 @@ function buildDashboard(data, sla) {
         if (window.renderCsatChart) window.renderCsatChart();
       }
     }
-    buildHeatmap('heatmap-vol','vol');
-    buildHeatmap('heatmap-csat','csat');
+    // rebuild heatmaps only if on a time dim (not grouped)
+    if (!['equipe','fila','colaborador'].includes(hmDim.vol))  buildHeatmap('heatmap-vol','vol');
+    if (!['equipe','fila','colaborador'].includes(hmDim.csat)) buildHeatmap('heatmap-csat','csat');
   };
 
   const hmDim = {vol:'data', csat:'data'};
@@ -1355,9 +1355,9 @@ function buildDashboard(data, sla) {
       const field     = fieldMap[dim];
       const labelTxt  = dim.charAt(0).toUpperCase()+dim.slice(1);
       const groupedId = id.replace('heatmap-','hm-').replace(/-vol$/, '-vol-grouped').replace(/-csat$/, '-csat-grouped');
-      const hmWrap    = id === 'heatmap-vol' ? document.getElementById('hm-vol-heatmap') : document.getElementById('hm-csat-heatmap');
+      const hmWrap2   = id === 'heatmap-vol' ? document.getElementById('hm-vol-heatmap') : document.getElementById('hm-csat-heatmap');
       const grouped   = document.getElementById(id === 'heatmap-vol' ? 'hm-vol-grouped' : 'hm-csat-grouped');
-      if (hmWrap) hmWrap.style.display = 'none';
+      if (hmWrap2) hmWrap2.style.display = 'none';
       if (grouped) { grouped.style.display = ''; grouped.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>'; }
 
       if (type === 'csat') {
