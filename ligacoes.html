@@ -38,6 +38,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .btn-filter:hover{opacity:.85}
 .btn-reset{background:transparent;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;height:36px;transition:background .15s ease,border-color .15s ease;flex-shrink:0}
 .btn-reset:hover{background:var(--border-subtle);border-color:var(--text-3)}
+/* MULTISELECT */
+.ms-wrap{position:relative}
+.ms-trigger{border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;color:var(--text);background:var(--surface);cursor:pointer;display:flex;align-items:center;gap:6px;height:36px;overflow:hidden;transition:border-color .15s ease,height .15s ease}
+.ms-trigger:hover{border-color:var(--text-3)}
+.ms-trigger.open{border-color:var(--text);height:auto;min-height:36px;align-items:flex-start;padding:6px 10px;flex-wrap:wrap}
+.ms-chips{display:flex;gap:4px;flex:1;align-items:center;overflow-x:auto;overflow-y:hidden;height:24px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.ms-chips::-webkit-scrollbar{height:3px}
+.ms-chips::-webkit-scrollbar-track{background:transparent}
+.ms-chips::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ms-trigger.open .ms-chips{overflow:visible;height:auto;flex-wrap:wrap}
+.ms-chevron{flex-shrink:0;font-size:14px;color:var(--text-3);transition:transform .15s ease;align-self:center;margin-left:auto}
+.ms-chevron.open{transform:rotate(180deg)}
+.ms-chip{background:#eff6ff;color:#1e40af;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:500;display:flex;align-items:center;gap:2px;white-space:nowrap}
+.ms-chip .ms-rm{cursor:pointer;opacity:.6;font-size:13px;line-height:1}
+.ms-chip .ms-rm:hover{opacity:1}
+.ms-placeholder{color:var(--text-3);font-size:13px}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:10px;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.07);overflow:hidden}
+.ms-search{padding:8px;border-bottom:1px solid var(--border-subtle)}
+.ms-search input{width:100%;border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;outline:none;color:var(--text);background:var(--bg);transition:border-color .15s ease}
+.ms-search input:focus{border-color:var(--text)}
+.ms-opts{max-height:200px;overflow-y:auto}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:13px;color:var(--text);cursor:pointer;transition:background .1s ease}
+.ms-opt:hover{background:var(--border-subtle)}
+.ms-opt input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.ms-footer{padding:7px 12px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center}
+.ms-footer-count{font-size:11px;color:var(--text-3)}
+.ms-footer-clear{font-size:11px;color:var(--text-2);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px}
+.ms-footer-clear:hover{color:var(--text);background:var(--border-subtle)}
+
 
 /* ── MAIN ── */
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:14px;max-width:1600px;margin:0 auto;width:100%}
@@ -180,22 +209,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <label>Data fim</label>
       <input type="date" id="f-date-end">
     </div>
-    <div class="filter-group">
+    <div class="filter-group ms-wrap" id="ms-wrap-equipe">
       <label>Equipe</label>
-      <select id="f-equipe"><option value="">Todas</option></select>
+      <div class="ms-trigger" id="ms-trigger-equipe" onclick="msToggle('equipe')">
+        <div class="ms-chips" id="ms-chips-equipe"><span class="ms-placeholder">Todas as equipes</span></div>
+        <i class="ms-chevron" id="ms-chev-equipe">▾</i>
+      </div>
+      <div class="ms-dropdown" id="ms-dd-equipe" style="display:none">
+        <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-equipe')" id="ms-srch-equipe"></div>
+        <div class="ms-opts" id="ms-list-equipe"></div>
+        <div class="ms-footer"><span class="ms-footer-count" id="ms-count-equipe">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('equipe')">Limpar</button></div>
+      </div>
     </div>
-    <div class="filter-group">
+    <div class="filter-group ms-wrap" id="ms-wrap-fila">
       <label>Fila</label>
-      <select id="f-fila"><option value="">Todas</option></select>
+      <div class="ms-trigger" id="ms-trigger-fila" onclick="msToggle('fila')">
+        <div class="ms-chips" id="ms-chips-fila"><span class="ms-placeholder">Todas as filas</span></div>
+        <i class="ms-chevron" id="ms-chev-fila">▾</i>
+      </div>
+      <div class="ms-dropdown" id="ms-dd-fila" style="display:none">
+        <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-fila')" id="ms-srch-fila"></div>
+        <div class="ms-opts" id="ms-list-fila"></div>
+        <div class="ms-footer"><span class="ms-footer-count" id="ms-count-fila">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('fila')">Limpar</button></div>
+      </div>
     </div>
-    <div class="filter-group">
+    <div class="filter-group ms-wrap" id="ms-wrap-colab">
       <label>Colaborador</label>
-      <select id="f-colaborador"><option value="">Todos</option></select>
+      <div class="ms-trigger" id="ms-trigger-colab" onclick="msToggle('colab')">
+        <div class="ms-chips" id="ms-chips-colab"><span class="ms-placeholder">Todos os colaboradores</span></div>
+        <i class="ms-chevron" id="ms-chev-colab">▾</i>
+      </div>
+      <div class="ms-dropdown" id="ms-dd-colab" style="display:none">
+        <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-colab')" id="ms-srch-colab"></div>
+        <div class="ms-opts" id="ms-list-colab"></div>
+        <div class="ms-footer"><span class="ms-footer-count" id="ms-count-colab">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('colab')">Limpar</button></div>
+      </div>
     </div>
-    <div class="filter-group filter-sla">
-      <label>SLA (seg)</label>
-      <input type="number" id="f-sla" value="20" min="5" max="300" step="5">
-    </div>
+    <input type="hidden" id="f-sla" value="20">
     <button class="btn-filter" id="btn-filtrar">Filtrar</button>
     <button class="btn-reset" id="btn-limpar">Limpar</button>
   </div>
@@ -206,6 +256,107 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 </div>
 
 <script>
+
+// ── MULTISELECT ──
+const msSel = {equipe: new Set(), fila: new Set(), colab: new Set()};
+const msPlaceholder = {equipe:'Todas as equipes', fila:'Todas as filas', colab:'Todos os colaboradores'};
+const MS_KEYS = ['equipe','fila','colab'];
+
+function msFill(k, opts) {
+  const list = document.getElementById('ms-list-'+k);
+  if(!list) return;
+  list.innerHTML = opts.map(v => {
+    const checked = msSel[k].has(v) ? 'checked' : '';
+    const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\'");
+    return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="msToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
+  }).join('');
+  msRenderChips(k);
+}
+
+function msToggle(k) {
+  const dd = document.getElementById('ms-dd-'+k);
+  const chev = document.getElementById('ms-chev-'+k);
+  const trigger = document.getElementById('ms-trigger-'+k);
+  const isOpen = dd.style.display !== 'none';
+  MS_KEYS.forEach(x => {
+    const d = document.getElementById('ms-dd-'+x);
+    const c = document.getElementById('ms-chev-'+x);
+    const t = document.getElementById('ms-trigger-'+x);
+    if(d) d.style.display='none';
+    if(c) c.classList.remove('open');
+    if(t) t.classList.remove('open');
+  });
+  if(!isOpen) {
+    dd.style.display='block';
+    chev.classList.add('open');
+    trigger.classList.add('open');
+    const srch = document.getElementById('ms-srch-'+k);
+    if(srch){ srch.value=''; msFilter(srch,'ms-list-'+k); srch.focus(); }
+  }
+}
+
+function msToggleOpt(k, v, cb) {
+  if(cb.checked) msSel[k].add(v); else msSel[k].delete(v);
+  msRenderChips(k);
+}
+
+function msClear(k) {
+  msSel[k].clear();
+  document.querySelectorAll('#ms-list-'+k+' input').forEach(i=>i.checked=false);
+  msRenderChips(k);
+}
+
+function msRenderChips(k) {
+  const chips = document.getElementById('ms-chips-'+k);
+  const count = document.getElementById('ms-count-'+k);
+  if(!chips) return;
+  if(count) count.textContent = msSel[k].size + ' selecionado' + (msSel[k].size!==1?'s':'');
+  if(msSel[k].size === 0) {
+    chips.innerHTML = `<span class="ms-placeholder">${msPlaceholder[k]}</span>`;
+    return;
+  }
+  chips.innerHTML = [...msSel[k]].map(v => {
+    const short = v.length>16?v.slice(0,16)+'…':v;
+    const esc = v.replace(/'/g,"\'").replace(/"/g,'&quot;');
+    return `<span class="ms-chip">${short}<span class="ms-rm" onclick="msRemoveChip('${k}','${esc}',event)">×</span></span>`;
+  }).join('');
+}
+
+function msRemoveChip(k, v, e) {
+  e.stopPropagation();
+  msSel[k].delete(v);
+  document.querySelectorAll(`#ms-list-${k} .ms-opt`).forEach(el => {
+    if(el.querySelector('span').textContent === v) el.querySelector('input').checked = false;
+  });
+  msRenderChips(k);
+}
+
+function msFilter(inp, listId) {
+  const q = inp.value.toLowerCase();
+  document.querySelectorAll('#'+listId+' .ms-opt').forEach(el => {
+    el.style.display = el.querySelector('span').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('.ms-wrap')) {
+    MS_KEYS.forEach(k => {
+      const dd = document.getElementById('ms-dd-'+k);
+      if(dd) dd.style.display='none';
+      const chev = document.getElementById('ms-chev-'+k);
+      if(chev) chev.classList.remove('open');
+      const tr = document.getElementById('ms-trigger-'+k);
+      if(tr) tr.classList.remove('open');
+    });
+  }
+});
+
+window.msToggle = msToggle;
+window.msToggleOpt = msToggleOpt;
+window.msClear = msClear;
+window.msFilter = msFilter;
+window.msRemoveChip = msRemoveChip;
+
 document.addEventListener('DOMContentLoaded', function() {
 
 const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
@@ -329,9 +480,9 @@ async function init() {
       queryBQ(`SELECT DISTINCT queue_name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` WHERE queue_name IS NOT NULL ORDER BY queue_name`),
       queryBQ(`SELECT DISTINCT name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` WHERE name IS NOT NULL ORDER BY name`)
     ]);
-    populateSelect('f-equipe', origens.map(r=>r.v));
-    populateSelect('f-fila', filas.map(r=>r.v));
-    populateSelect('f-colaborador', names.map(r=>r.v));
+    msFill('equipe', origens.map(r=>r.v));
+    msFill('fila', filas.map(r=>r.v));
+    msFill('colab', names.map(r=>r.v));
   } catch(e) { console.warn('Filter load error', e); }
 
   document.getElementById('filters-bar').style.display = 'flex';
@@ -361,10 +512,17 @@ async function loadData() {
   const colab = document.getElementById('f-colaborador').value;
   const sla = parseInt(document.getElementById('f-sla').value) || 20;
 
+  const msEquipeVals = [...msSel.equipe];
+  const msFilaVals   = [...msSel.fila];
+  const msColabVals  = [...msSel.colab];
+  function inClause(field, vals) {
+    if(!vals.length) return '';
+    return ` AND ${field} IN (${vals.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
+  }
   let where = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(ds)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(de)}')`;
-  if (equipe) where += ` AND origem = '${equipe.replace(/'/g,"''")}'`;
-  if (fila)   where += ` AND queue_name = '${fila.replace(/'/g,"''")}'`;
-  if (colab)  where += ` AND name = '${colab.replace(/'/g,"''")}'`;
+  where += inClause('origem', msEquipeVals);
+  where += inClause('queue_name', msFilaVals);
+  where += inClause('name', msColabVals);
 
   try {
     const data = await queryBQ(`
@@ -391,10 +549,7 @@ document.getElementById('btn-filtrar').addEventListener('click', loadData);
 document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('f-date-start').value = daysAgo(30);
   document.getElementById('f-date-end').value = todayStr();
-  document.getElementById('f-equipe').value = '';
-  document.getElementById('f-fila').value = '';
-  document.getElementById('f-colaborador').value = '';
-  document.getElementById('f-sla').value = '20';
+  MS_KEYS.forEach(k => msClear(k));
   loadData();
 });
 
@@ -661,18 +816,18 @@ function buildDashboard(data, sla) {
   });
   const ds = document.getElementById('f-date-start').value;
   const de = document.getElementById('f-date-end').value;
-  const equipe = document.getElementById('f-equipe').value;
-  const fila   = document.getElementById('f-fila').value;
-  const colab  = document.getElementById('f-colaborador').value;
+  const equipe = [...msSel.equipe];
+  const fila   = [...msSel.fila];
+  const colab  = [...msSel.colab];
 
   // ── CSAT ──
   let csatByDate = {};
 
   async function loadCsat() {
     let whereCsat = `WHERE Data BETWEEN DATE('${ds}') AND DATE('${de}')`;
-    if (equipe) whereCsat += ` AND origem = '${equipe.replace(/'/g,"''")}'`;
-    if (fila)   whereCsat += ` AND queue_name = '${fila.replace(/'/g,"''")}'`;
-    if (colab)  whereCsat += ` AND name = '${colab.replace(/'/g,"''")}'`;
+    if (equipe.length) whereCsat += ` AND origem IN (${equipe.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
+    if (fila.length)   whereCsat += ` AND queue_name IN (${fila.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
+    if (colab.length)  whereCsat += ` AND name IN (${colab.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
 
     try {
       const rows = await queryBQ(`
@@ -1097,11 +1252,11 @@ function buildDashboard(data, sla) {
 
     const dsv = document.getElementById('f-date-start').value;
     const dev = document.getElementById('f-date-end').value;
-    const equipev = document.getElementById('f-equipe').value;
-    const filav = document.getElementById('f-fila').value;
-    const colabv = document.getElementById('f-colaborador').value;
+    const equipev = [...msSel.equipe];
+    const filav = [...msSel.fila];
+    const colabv = [...msSel.colab];
     let where3 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev)}')`;
-    if (equipev) where3 += ` AND origem = '${equipev.replace(/'/g,"''")}'`;
+    if (equipev.length) where3 += ` AND origem IN (${equipev.map(v=>`'${v.replace(/'/g,\"''\")}'`).join(',')})`;
     if (filav)   where3 += ` AND queue_name = '${filav.replace(/'/g,"''")}'`;
     if (colabv)  where3 += ` AND name = '${colabv.replace(/'/g,"''")}'`;
 
@@ -1170,13 +1325,13 @@ function buildDashboard(data, sla) {
   async function loadMainMatrix(filaFilter) {
     const dsv = document.getElementById('f-date-start').value;
     const dev = document.getElementById('f-date-end').value;
-    const equipev = document.getElementById('f-equipe').value;
-    const filav = document.getElementById('f-fila').value;
-    const colabv = document.getElementById('f-colaborador').value;
+    const equipev = [...msSel.equipe];
+    const filav = [...msSel.fila];
+    const colabv = [...msSel.colab];
     const slav = parseInt(document.getElementById('f-sla').value)||20;
 
     let where4 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev)}')`;
-    if (equipev) where4 += ` AND origem = '${equipev.replace(/'/g,"''")}'`;
+    if (equipev.length) where4 += ` AND origem IN (${equipev.map(v=>`'${v.replace(/'/g,\"''\")}'`).join(',')})`;
     if (filav)   where4 += ` AND queue_name = '${filav.replace(/'/g,"''")}'`;
     if (colabv)  where4 += ` AND name = '${colabv.replace(/'/g,"''")}'`;
     if (filaFilter) where4 += ` AND queue_name = '${filaFilter.replace(/'/g,"''")}'`;
