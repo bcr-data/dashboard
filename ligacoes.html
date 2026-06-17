@@ -819,7 +819,7 @@ function buildDashboard(data, sla) {
     data:{ labels:dates, datasets:[
       {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2},
       {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2},
-      {label:'%NS',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#64748b',backgroundColor:'transparent',tension:.3,pointRadius:2,pointHoverRadius:2,pointBackgroundColor:'#64748b',borderWidth:1.5,pointStyle:'line',yAxisID:'y2'},
+      {label:'%NS',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#64748b',backgroundColor:'transparent',tension:.3,pointRadius:3,pointBackgroundColor:'#64748b',borderWidth:1.5,yAxisID:'y2'},
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -836,7 +836,7 @@ function buildDashboard(data, sla) {
           color:(ctx)=>ctx.dataset.yAxisID==='y2'?'#71717a':'#71717a',
           clip:false
         },
-        legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
+        legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';i.pointStyleWidth=8;}return i;})}}},
         tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
       },
       scales:{
@@ -978,7 +978,7 @@ function buildDashboard(data, sla) {
       data:{ labels, datasets:[
         {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
         {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,pointHoverRadius:2,borderWidth:1.5,pointStyle:'line',yAxisID:'y2'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,yAxisID:'y2'},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
@@ -1475,7 +1475,7 @@ function buildDashboard(data, sla) {
       data:{ labels, datasets:[
         {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
         {label:'Respondidas', data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,pointHoverRadius:2,borderWidth:1.5,pointStyle:'line',yAxisID:'y2'},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,yAxisID:'y2'},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
@@ -1487,7 +1487,7 @@ function buildDashboard(data, sla) {
             align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
             font:{size:8}, color:'#71717a', clip:false
           },
-          legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
+          legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';i.pointStyleWidth=8;}return i;})}}},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
