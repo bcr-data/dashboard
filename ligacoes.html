@@ -872,12 +872,15 @@ function buildDashboard(data, sla) {
         SELECT
           FORMAT_DATE('%d-%m-%y', Data) AS Data,
           EXTRACT(HOUR FROM DATETIME(Data, TIME(Hora,0,0))) AS Hora,
+          origem,
+          queue_name,
+          name,
           SUM(Total_Encaminhadas_Pesquisa) AS encaminhadas,
           SUM(Total_Pesquisas) AS respondidas,
           SUM(Total_Satisfeito) AS satisfeito
         FROM \`bcrcx-wfm.BCRCX.csat\`
         ${whereCsat}
-        GROUP BY Data, Hora
+        GROUP BY Data, Hora, origem, queue_name, name
         ORDER BY Data
       `);
 
@@ -1361,7 +1364,7 @@ function buildDashboard(data, sla) {
         // csatRawRows has fields: origem, queue_name, name (from BQ query)
         const agg = {};
         csatRawRows.forEach(r => {
-          const key = (field==='origem' ? r.Data && r['origem'] : field==='queue_name' ? r['queue_name'] : r['name']) || r[field] || '—';
+          const key = r[field] || r[field.toLowerCase()] || '—';
           if (!agg[key]) agg[key] = {enc:0, resp:0, sat:0};
           agg[key].enc  += r.encaminhadas||0;
           agg[key].resp += r.respondidas||0;
@@ -1408,7 +1411,8 @@ function buildDashboard(data, sla) {
     const field = fieldMap[dim];
     const grouped = {};
     csatRawRows.forEach(r => {
-      const key = r[field] || '—';
+      // BQ may return field names as-is; try both cases
+      const key = r[field] || r[field.toLowerCase()] || r[field.toUpperCase()] || '—';
       if (!grouped[key]) grouped[key] = {enc:0, resp:0, sat:0};
       grouped[key].enc  += r.encaminhadas||0;
       grouped[key].resp += r.respondidas||0;
