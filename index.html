@@ -956,6 +956,8 @@ function renderKPIs(){
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
   const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
+  const faltas   = d.filter(r => r.exemption && (r.exemption.all_day||'').toLowerCase()==='sim').length;
+  const ausencias = d.filter(r => r.ausencia > 0 && !(r.exemption && (r.exemption.all_day||'').toLowerCase()==='sim')).length;
   const excluidos = new Set(['Pendente','Reprovada']);
   const aprovados=d.filter(r=>r.exemption && !excluidos.has((r.exemption.solicitation_status||'').trim()));
   const totAbonos=aprovados.length;
@@ -1010,7 +1012,7 @@ function renderKPIs(){
     mkHoraKpi('Total trabalhado', totT, pct.toFixed(1)+'% do previsto'),
     mkHoraKpi('Total ausências',  totA, 'horas faltantes'),
     mkKpi('ABS Global',      absG.toFixed(2)+'%', 'índice de absenteísmo'),
-    mkKpi('Reg. c/ falta',   regFalta, 'registros com ausência'),
+    mkKpi('Faltas', faltas, `${ausencias} ausências parciais`),
     mkKpi('Total Abonos',    totAbonos, 'registros abonados'),
     mkHoraKpi('Total Abonado', totAbonado, 'horas abonadas'),
     mkHoraKpiMinCount('Total Atraso', totAtrasMin, totRegAtraso, 'operacional'),
