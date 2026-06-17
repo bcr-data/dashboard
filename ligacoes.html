@@ -819,7 +819,7 @@ function buildDashboard(data, sla) {
     data:{ labels:dates, datasets:[
       {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
       {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-      {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#6366f1',backgroundColor:'transparent',tension:.3,pointRadius:4,pointBackgroundColor:'#6366f1',borderWidth:2.5,yAxisID:'y2'},
+      {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#94a3b8',backgroundColor:'transparent',tension:.3,pointRadius:2,pointBackgroundColor:'#94a3b8',borderWidth:1.5,yAxisID:'y2'},
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
