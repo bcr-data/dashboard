@@ -568,8 +568,9 @@ function buildDashboard(data, sla) {
         <div class="matrix-title">Matriz Fila → Operador</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <div class="dim-group" id="matrix-dim-group">
+            <button class="time-toggle" id="mx-dim-equipe" onclick="setMatrixDim('equipe')">Equipe</button>
             <button class="time-toggle active" id="mx-dim-fila" onclick="setMatrixDim('fila')">Fila</button>
-            <button class="time-toggle" id="mx-dim-colab" onclick="setMatrixDim('colaborador')">Colaborador</button>
+            <button class="time-toggle" id="mx-dim-colaborador" onclick="setMatrixDim('colaborador')">Colaborador</button>
             <button class="time-toggle" id="mx-dim-data" onclick="setMatrixDim('data')">Data</button>
             <button class="time-toggle" id="mx-dim-hora" onclick="setMatrixDim('hora')">Hora</button>
           </div>
@@ -1029,8 +1030,24 @@ function buildDashboard(data, sla) {
   }
 
   // tme listeners added after innerHTML render
-  // ── MAIN MATRIX (Fila → Operador) ──
+  // ── MAIN MATRIX ──
   let matrixDrillFila = null;
+  let matrixDim = 'fila';
+
+  window.setMatrixDim = function(dim) {
+    matrixDim = dim;
+    matrixDrillFila = null;
+    ['equipe','fila','colaborador','data','hora'].forEach(d => {
+      const btn = document.getElementById('mx-dim-'+d);
+      if (!btn) return;
+      const active = d === dim;
+      btn.style.background = active ? 'var(--surface)' : 'transparent';
+      btn.style.color = active ? 'var(--text)' : 'var(--text-2)';
+      btn.style.boxShadow = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
+      if (active) btn.classList.add('active'); else btn.classList.remove('active');
+    });
+    loadMainMatrix(null);
+  };
 
   async function loadMainMatrix(filaFilter) {
     const dsv = document.getElementById('f-date-start').value;
@@ -1046,8 +1063,15 @@ function buildDashboard(data, sla) {
     if (colabv)  where4 += ` AND name = '${colabv.replace(/'/g,"''")}'`;
     if (filaFilter) where4 += ` AND queue_name = '${filaFilter.replace(/'/g,"''")}'`;
 
-    const groupField = filaFilter ? 'name' : 'queue_name';
-    const label = filaFilter ? 'Operador' : 'Fila';
+    let groupField, labelCol;
+    if (filaFilter) {
+      groupField = 'name'; labelCol = 'Operador';
+    } else {
+      const dimMap = { equipe:'origem', fila:'queue_name', colaborador:'name', data:'Data', hora:'Hora' };
+      const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', hora:'Hora' };
+      groupField = dimMap[matrixDim] || 'queue_name';
+      labelCol = labelMap[matrixDim] || 'Fila';
+    }
 
     document.getElementById('main-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div></div>';
     document.getElementById('btn-matrix-back').style.display = filaFilter ? 'block' : 'none';
@@ -1073,17 +1097,20 @@ function buildDashboard(data, sla) {
 
       const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total'];
       const colHeaders = cols.map(c=>'<th>'+c+'</th>').join('');
-      let html = '<table class="matrix-table"><thead><tr><th>'+label+'</th>'+colHeaders+'</tr></thead><tbody>';
+      let html = '<table class="matrix-table"><thead><tr><th>'+labelCol+'</th>'+colHeaders+'</tr></thead><tbody>';
 
       rows.forEach(r => {
-        const lbl = filaFilter ? (r.label||'—') : (r.label||'').replace(/^[^-]+-/,'')||r.label||'—';
+        const canDrill = !filaFilter && matrixDim === 'fila';
+        const lbl = (matrixDim === 'fila' && !filaFilter)
+          ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—'
+          : (r.label||'—');
         const tot   = r.total||0;
         const atend = r.atend||0;
         const aband = r.aband||0;
         const nsPct = tot > 0 ? (r.atend_sla||0)/tot*100 : 0;
         const nsColor = nsPct>=80?'ns-good':nsPct>=60?'ns-warn':'ns-bad';
 
-        html += `<tr class="${filaFilter?'':'matrix-row-fila'}" ${filaFilter?'':` style="cursor:pointer" onclick="window.matrixDrill('${(r.label||'').replace(/'/g,"\'")}')" title="Clique para ver operadores"`}>`;
+        html += `<tr class="${filaFilter?'':'matrix-row-fila'}" ${canDrill ? `style="cursor:pointer" onclick="window.matrixDrill('${(r.label||'').replace(/'/g,"\'")}')" title="Clique para ver operadores"` : ''}>`;
         html += `<td>${lbl}</td>`;
         html += `<td>${fmtN(tot)}</td>`;
         html += `<td>${fmtN(atend)}</td>`;
@@ -1109,7 +1136,6 @@ function buildDashboard(data, sla) {
   };
 
   // matrix-back listener added after innerHTML render
-
 
 }); // DOMContentLoaded
 </script>
