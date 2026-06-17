@@ -976,8 +976,8 @@ function buildDashboard(data, sla) {
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
-        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2},
+        {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2},
         {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
       ]},
       options:{
@@ -1473,7 +1473,7 @@ function buildDashboard(data, sla) {
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
-        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2},
         {label:'Respondidas', data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
         {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
       ]},
