@@ -700,6 +700,7 @@ function buildDashboard(data, sla) {
             <div class="card-sub" id="bar-drill-label">Por fila</div>
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
+            <button id="btn-drill-equipe" class="time-toggle" onclick="loadDrillBar('equipe')">Equipe</button>
             <button id="btn-drill-fila" class="time-toggle" style="background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)">Fila</button>
             <button id="btn-drill-colab" class="time-toggle">Colaborador</button>
           </div>
@@ -792,6 +793,7 @@ function buildDashboard(data, sla) {
   `;
 
   // Bind dynamic buttons after innerHTML render
+  document.getElementById('btn-drill-equipe').addEventListener('click', () => loadDrillBar('equipe'));
   document.getElementById('btn-drill-fila').addEventListener('click', () => loadDrillBar('fila'));
   document.getElementById('btn-drill-colab').addEventListener('click', () => loadDrillBar('colaborador'));
   document.getElementById('btn-tme-fila').addEventListener('click', () => loadTmeMatrix('fila'));
@@ -999,14 +1001,19 @@ function buildDashboard(data, sla) {
 
   async function loadDrillBar(mode) {
     drillMode = mode;
-    const groupField = mode === 'fila' ? 'queue_name' : 'name';
-    document.getElementById('bar-drill-label').textContent = mode === 'fila' ? 'Por fila' : 'Por colaborador';
-    document.getElementById('btn-drill-fila').style.background = mode==='fila' ? 'var(--surface)' : 'transparent';
-    document.getElementById('btn-drill-fila').style.color = mode==='fila' ? 'var(--text)' : 'var(--text-2)';
-    document.getElementById('btn-drill-fila').style.boxShadow = mode==='fila' ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
-    document.getElementById('btn-drill-colab').style.background = mode==='colaborador' ? 'var(--surface)' : 'transparent';
-    document.getElementById('btn-drill-colab').style.color = mode==='colaborador' ? 'var(--text)' : 'var(--text-2)';
-    document.getElementById('btn-drill-colab').style.boxShadow = mode==='colaborador' ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
+    const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
+    const labelMap = {equipe:'Por equipe', fila:'Por fila', colaborador:'Por colaborador'};
+    const groupField = fieldMap[mode] || 'queue_name';
+    document.getElementById('bar-drill-label').textContent = labelMap[mode] || 'Por fila';
+    ['equipe','fila','colab'].forEach(k => {
+      const id = 'btn-drill-'+(k==='colab'?'colab':k);
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const active = (k==='colab'?'colaborador':k) === mode;
+      btn.style.background  = active ? 'var(--surface)' : 'transparent';
+      btn.style.color       = active ? 'var(--text)'    : 'var(--text-2)';
+      btn.style.boxShadow   = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
+    });
 
     let where2 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(ds)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(de)}')`;
     where2 += sqlIn('origem', equipe);
