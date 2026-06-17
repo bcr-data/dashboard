@@ -366,6 +366,30 @@ function sqlIn(field, vals) {
 
 document.addEventListener('DOMContentLoaded', function() {
 
+  // ── GLOBAL LEGEND DEFAULTS ──
+  // Single source of truth for all chart legends
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+  Chart.defaults.plugins.legend.labels.boxWidth = 5;
+  Chart.defaults.plugins.legend.labels.boxHeight = 5;
+  Chart.defaults.plugins.legend.labels.font = { size: 10 };
+  Chart.defaults.plugins.legend.labels.color = '#71717a';
+  Chart.defaults.plugins.legend.labels.padding = 10;
+
+  // Custom generateLabels: dash (—) for line series, circle for everything else
+  const _origGenerateLabels = Chart.defaults.plugins.legend.labels.generateLabels;
+  Chart.defaults.plugins.legend.labels.generateLabels = function(chart) {
+    return _origGenerateLabels(chart).map(i => {
+      if (i.text === '%NS' || i.text === '%CSAT') {
+        i.pointStyle = 'line'; i.lineWidth = 1.5;
+      } else {
+        i.pointStyle = 'circle';
+      }
+      return i;
+    });
+  };
+
+
 const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
 const WORKER = 'https://damp-pond-8b06.55pbxanalitycs.workers.dev';
@@ -810,7 +834,7 @@ function buildDashboard(data, sla) {
   document.getElementById('btn-tme-colab').addEventListener('click', () => loadTmeMatrix('colaborador'));
   document.getElementById('btn-matrix-back').addEventListener('click', () => { matrixDrillFila = null; loadMainMatrix(null); });
 
-  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
+  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom'}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
   // ── VOLUME + NS% (mixed bar + line) ──
   destroyChart('vol');
   charts.vol = new Chart(document.getElementById('chart-volume'), {
@@ -835,7 +859,7 @@ function buildDashboard(data, sla) {
           color:(ctx)=>ctx.dataset.yAxisID==='y2'?'#71717a':'#71717a',
           clip:false
         },
-        legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';}return i;})}}},
+        legend:{position:'bottom'},
         tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
       },
       scales:{
@@ -994,7 +1018,7 @@ function buildDashboard(data, sla) {
             color:'#71717a',
             clip:false
           },
-          legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
+          legend:{position:'bottom'},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='%CSAT'?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
@@ -1076,7 +1100,7 @@ function buildDashboard(data, sla) {
           barPercentage:0.9,
           categoryPercentage:0.7,
           plugins:{
-            legend:{position:'top',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a'}},
+            legend:{position:'top'},
             tooltip:{callbacks:{afterBody:items=>[`Total: ${fmtN(totals[items[0].dataIndex])}`]}},
             datalabels:{
               anchor:'end',
@@ -1486,7 +1510,7 @@ function buildDashboard(data, sla) {
             align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
             font:{size:8}, color:'#71717a', clip:false
           },
-          legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,usePointStyle:true,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(i=>{if(i.text==='%NS'||i.text==='%CSAT'){i.pointStyle='line';i.lineWidth=2;}else{i.pointStyle='circle';}return i;})}}},
+          legend:{position:'bottom'},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
