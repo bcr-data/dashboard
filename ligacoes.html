@@ -821,7 +821,7 @@ function buildDashboard(data, sla) {
             <button class="time-toggle" id="hm-vol-dim-colaborador"        onclick="setHeatmapDim('vol','colaborador')">Colaborador</button>
           </div>
         </div>
-        <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-vol"></div></div>
+        <div class="chart-body-scroll" style="overflow-x:auto;overflow-y:auto;max-height:480px"><div class="heatmap-wrap" id="heatmap-vol"></div></div>
       </div>
       <div class="chart-card">
         <div class="card-header">
@@ -1213,7 +1213,7 @@ function buildDashboard(data, sla) {
     byHour[k].tot += r.Total_Ligacoes||0;
   });
 
-  showDates = allDates.slice(-14);
+  showDates = [...allDates].sort((a,b)=>b.localeCompare(a));
   maxVol = Math.max(1,...showDates.flatMap(d=>allHours.map(h=>(byHour[`${d}_${h}`]||{}).lig||0)));
 
   // heatColor defined in outer scope
@@ -1473,7 +1473,7 @@ if (el) {
 
     if (dim === 'data') {
       const rowDates = type==='csat'
-        ? [...new Set(csatRawRows.map(r=>r.Data))].sort((a,b)=>a.localeCompare(b))
+        ? [...new Set(csatRawRows.map(r=>r.Data))].sort((a,b)=>b.localeCompare(a))
         : showDates;
       renderHtml(rowDates.map(d => ({
         label: d,
