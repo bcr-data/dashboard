@@ -298,12 +298,35 @@ function msToggle(k) {
 function msToggleOpt(k, v, cb) {
   if(cb.checked) msSel[k].add(v); else msSel[k].delete(v);
   msRenderChips(k);
+  if(k === 'equipe') reloadDependentFilters();
+}
+
+async function reloadDependentFilters() {
+  const equipes = [...msSel.equipe];
+  const whereEq = equipes.length
+    ? `WHERE origem IN (${equipes.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')}) AND`
+    : 'WHERE';
+
+  try {
+    const [filas, names] = await Promise.all([
+      queryBQ(`SELECT DISTINCT queue_name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${whereEq} queue_name IS NOT NULL ORDER BY queue_name`),
+      queryBQ(`SELECT DISTINCT name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${whereEq} name IS NOT NULL ORDER BY name`)
+    ]);
+    // Remove selected values that no longer apply
+    const filaVals = new Set(filas.map(r=>r.v));
+    const nameVals = new Set(names.map(r=>r.v));
+    [...msSel.fila].forEach(v => { if(!filaVals.has(v)) msSel.fila.delete(v); });
+    [...msSel.colab].forEach(v => { if(!nameVals.has(v)) msSel.colab.delete(v); });
+    msFill('fila', filas.map(r=>r.v));
+    msFill('colab', names.map(r=>r.v));
+  } catch(e) { console.warn('Cascade filter error', e); }
 }
 
 function msClear(k) {
   msSel[k].clear();
   document.querySelectorAll('#ms-list-'+k+' input').forEach(i=>i.checked=false);
   msRenderChips(k);
+  if(k === 'equipe') reloadDependentFilters();
 }
 
 function msRenderChips(k) {
