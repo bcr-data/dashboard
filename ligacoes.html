@@ -719,7 +719,8 @@ function buildDashboard(data, sla) {
             <button class="time-toggle" id="hm-vol-dim-colaborador"        onclick="setHeatmapDim('vol','colaborador')">Colaborador</button>
           </div>
         </div>
-        <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-vol"></div></div>
+        <div id="hm-vol-heatmap" class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-vol"></div></div>
+        <div id="hm-vol-grouped" class="chart-body-scroll" style="display:none"></div>
       </div>
       <div class="chart-card">
         <div class="card-header">
@@ -733,7 +734,8 @@ function buildDashboard(data, sla) {
             <button class="time-toggle" id="hm-csat-dim-colaborador"       onclick="setHeatmapDim('csat','colaborador')">Colaborador</button>
           </div>
         </div>
-        <div class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-csat"></div></div>
+        <div id="hm-csat-heatmap" class="chart-body-scroll" style="overflow-x:auto"><div class="heatmap-wrap" id="heatmap-csat"></div></div>
+        <div id="hm-csat-grouped" class="chart-body-scroll" style="display:none"></div>
       </div>
     </div>
 
@@ -1212,7 +1214,7 @@ function buildDashboard(data, sla) {
 
     if (chart === 'vol' && charts.vol) {
       if (['equipe','fila','colaborador'].includes(dim)) {
-        buildHeatmap('heatmap-vol','vol');
+        setHeatmapDim('vol', dim);
         return;
       }
       updateChartData(charts.vol, labels, [
@@ -1255,6 +1257,12 @@ function buildDashboard(data, sla) {
       btn.style.boxShadow = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
       if (active) btn.classList.add('active'); else btn.classList.remove('active');
     });
+    // Show/hide heatmap vs grouped table
+    const isGrouped = ['equipe','fila','colaborador'].includes(dim);
+    const hmWrap  = document.getElementById('hm-'+chart+'-heatmap');
+    const grouped = document.getElementById('hm-'+chart+'-grouped');
+    if (hmWrap)  hmWrap.style.display  = isGrouped ? 'none' : '';
+    if (grouped) grouped.style.display = isGrouped ? ''     : 'none';
     buildHeatmap('heatmap-'+chart, chart);
   };
 
@@ -1340,47 +1348,53 @@ function buildDashboard(data, sla) {
         });
       });
     } else if (['equipe','fila','colaborador'].includes(dim)) {
-      // Group by BQ field — use rawData for vol, csatRawRows for csat
-      const fieldMap = {equipe:'origem', fila:'queue_name', colaborador:'name'};
-      const field = fieldMap[dim];
+      const fieldMap  = {equipe:'origem', fila:'queue_name', colaborador:'name'};
+      const field     = fieldMap[dim];
+      const labelTxt  = dim.charAt(0).toUpperCase()+dim.slice(1);
+      const groupedId = id.replace('heatmap-','hm-').replace(/-vol$/, '-vol-grouped').replace(/-csat$/, '-csat-grouped');
+      const hmWrap    = id === 'heatmap-vol' ? document.getElementById('hm-vol-heatmap') : document.getElementById('hm-csat-heatmap');
+      const grouped   = document.getElementById(id === 'heatmap-vol' ? 'hm-vol-grouped' : 'hm-csat-grouped');
+      if (hmWrap) hmWrap.style.display = 'none';
+      if (grouped) { grouped.style.display = ''; grouped.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>'; }
+
       if (type === 'csat') {
-        const grouped = {};
+        // csatRawRows has fields: origem, queue_name, name (from BQ query)
+        const agg = {};
         csatRawRows.forEach(r => {
-          const key = r[field] || '—';
-          if (!grouped[key]) grouped[key] = {resp:0, sat:0};
-          grouped[key].resp += r.respondidas||0;
-          grouped[key].sat  += r.satisfeito||0;
+          const key = (field==='origem' ? r.Data && r['origem'] : field==='queue_name' ? r['queue_name'] : r['name']) || r[field] || '—';
+          if (!agg[key]) agg[key] = {enc:0, resp:0, sat:0};
+          agg[key].enc  += r.encaminhadas||0;
+          agg[key].resp += r.respondidas||0;
+          agg[key].sat  += r.satisfeito||0;
         });
-        const rows2 = Object.entries(grouped).sort((a,b)=>b[1].resp-a[1].resp).slice(0,30);
-        let html2 = '<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">'+dim.charAt(0).toUpperCase()+dim.slice(1)+'</th><th>Respondidas</th><th>CSAT%</th></tr></thead><tbody>';
-        rows2.forEach(([lbl,v])=>{
+        const rows2 = Object.entries(agg).sort((a,b)=>b[1].resp-a[1].resp).slice(0,50);
+        let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Encaminhadas</th><th>Respondidas</th><th>CSAT%</th></tr></thead><tbody>`;
+        rows2.forEach(([lbl,v]) => {
           const pct = v.resp>0?(v.sat/v.resp*100):0;
-          html2+=`<tr><td>${lbl}</td><td>${fmtN(v.resp)}</td><td>${pct.toFixed(1).replace('.',',')}%</td></tr>`;
+          html2 += `<tr><td>${lbl}</td><td>${fmtN(v.enc)}</td><td>${fmtN(v.resp)}</td><td>${pct.toFixed(1).replace('.',',')}%</td></tr>`;
         });
-        html2+='</tbody></table>';
-        const el2=document.getElementById(id); if(el2) el2.innerHTML=html2; return;
+        html2 += '</tbody></table>';
+        if (grouped) grouped.innerHTML = html2;
       } else {
-        // vol grouped — needs BQ query, show loading then fetch async
-        const el2 = document.getElementById(id);
-        if (el2) el2.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
+        // vol grouped — BQ query
         const dsv2 = document.getElementById('f-date-start').value;
         const dev2 = document.getElementById('f-date-end').value;
         let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
         wh += sqlIn('origem',     [...msSel.equipe]);
         wh += sqlIn('queue_name', [...msSel.fila]);
         wh += sqlIn('name',       [...msSel.colab]);
-        queryBQ(`SELECT ${field} as label, SUM(Total_Ligacoes) as lig, SUM(Atendidas) as atend, SUM(Abandonadas) as aband FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field} ORDER BY SUM(Total_Ligacoes) DESC LIMIT 100`).then(rows2 => {
-          const labelTxt = dim.charAt(0).toUpperCase()+dim.slice(1);
-          let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>`;
-          rows2.forEach(r => {
-            const lbl = dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—');
-            html2+=`<tr><td>${lbl}</td><td>${fmtN(r.lig)}</td><td>${fmtN(r.atend)}</td><td>${fmtN(r.aband)}</td></tr>`;
-          });
-          html2+='</tbody></table>';
-          if (el2) el2.innerHTML=html2;
-        }).catch(e => { if(el2) el2.innerHTML=`<div class="error-box">⚠️ ${e.message}</div>`; });
-        return;
+        queryBQ(`SELECT ${field} as label, SUM(Total_Ligacoes) as lig, SUM(Atendidas) as atend, SUM(Abandonadas) as aband FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field} ORDER BY SUM(Total_Ligacoes) DESC LIMIT 100`)
+          .then(rows2 => {
+            let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>`;
+            rows2.forEach(r => {
+              const lbl = dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—');
+              html2 += `<tr><td>${lbl}</td><td>${fmtN(r.lig)}</td><td>${fmtN(r.atend)}</td><td>${fmtN(r.aband)}</td></tr>`;
+            });
+            html2 += '</tbody></table>';
+            if (grouped) grouped.innerHTML = html2;
+          }).catch(e => { if (grouped) grouped.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
       }
+      return;
     }
 
     html += '</tbody></table>';
