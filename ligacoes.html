@@ -1211,6 +1211,10 @@ function buildDashboard(data, sla) {
     }
 
     if (chart === 'vol' && charts.vol) {
+      if (['equipe','fila','colaborador'].includes(dim)) {
+        buildHeatmap('heatmap-vol','vol');
+        return;
+      }
       updateChartData(charts.vol, labels, [
         labels.map(l=>agg[l]?.atend||0),
         labels.map(l=>agg[l]?.aband||0),
@@ -1356,31 +1360,26 @@ function buildDashboard(data, sla) {
         html2+='</tbody></table>';
         const el2=document.getElementById(id); if(el2) el2.innerHTML=html2; return;
       } else {
-        const grouped = {};
-        rawData.forEach(r => {
-          const key = r[field==='origem'?'origem':field==='queue_name'?'queue_name':'name'] || '—';
-          if (!grouped[key]) grouped[key] = {lig:0,atend:0,aband:0};
-          grouped[key].lig   += r.Total_Ligacoes||0;
-          grouped[key].atend += r.Atendidas||0;
-          grouped[key].aband += r.Abandonadas||0;
-        });
-        // rawData uses different field names — map them
-        const grouped2 = {};
-        rawData.forEach(r => {
-          const fval = field==='origem' ? r.origem : field==='queue_name' ? r.queue_name : r.name;
-          const key = (fval||'—');
-          if (!grouped2[key]) grouped2[key] = {lig:0,atend:0,aband:0};
-          grouped2[key].lig   += r.Total_Ligacoes||0;
-          grouped2[key].atend += r.Atendidas||0;
-          grouped2[key].aband += r.Abandonadas||0;
-        });
-        const rows2 = Object.entries(grouped2).sort((a,b)=>b[1].lig-a[1].lig).slice(0,30);
-        let html2 = '<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">'+dim.charAt(0).toUpperCase()+dim.slice(1)+'</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>';
-        rows2.forEach(([lbl,v])=>{
-          html2+=`<tr><td>${lbl}</td><td>${fmtN(v.lig)}</td><td>${fmtN(v.atend)}</td><td>${fmtN(v.aband)}</td></tr>`;
-        });
-        html2+='</tbody></table>';
-        const el2=document.getElementById(id); if(el2) el2.innerHTML=html2; return;
+        // vol grouped — needs BQ query, show loading then fetch async
+        const el2 = document.getElementById(id);
+        if (el2) el2.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
+        const dsv2 = document.getElementById('f-date-start').value;
+        const dev2 = document.getElementById('f-date-end').value;
+        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
+        wh += sqlIn('origem',     [...msSel.equipe]);
+        wh += sqlIn('queue_name', [...msSel.fila]);
+        wh += sqlIn('name',       [...msSel.colab]);
+        queryBQ(`SELECT ${field} as label, SUM(Total_Ligacoes) as lig, SUM(Atendidas) as atend, SUM(Abandonadas) as aband FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field} ORDER BY SUM(Total_Ligacoes) DESC LIMIT 100`).then(rows2 => {
+          const labelTxt = dim.charAt(0).toUpperCase()+dim.slice(1);
+          let html2 = `<table class="matrix-table" style="min-width:300px"><thead><tr><th style="text-align:left">${labelTxt}</th><th>Total</th><th>Atendidas</th><th>Abandonadas</th></tr></thead><tbody>`;
+          rows2.forEach(r => {
+            const lbl = dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—');
+            html2+=`<tr><td>${lbl}</td><td>${fmtN(r.lig)}</td><td>${fmtN(r.atend)}</td><td>${fmtN(r.aband)}</td></tr>`;
+          });
+          html2+='</tbody></table>';
+          if (el2) el2.innerHTML=html2;
+        }).catch(e => { if(el2) el2.innerHTML=`<div class="error-box">⚠️ ${e.message}</div>`; });
+        return;
       }
     }
 
@@ -1444,7 +1443,7 @@ function buildDashboard(data, sla) {
     ['equipe','fila','colab'].forEach(k => {
       const btn = document.getElementById('btn-csat-mx-'+k);
       if (!btn) return;
-      const active = k === mode;
+      const active = (k==='colab'?'colab':k) === mode;
       btn.style.background = active ? 'var(--surface)' : 'transparent';
       btn.style.color = active ? 'var(--text)' : 'var(--text-2)';
       btn.style.boxShadow = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
