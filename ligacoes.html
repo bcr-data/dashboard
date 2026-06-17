@@ -810,15 +810,15 @@ function buildDashboard(data, sla) {
   document.getElementById('btn-tme-colab').addEventListener('click', () => loadTmeMatrix('colaborador'));
   document.getElementById('btn-matrix-back').addEventListener('click', () => { matrixDrillFila = null; loadMainMatrix(null); });
 
-  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item=>{item.pointStyle='circle';item.width=6;item.height=6;return item;})}}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
+  const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
 
   // ── VOLUME + NS% (mixed bar + line) ──
   destroyChart('vol');
   charts.vol = new Chart(document.getElementById('chart-volume'), {
     type:'bar',
     data:{ labels:dates, datasets:[
-      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
+      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2},
+      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2},
       {label:'NS%',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#64748b',backgroundColor:'transparent',tension:.3,pointRadius:2,pointHoverRadius:2,pointBackgroundColor:'#64748b',borderWidth:1.5,pointStyle:'circle',yAxisID:'y2'},
     ]},
     options:{
@@ -836,7 +836,7 @@ function buildDashboard(data, sla) {
           color:(ctx)=>ctx.dataset.yAxisID==='y2'?'#71717a':'#71717a',
           clip:false
         },
-        legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item=>{item.pointStyle='circle';item.width=6;item.height=6;return item;})}}},
+        legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
         tooltip:{callbacks:{afterBody:items=>'Total: '+fmtN(byDate[dates[items[0].dataIndex]]?.lig||0)}}
       },
       scales:{
@@ -976,8 +976,8 @@ function buildDashboard(data, sla) {
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
-        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2},
-        {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2},
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
+        {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
         {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,pointHoverRadius:2,borderWidth:1.5,pointStyle:'circle',yAxisID:'y2'},
       ]},
       options:{
@@ -995,7 +995,7 @@ function buildDashboard(data, sla) {
             color:'#71717a',
             clip:false
           },
-          legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item=>{item.pointStyle='circle';item.width=6;item.height=6;return item;})}}},
+          legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='%CSAT'?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
@@ -1077,7 +1077,7 @@ function buildDashboard(data, sla) {
           barPercentage:0.9,
           categoryPercentage:0.7,
           plugins:{
-            legend:{position:'top',labels:{font:{size:11},color:'#71717a',generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item=>{item.pointStyle='circle';item.width=6;item.height=6;return item;})}}},
+            legend:{position:'top',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a'}},
             tooltip:{callbacks:{afterBody:items=>[`Total: ${fmtN(totals[items[0].dataIndex])}`]}},
             datalabels:{
               anchor:'end',
@@ -1473,7 +1473,7 @@ function buildDashboard(data, sla) {
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
-        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2},
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
         {label:'Respondidas', data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
         {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,pointHoverRadius:2,borderWidth:1.5,pointStyle:'circle',yAxisID:'y2'},
       ]},
@@ -1487,7 +1487,7 @@ function buildDashboard(data, sla) {
             align:(ctx)=>ctx.dataset.yAxisID==='y2'?'top':'end',
             font:{size:8}, color:'#71717a', clip:false
           },
-          legend:{position:'bottom',labels:{font:{size:11},color:'#71717a',padding:12,generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item=>{item.pointStyle='circle';item.width=6;item.height=6;return item;})}}},
+          legend:{position:'bottom',labels:{boxWidth:6,boxHeight:6,pointStyle:'circle',usePointStyle:true,font:{size:11},color:'#71717a',padding:12}},
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label===('%CSAT')?ctx.dataset.label+': '+ctx.raw+'%':ctx.dataset.label+': '+fmtN(ctx.raw)}}
         },
         scales:{
