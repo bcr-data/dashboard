@@ -1662,7 +1662,7 @@ if (el) {
 
       let html = `<table class="matrix-table"><thead><tr>
         <th style="text-align:left">${labelCol}</th>
-        <th>Encaminhadas</th><th>Respondidas</th><th>Aderência</th>
+        <th>Encaminhadas</th><th>Respondidas</th><th>Participação</th>
         <th>Satisfeitos</th><th>%</th>
         <th>Neutros</th><th>%</th>
         <th>Ruins</th><th>%</th>
@@ -1873,7 +1873,7 @@ if (el) {
         LIMIT 100
       `);
 
-      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Aderência','CSAT%'];
+      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%'];
       const colHeaders = cols.map(c=>'<th>'+c+'</th>').join('');
       let html = `<div style="display:flex;justify-content:flex-end;padding:4px 8px"><button onclick="window.exportMatrixCSV()" class="btn-reset" style="padding:4px 10px;font-size:11px">⬇ Exportar CSV</button></div>`;
       html += '<table class="matrix-table"><thead><tr><th>'+labelCol+'</th>'+colHeaders+'</tr></thead><tbody>';
@@ -1919,7 +1919,7 @@ if (el) {
       window._matrixRows = rows;
       window._matrixLabelCol = labelCol;
       window.exportMatrixCSV = function() {
-        const header = [window._matrixLabelCol,'Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Aderência','CSAT%'];
+        const header = [window._matrixLabelCol,'Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%'];
         const lines = [header.join(';')];
         (window._matrixRows||[]).forEach(r => {
           const tot   = r.total||0;
