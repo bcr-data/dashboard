@@ -705,11 +705,11 @@ function buildDashboard(data, sla) {
       const kpiVal = document.getElementById('kpi-csat-val');
       const kpiSub = document.getElementById('kpi-csat-sub');
       if (kpiVal) kpiVal.textContent = csatPct.toFixed(1).replace('.',',')+'%';
-      if (kpiSub) kpiSub.textContent = fmtN(totResp)+' pesquisas respondidas';
+      if (kpiSub) kpiSub.textContent = fmtN(totResp)+' pesq. respondidas';
       const aderVal = document.getElementById('kpi-aderencia-val');
       const aderSub = document.getElementById('kpi-aderencia-sub');
       if (aderVal) aderVal.textContent = aderPct.toFixed(1).replace('.',',')+'%';
-      if (aderSub) aderSub.textContent = fmtN(totEnc)+' pesquisas encaminhadas';
+      if (aderSub) aderSub.textContent = fmtN(totEnc)+' pesq. encaminhadas';
 
       renderCsatChart(dates);
     } catch(e) {
