@@ -488,6 +488,13 @@ function parseDate(d) {
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
 function isoToBq(iso) { const [y,m,d] = iso.split('-'); return `${d}-${m}-${y.slice(2)}`; }
+
+const DOW_EN_PT = {
+  'Sunday':'Domingo','Monday':'Segunda','Tuesday':'Terça',
+  'Wednesday':'Quarta','Thursday':'Quinta','Friday':'Sexta','Saturday':'Sábado'
+};
+const DOW_PT_ORDER = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+function translateDow(label) { return DOW_EN_PT[label] || label; }
 function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
 
 // ── AUTH ──
@@ -1148,7 +1155,12 @@ function buildDashboard(data, sla) {
         : [/agentes indispon/i, /rejeitaram/i, /^\d+$/, /power.?bi/i, /^\d{8,}/];
       const filtered = drillData.filter(r => !noisePatterns.some(p => p.test(r.label||'')));
 
-      const labels    = filtered.map(r=> mode==='fila' ? (r.label||'').replace(/^[^-]+-/,'') || '(vazio)' : (r.label||'(vazio)'));
+      // Ordenar por dia da semana quando modo=dow
+      if (mode === 'dow') {
+        filtered.sort((a,b) => DOW_PT_ORDER.indexOf(translateDow(a.label)) - DOW_PT_ORDER.indexOf(translateDow(b.label)));
+      }
+
+      const labels    = filtered.map(r=> mode==='fila' ? (r.label||'').replace(/^[^-]+-/,'') || '(vazio)' : translateDow(r.label||'(vazio)'));
       const atendVals = filtered.map(r=>r.atend||0);
       const abandVals = filtered.map(r=>r.aband||0);
       const totals    = filtered.map(r=>r.total||0);
@@ -1375,7 +1387,7 @@ function buildDashboard(data, sla) {
           ORDER BY SUM(Total_Ligacoes) DESC
           LIMIT 30
         `).then(rows2 => {
-          const lbls  = rows2.map(r => dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : (r.label||'—'));
+          const lbls  = rows2.map(r => dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : translateDow(r.label||'—'));
           const tmaVs = rows2.map(r => +(r.tma||0).toFixed(1));
           const tmeVs = rows2.map(r => +(r.tme||0).toFixed(1));
           updateChartData(charts.tmatme, lbls, [tmaVs, tmeVs]);
@@ -1681,7 +1693,7 @@ if (el) {
         const pNeu = resp>0 ? (neu/resp*100)  : 0;
         const pRui = resp>0 ? (ruim/resp*100) : 0;
         html += `<tr>
-          <td>${r.label||'—'}</td>
+          <td>${translateDow(r.label||'—')}</td>
           <td>${fmtN(enc)}</td>
           <td>${fmtN(resp)}</td>
           <td>${ader.toFixed(1).replace('.',',')}%</td>
@@ -1763,7 +1775,7 @@ if (el) {
       const headerCols = cols.map(c=>'<th>'+c+'</th>').join('');
       let html = `<table class="matrix-table"><thead><tr><th>${groupLabel}</th>${headerCols}<th>Total</th></tr></thead><tbody>`;
       rows.forEach(r => {
-        const lbl = mode==='fila' ? (r.label||'').replace(/^[^-]+-/,'') || r.label : (r.label||'—');
+        const lbl = mode==='fila' ? (r.label||'').replace(/^[^-]+-/,'') || r.label : translateDow(r.label||'—');
         const tot = r.total||0;
         html += '<tr>';
         html += `<td style="min-width:160px">${lbl}</td>`;
@@ -1897,7 +1909,7 @@ if (el) {
         const canDrill = !filaFilter && matrixDim === 'fila';
         const lbl = (matrixDim === 'fila' && !filaFilter)
           ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—'
-          : (r.label||'—');        const tot   = r.total||0;
+          : translateDow(r.label||'—');        const tot   = r.total||0;
         const atend = r.atend||0;
         const aband = r.aband||0;
         const nsPct = tot > 0 ? (r.atend_sla||0)/tot*100 : 0;
