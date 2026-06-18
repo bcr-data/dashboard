@@ -1822,7 +1822,7 @@ if (el) {
     } else {
       const dimMap = {
         equipe:'origem', fila:'queue_name', colaborador:'name',
-        data:'Data',
+        data:`FORMAT_DATE('%d-%m-%y', PARSE_DATE('%d-%m-%y', Data))`,
         mes:`FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))`,
         dow:`FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))`,
         hora:'CAST(Hora AS STRING)'
@@ -1830,9 +1830,25 @@ if (el) {
       const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
       groupField = dimMap[matrixDim] || 'queue_name';
       labelCol   = labelMap[matrixDim] || 'Fila';
-      if (matrixDim === 'data' || matrixDim === 'mes') orderBy = 'label';
-      if (matrixDim === 'hora') orderBy = 'CAST(label AS INT64)';
+      if (matrixDim === 'data') orderBy = `PARSE_DATE('%d-%m-%y', c.label) DESC`;
+      if (matrixDim === 'mes')  orderBy = 'c.label';
+      if (matrixDim === 'hora') orderBy = 'CAST(c.label AS INT64)';
     }
+
+    // groupField para csat_agg — a tabela csat tem Data como DATE
+    const csatGroupField = (() => {
+      if (filaFilter) return 'name';
+      switch(matrixDim) {
+        case 'data':  return `FORMAT_DATE('%d-%m-%y', Data)`;
+        case 'mes':   return `FORMAT_DATE('%m/%y', Data)`;
+        case 'dow':   return `FORMAT_DATE('%A', Data)`;
+        case 'hora':  return 'CAST(Hora AS STRING)';
+        case 'equipe': return 'origem';
+        case 'fila':   return 'queue_name';
+        case 'colaborador': return 'name';
+        default: return 'queue_name';
+      }
+    })();
 
     document.getElementById('main-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div></div>';
     document.getElementById('btn-matrix-back').style.display = filaFilter ? 'block' : 'none';
@@ -1855,7 +1871,7 @@ if (el) {
           GROUP BY label
         ),
         csat_agg AS (
-          SELECT ${groupField.replace('queue_name','queue_name').replace('CAST(Hora AS STRING)','CAST(Hora AS STRING)').replace("FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))","FORMAT_DATE('%A', Data)").replace("FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))","FORMAT_DATE('%m/%y', Data)")} as label,
+          SELECT ${csatGroupField} as label,
             SUM(Total_Encaminhadas_Pesquisa) as enc,
             SUM(Total_Pesquisas) as resp,
             SUM(Total_Satisfeito) as sat
