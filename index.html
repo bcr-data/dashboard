@@ -931,6 +931,11 @@ function msRenderChips(k) {
     chips.innerHTML = `<span class="ms-placeholder">${msPlaceholder[k]}</span>`;
     return;
   }
+  // Para filtros com muitas opções (emp, cargo): acima de 3 selecionados mostra resumo
+  if(MS_SELECT_ALL.has(k) && msSel[k].size > 3) {
+    chips.innerHTML = `<span class="ms-chip">${msSel[k].size} selecionados<span class="ms-rm" onclick="msClear('${k}');event.stopPropagation()">×</span></span>`;
+    return;
+  }
   chips.innerHTML = [...msSel[k]].map(v => {
     const short = v.split(' ').slice(0,2).join(' ');
     const esc = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
