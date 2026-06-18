@@ -1823,8 +1823,8 @@ if (el) {
       const dimMap = {
         equipe:'origem', fila:'queue_name', colaborador:'name',
         data:'Data',
-        mes:`FORMAT_DATE('%m/%y', Data)`,
-        dow:`FORMAT_DATE('%A', Data)`,
+        mes:`FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))`,
+        dow:`FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))`,
         hora:'CAST(Hora AS STRING)'
       };
       const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
@@ -1868,7 +1868,7 @@ if (el) {
             SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
           FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
           ${where4}
-          GROUP BY label
+          GROUP BY 1
         ),
         csat_agg AS (
           SELECT ${csatGroupField} as label,
@@ -1880,7 +1880,7 @@ if (el) {
           ${sqlIn('origem', equipev).replace('AND','AND')}
           ${sqlIn('queue_name', filav)}
           ${sqlIn('name', colabv)}
-          GROUP BY label
+          GROUP BY 1
         )
         SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat
         FROM calls c LEFT JOIN csat_agg s ON c.label = s.label
