@@ -1839,6 +1839,22 @@ if (el) {
     document.getElementById('matrix-breadcrumb').textContent = filaFilter ? filaFilter.replace(/^[^-]+-/,'') : '';
 
     try {
+      // csat_agg groupField: csat.Data é DATE, __pbx_calls.Data é string dd-mm-yy
+      const csatGroupField = groupField
+        .replace('Data', "FORMAT_DATE('%d-%m-%y', Data)")
+        .replace("FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', FORMAT_DATE('%d-%m-%y', Data)))", "FORMAT_DATE('%m/%y', Data)")
+        .replace("FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', FORMAT_DATE('%d-%m-%y', Data)))", "FORMAT_DATE('%A', Data)");
+      // Para csat (Data é DATE): reescreve expressões que fazem PARSE_DATE de string
+      const csatGF = (() => {
+        switch(matrixDim) {
+          case 'data':        return "FORMAT_DATE('%d-%m-%y', Data)";
+          case 'mes':         return "FORMAT_DATE('%m/%y', Data)";
+          case 'dow':         return "FORMAT_DATE('%A', Data)";
+          case 'hora':        return 'CAST(Hora AS STRING)';
+          default:            return groupField;
+        }
+      })();
+
       const rows = await queryBQ(`
         WITH calls AS (
           SELECT ${groupField} as label,
@@ -1852,10 +1868,10 @@ if (el) {
             SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
           FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
           ${where4}
-          GROUP BY label
+          GROUP BY ${groupField}
         ),
         csat_agg AS (
-          SELECT ${groupField.replace('queue_name','queue_name').replace('CAST(Hora AS STRING)','CAST(Hora AS STRING)').replace("FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))","FORMAT_DATE('%A', Data)").replace("FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))","FORMAT_DATE('%m/%y', Data)")} as label,
+          SELECT ${csatGF} as label,
             SUM(Total_Encaminhadas_Pesquisa) as enc,
             SUM(Total_Pesquisas) as resp,
             SUM(Total_Satisfeito) as sat
@@ -1864,7 +1880,7 @@ if (el) {
           ${sqlIn('origem', equipev).replace('AND','AND')}
           ${sqlIn('queue_name', filav)}
           ${sqlIn('name', colabv)}
-          GROUP BY label
+          GROUP BY ${csatGF}
         )
         SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat
         FROM calls c LEFT JOIN csat_agg s ON c.label = s.label
