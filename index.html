@@ -422,15 +422,31 @@ document.addEventListener('click', function(e) {
 });
 window.navToggle = navToggle;
 
+// Ao mudar a data, rebusca dados e repopula filtros sem renderizar o dashboard
+async function reloadFiltersForDate() {
+  const ds = document.getElementById('f-date-start').value;
+  const de = document.getElementById('f-date-end').value;
+  if(!ds || !de) return;
+  if(ds === loadedDateStart && de === loadedDateEnd) return;
+  try {
+    const [rows, exMap, tcMap] = await Promise.all([fetchAll(ds,de), fetchExemptions(ds,de), fetchTimeCards(ds,de)]);
+    exemptionMap = exMap;
+    timeCardsMap = tcMap;
+    processRows(rows);
+    loadedDateStart = ds; loadedDateEnd = de;
+    populateFilters();
+  } catch(e) { console.warn('[reloadFiltersForDate]', e.message); }
+}
+
 // Button + Enter key listeners
 document.getElementById('btn-login').addEventListener('click', doLogin);
 ['login-email','login-password'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 });
 
-// Ao mudar a data, rebusca dados e repopula filtros automaticamente
+// Ao mudar a data, repopula filtros sem re-renderizar o dashboard
 ['f-date-start','f-date-end'].forEach(id => {
-  document.getElementById(id).addEventListener('change', () => applyFilters());
+  document.getElementById(id).addEventListener('change', () => reloadFiltersForDate());
 });
 
 // Check existing session on load
