@@ -825,16 +825,38 @@ function populateFilters() {
 }
 
 // ── MULTISELECT FUNCTIONS ─────────────────────────────────────────────────────
+const MS_SELECT_ALL = new Set(['emp','cargo']); // filtros com opção "Selecionar todos"
+
 function msFill(k, opts) {
   const list = document.getElementById('ms-list-'+k);
   if(!list) return;
-  list.innerHTML = opts.map(v => {
+  const allChecked = opts.length > 0 && opts.every(v => msSel[k].has(v));
+  const selectAllRow = MS_SELECT_ALL.has(k) ? `
+    <label class="ms-opt" style="border-bottom:1px solid var(--border-subtle);font-weight:500;color:var(--text)">
+      <input type="checkbox" id="ms-all-${k}" ${allChecked?'checked':''} onchange="msSelectAll('${k}',this)">
+      <span>Selecionar todos</span>
+    </label>` : '';
+  list.innerHTML = selectAllRow + opts.map(v => {
     const checked = msSel[k].has(v) ? 'checked' : '';
     const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\\'");
     return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="msToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
   }).join('');
   msRenderChips(k);
 }
+
+function msSelectAll(k, cb) {
+  const list = document.getElementById('ms-list-'+k);
+  if(!list) return;
+  list.querySelectorAll('.ms-opt input[type=checkbox]:not(#ms-all-'+k+')').forEach(input => {
+    input.checked = cb.checked;
+    const span = input.closest('.ms-opt').querySelector('span');
+    if(span) { if(cb.checked) msSel[k].add(span.textContent); else msSel[k].delete(span.textContent); }
+  });
+  msRenderChips(k);
+  if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
+  if(k === 'team') { populateEmpFilter(); }
+}
+window.msSelectAll = msSelectAll;
 
 function msToggle(k) {
   const dd = document.getElementById('ms-dd-'+k);
@@ -858,6 +880,14 @@ function msToggle(k) {
 
 function msToggleOpt(k, v, cb) {
   if(cb.checked) msSel[k].add(v); else msSel[k].delete(v);
+  // Sincronizar "Selecionar todos"
+  if(MS_SELECT_ALL.has(k)) {
+    const allCb = document.getElementById('ms-all-'+k);
+    if(allCb) {
+      const all = document.querySelectorAll(`#ms-list-${k} .ms-opt input[type=checkbox]:not(#ms-all-${k})`);
+      allCb.checked = all.length > 0 && [...all].every(i=>i.checked);
+    }
+  }
   msRenderChips(k);
   // Repopula filtros dependentes em cascata
   if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
