@@ -269,6 +269,18 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
       <div class="ms-footer"><span class="ms-footer-count" id="ms-count-emp">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('emp')">Limpar</button></div>
     </div>
   </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-motivo">
+    <label>Motivo Abono</label>
+    <div class="ms-trigger" id="ms-trigger-motivo" onclick="msToggle('motivo')">
+      <div class="ms-chips" id="ms-chips-motivo"><span class="ms-placeholder">Todos os motivos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-motivo" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-motivo" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-motivo')" id="ms-srch-motivo"></div>
+      <div class="ms-opts" id="ms-list-motivo"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-motivo">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('motivo')">Limpar</button></div>
+    </div>
+  </div>
   <button class="btn-filter" onclick="applyFilters()">Filtrar</button>
   <button class="btn-reset" onclick="resetFilters()">Limpar</button>
 </div>
@@ -447,13 +459,31 @@ const calcAbs = rows => {
   return p>0?+(a/p*100).toFixed(2):0;
 };
 
+// Ausência efetiva de uma linha respeitando o filtro Motivo Abono.
+// Com motivos selecionados: linhas cujo exemption.status está na seleção → ausencia=0
+// Linhas sem match → ausencia normal (entram no ABS)
+// Sem seleção → comportamento padrão (r.ausencia)
+const calcAusenciaEfetiva = r => {
+  if(!msSel.motivo.size) return r.ausencia;
+  const ex = r.exemption;
+  if(ex && msSel.motivo.has((ex.status||'').trim())) return 0;
+  return r.ausencia;
+};
+
+const calcAbsPrincipal = rows => {
+  const u = dedupeRows(rows);
+  const p = u.reduce((s,r)=>s+r.previsto,0);
+  const a = u.reduce((s,r)=>s+calcAusenciaEfetiva(r),0);
+  return p>0?+(a/p*100).toFixed(2):0;
+};
+
 let allData=[], filteredData=[], sortDir={};
 let exemptionMap={};
 let timeCardsMap={};
 let loadedDateStart='', loadedDateEnd='';
 // Multiselect state
-const msSel={sup:new Set(), team:new Set(), emp:new Set()};
-const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos'};
+const msSel={sup:new Set(), team:new Set(), emp:new Set(), motivo:new Set()};
+const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos', motivo:'Todos os motivos'};
 let absMode='team', hoursMode='supervisor', hoursDrillPath=[], lateMode='supervisor', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[], lateFunnelRoot='supervisor', lateFunnelPath=[];
 let chartAbs=null, chartHours=null, chartLate=null, chartLateFunnel=null, chartTrend=null, chartExAxis=null, chartExDrill=null, chartExMatrix=null;
 let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDrillMode='answered_by', exMatrixDrillPath=[];
@@ -627,8 +657,8 @@ async function applyFilters() {
 }
 
 function resetFilters() {
-  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear();
-  ['sup','team','emp'].forEach(k=>msRenderChips(k));
+  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear(); msSel.motivo.clear();
+  ['sup','team','emp','motivo'].forEach(k=>msRenderChips(k));
   const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
   document.getElementById('f-date-start').value=`${y}-${m}-01`;
   document.getElementById('f-date-end').value=today.toISOString().slice(0,10);
@@ -659,6 +689,15 @@ function populateFilters() {
   // remove seleções de colaborador que já não existem no contexto
   [...msSel.emp].forEach(v => { if(!allEmps.includes(v)) msSel.emp.delete(v); });
   msFill('emp', allEmps);
+
+  // Motivo Abono — valores distintos de exemptions.status no período carregado
+  const allMotivos = [...new Set(
+    Object.values(exemptionMap)
+      .map(ex => (ex.status||'').trim())
+      .filter(Boolean)
+  )].sort();
+  [...msSel.motivo].forEach(v => { if(!allMotivos.includes(v)) msSel.motivo.delete(v); });
+  msFill('motivo', allMotivos);
 }
 
 // ── MULTISELECT FUNCTIONS ─────────────────────────────────────────────────────
@@ -679,10 +718,10 @@ function msToggle(k) {
   const trigger = document.getElementById('ms-trigger-'+k);
   const isOpen = dd.style.display !== 'none';
   // close all
-  ['sup','team','emp'].forEach(x => {
-    document.getElementById('ms-dd-'+x).style.display = 'none';
-    document.getElementById('ms-chev-'+x).classList.remove('open');
-    document.getElementById('ms-trigger-'+x).classList.remove('open');
+  ['sup','team','emp','motivo'].forEach(x => {
+    const d=document.getElementById('ms-dd-'+x); if(d) d.style.display = 'none';
+    const c=document.getElementById('ms-chev-'+x); if(c) c.classList.remove('open');
+    const t=document.getElementById('ms-trigger-'+x); if(t) t.classList.remove('open');
   });
   if(!isOpen) {
     dd.style.display = 'block';
@@ -766,7 +805,7 @@ function msFilter(inp, listId) {
 // Close dropdowns on outside click
 document.addEventListener('click', e => {
   if(!e.target.closest('.ms-wrap')) {
-    ['sup','team','emp'].forEach(k => {
+    ['sup','team','emp','motivo'].forEach(k => {
       const dd = document.getElementById('ms-dd-'+k);
       if(dd) dd.style.display = 'none';
       const chev = document.getElementById('ms-chev-'+k);
@@ -954,7 +993,8 @@ function renderAll(){ renderKPIs(); renderTrendChart(); renderLateChart(); rende
 function renderKPIs(){
   const d=dedupeRows(filteredData);
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
-  const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
+  const totAEfetiva = msSel.motivo.size ? d.reduce((s,r)=>s+calcAusenciaEfetiva(r),0) : totA;
+  const absG=totP>0?(totAEfetiva/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
   const faltas   = d.filter(r => r.exemption && (r.exemption.all_day||'').toLowerCase()==='sim').length;
   const ausencias = d.filter(r => { const ad = (r.exemption?.all_day||'').toLowerCase(); return r.ausencia > 0 && (ad === 'não' || ad === 'nao' || ad === 'false'); }).length;
@@ -1010,8 +1050,8 @@ function renderKPIs(){
     `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">${colsComPonto}<span style="font-size:11px;font-weight:400;color:var(--text-3)">|</span><span style="font-size:11px;font-weight:500;color:var(--mid)">${colsTotal} prev.</span></div><div class="kpi-label">Colaboradores</div><div class="kpi-sub">com registro de ponto</div></div>`,
     mkHoraKpi('Total previsto',   totP, 'horas esperadas'),
     mkHoraKpi('Total trabalhado', totT, pct.toFixed(1)+'% do previsto'),
-    mkHoraKpi('Total ausências',  totA, 'horas faltantes'),
-    mkKpi('ABS Global',      absG.toFixed(2)+'%', 'índice de absenteísmo'),
+    mkHoraKpi('Total ausências',  totAEfetiva, msSel.motivo.size?'horas (filtradas por motivo)':'horas faltantes'),
+    mkKpi('ABS Global', absG.toFixed(2)+'%', msSel.motivo.size?'filtrado por motivo':'índice de absenteísmo'),
     mkKpi('Faltas', faltas, `${ausencias} ausências parciais`),
     mkKpi('Total Abonos',    totAbonos, 'registros abonados'),
     mkHoraKpi('Total Abonado', totAbonado, 'horas abonadas'),
@@ -1037,24 +1077,24 @@ function renderTrendChart(){
   if(trendDrillMonth){
     const dayData=filteredData.filter(d=>d.month===trendDrillMonth);
     const days=[...new Set(dayData.map(d=>d.date))].sort();
-    const groups=Object.entries(groupBy(dayData,groupKey)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    const groups=Object.entries(groupBy(dayData,groupKey)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
     labels=days.map(d=>{ const[,mo,dy]=d.split('-'); return `${dy}/${mo}`; });
     datasets=groups.map((g,i)=>({
       label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
       borderWidth:2.5, pointRadius:2, fill:false, tension:.3, spanGaps:true,
-      data:days.map(day=>{ const r=dayData.filter(x=>x[groupKey]===g&&x.date===day); return r.length?calcAbs(r):null; })
+      data:days.map(day=>{ const r=dayData.filter(x=>x[groupKey]===g&&x.date===day); return r.length?calcAbsPrincipal(r):null; })
     }));
     breadcrumb=`${monthLabel(trendDrillMonth)} › dias`;
     hint='Clique aqui para voltar para o mês';
     document.getElementById('trend-hint').onclick=()=>{ trendDrillMonth=null; renderTrendChart(); };
   } else {
     const months=[...new Set(filteredData.map(d=>d.month))].sort();
-    const groups=Object.entries(groupBy(filteredData,groupKey)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    const groups=Object.entries(groupBy(filteredData,groupKey)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
     labels=months.map(monthLabel);
     datasets=groups.map((g,i)=>({
       label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
       borderWidth:2.5, pointRadius:2.5, fill:false, tension:.3, spanGaps:true,
-      data:months.map(mo=>{ const r=filteredData.filter(d=>d[groupKey]===g&&d.month===mo); return r.length?calcAbs(r):null; })
+      data:months.map(mo=>{ const r=filteredData.filter(d=>d[groupKey]===g&&d.month===mo); return r.length?calcAbsPrincipal(r):null; })
     }));
     hint='Clique em um ponto para ver a evolução diária';
     document.getElementById('trend-hint').onclick=null;
@@ -1088,7 +1128,7 @@ function renderChartAbs(){
   const wrap=document.getElementById('chart-abs-wrap');
   if(!wrap) return;
   const key=absMode==='team'?'team':'name';
-  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
+  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs);
   const labels=e.map(x=>absMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
   const vals=e.map(x=>x.abs);
   const colors=vals.map(v=>v>=5?'#dc2626':v>=3?'#f59e0b':'#3b82f6');
@@ -1321,7 +1361,7 @@ function renderFunnel(){
 }
 
 function getItems(rows,key){
-  return Object.entries(groupBy(rows,key)).map(([k,v])=>({key,label:k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
+  return Object.entries(groupBy(rows,key)).map(([k,v])=>({key,label:k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs);
 }
 function drillDown(key,val){ funnelPath.push({key,val}); renderFunnel(); }
 function drillUp(idx){ funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1); renderFunnel(); }
@@ -1506,7 +1546,8 @@ function renderTablePage(){
   const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
   const slice=all.slice(start,end);
   document.getElementById('table-body').innerHTML=slice.map(r=>{
-    const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
+    const ausEfetiva = calcAusenciaEfetiva(r);
+    const a=r.previsto>0?(ausEfetiva/r.previsto*100):0;
     const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
     const ex=r.exemption;
     const isAllDay=ex&&(ex.all_day||'').toLowerCase()==='sim';
