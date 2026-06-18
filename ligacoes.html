@@ -1642,10 +1642,10 @@ if (el) {
     });
 
     let groupExpr, labelCol, orderBy;
-    if (mode === 'data')       { groupExpr = `FORMAT_DATE('%d-%m-%y', Data)`; labelCol = 'Data';        orderBy = `MAX(Data) DESC`; }
-    else if (mode === 'mes')   { groupExpr = `FORMAT_DATE('%m/%y', Data)`;    labelCol = 'Mês';         orderBy = groupExpr; }
+    if (mode === 'data')       { groupExpr = `FORMAT_DATE('%d-%m-%y', Data)`; labelCol = 'Data';        orderBy = 'MAX(Data) DESC'; }
+    else if (mode === 'mes')   { groupExpr = `FORMAT_DATE('%m/%y', Data)`;    labelCol = 'Mês';         orderBy = 'label'; }
     else if (mode === 'dow')   { groupExpr = `FORMAT_DATE('%A', Data)`;       labelCol = 'Dia Sem.';    orderBy = 'SUM(Total_Pesquisas) DESC'; }
-    else if (mode === 'hora')  { groupExpr = `CAST(Hora AS STRING)`;          labelCol = 'Hora';        orderBy = `CAST(${`CAST(Hora AS STRING)`} AS INT64)`; }
+    else if (mode === 'hora')  { groupExpr = `CAST(Hora AS STRING)`;          labelCol = 'Hora';        orderBy = 'CAST(label AS INT64)'; }
     else if (mode === 'fila')  { groupExpr = 'queue_name';                    labelCol = 'Fila';        orderBy = 'SUM(Total_Pesquisas) DESC'; }
     else if (mode === 'colab') { groupExpr = 'name';                          labelCol = 'Colaborador'; orderBy = 'SUM(Total_Pesquisas) DESC'; }
     else                       { groupExpr = 'origem';                        labelCol = 'Equipe';      orderBy = 'SUM(Total_Pesquisas) DESC'; }
@@ -1668,7 +1668,7 @@ if (el) {
           SUM(Total_Encaminhadas_Pesquisa) AS encaminhadas
         FROM \`bcrcx-wfm.BCRCX.csat\`
         ${where}
-        GROUP BY ${groupExpr}
+        GROUP BY label
         ORDER BY ${orderBy}
       `);
 
@@ -1766,8 +1766,8 @@ if (el) {
           SUM(Total_Ligacoes) as total
         FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
         ${where3}
-        GROUP BY ${groupExpr}
-        ORDER BY ${mode==='data' ? `PARSE_DATE('%d-%m-%y', ${groupExpr}) DESC` : mode==='mes'||mode==='hora' ? groupExpr : mode==='dow' ? groupExpr : 'SUM(Total_Ligacoes) DESC'}
+        GROUP BY label
+        ORDER BY ${mode==='data' ? 'PARSE_DATE(\'%d-%m-%y\', label) DESC' : mode==='mes'||mode==='dow'||mode==='hora' ? 'label' : 'SUM(Total_Ligacoes) DESC'}
       `);
 
       const cols = ['0–10s','11–20s','21–30s','31–60s','61–120s','>120s'];
@@ -1842,9 +1842,8 @@ if (el) {
       const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
       groupField = dimMap[matrixDim] || 'queue_name';
       labelCol   = labelMap[matrixDim] || 'Fila';
-      if (matrixDim === 'data') orderBy = `PARSE_DATE('%d-%m-%y', ${dimMap.data}) DESC`;
-      if (matrixDim === 'mes')  orderBy = dimMap.mes;
-      if (matrixDim === 'hora') orderBy = `CAST(${dimMap.hora} AS INT64)`;
+      if (matrixDim === 'data' || matrixDim === 'mes') orderBy = 'label';
+      if (matrixDim === 'hora') orderBy = 'CAST(label AS INT64)';
     }
 
     document.getElementById('main-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div></div>';
@@ -1897,7 +1896,7 @@ if (el) {
         )
         SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat
         FROM calls c LEFT JOIN csat_agg s ON c.label = s.label
-        ORDER BY ${filaFilter ? 'c.total DESC' : orderBy}
+        ORDER BY ${filaFilter ? 'c.total DESC' : orderBy.replace('label','c.label').replace('SUM(Total_Ligacoes) DESC','c.total DESC')}
         LIMIT 100
       `);
 
