@@ -371,6 +371,7 @@ window.drillUp      = drillUp;
 window.sortTable    = sortTable;
 window.tablePageChange = tablePageChange;
 window.exportCSV    = exportCSV;
+window.applyTableFilter = applyTableFilter;
 window.setExDrillMode = setExDrillMode;
 window.exDrillDown    = exDrillDown;
 window.exDrillUp      = exDrillUp;
@@ -511,6 +512,7 @@ let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDril
 let lateMatrixDrillMode='supervisor', lateMatrixDrillPath=[];
 let tablePage=0;
 const TABLE_PAGE_SIZE=100;
+const tableFilters = { emp:'', tipoAbono:'', status:'' };
 
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
@@ -966,6 +968,16 @@ function buildLayout() {
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div class="card-title">Detalhamento por colaborador / dia</div>
           <button class="btn-reset" onclick="exportCSV()" style="height:auto;padding:6px 12px;font-size:12px;font-weight:500">⬇ Exportar CSV</button>
+        </div>
+        <div style="display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;align-items:center;background:var(--bg)">
+          <input id="tf-emp" type="text" placeholder="🔍 Colaborador..." oninput="applyTableFilter()" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;outline:none;color:var(--text);background:var(--surface);min-width:180px;flex:1;transition:border-color .15s ease" onfocus="this.style.borderColor='var(--text)'" onblur="this.style.borderColor='var(--border)'">
+          <select id="tf-tipo" onchange="applyTableFilter()" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;outline:none;color:var(--text);background:var(--surface);min-width:160px;flex:1;transition:border-color .15s ease">
+            <option value="">Tipo de Abono</option>
+          </select>
+          <select id="tf-status" onchange="applyTableFilter()" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;outline:none;color:var(--text);background:var(--surface);min-width:140px;flex:1;transition:border-color .15s ease">
+            <option value="">Status</option>
+          </select>
+          <button onclick="clearTableFilters()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap;transition:background .15s ease" onmouseover="this.style.background='var(--border-subtle)'" onmouseout="this.style.background='transparent'">Limpar</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -1455,7 +1467,45 @@ function renderLateFunnel(){
   document.getElementById('late-funnel-hint').textContent = canDrill ? 'Clique em uma barra para detalhar' : '';
 }
 
-function renderTableBody(){ tablePage=0; renderTablePage(); }
+function renderTableBody(){
+  tablePage=0;
+  // Resetar filtros internos da tabela ao re-renderizar (novo filtro global aplicado)
+  tableFilters.emp=''; tableFilters.tipoAbono=''; tableFilters.status='';
+  const empEl = document.getElementById('tf-emp');
+  const tipoEl = document.getElementById('tf-tipo');
+  const statusEl = document.getElementById('tf-status');
+  if(empEl) empEl.value='';
+
+  // Popular Tipo de Abono
+  if(tipoEl){
+    const tipos = [...new Set(dedupeRows(filteredData).map(r=>r.exemption?(r.exemption.exemption_type||''):'').filter(Boolean))].sort();
+    tipoEl.innerHTML = '<option value="">Tipo de Abono</option>' + tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
+  }
+  // Popular Status
+  if(statusEl){
+    const statuses = [...new Set(dedupeRows(filteredData).map(r=>r.exemption?(r.exemption.status||''):'').filter(Boolean))].sort();
+    statusEl.innerHTML = '<option value="">Status</option>' + statuses.map(s=>`<option value="${s}">${s}</option>`).join('');
+  }
+  renderTablePage();
+}
+
+function applyTableFilter(){
+  tableFilters.emp    = (document.getElementById('tf-emp')?.value||'').toLowerCase().trim();
+  tableFilters.tipoAbono = document.getElementById('tf-tipo')?.value||'';
+  tableFilters.status    = document.getElementById('tf-status')?.value||'';
+  tablePage=0;
+  renderTablePage();
+}
+
+function clearTableFilters(){
+  tableFilters.emp=''; tableFilters.tipoAbono=''; tableFilters.status='';
+  const empEl=document.getElementById('tf-emp'); if(empEl) empEl.value='';
+  const tipoEl=document.getElementById('tf-tipo'); if(tipoEl) tipoEl.value='';
+  const statusEl=document.getElementById('tf-status'); if(statusEl) statusEl.value='';
+  tablePage=0;
+  renderTablePage();
+}
+window.clearTableFilters = clearTableFilters;
 
 // ── MATRIZ DE ATRASO ─────────────────────────────────────────────────────────
 const LATE_CATS = [
@@ -1563,7 +1613,11 @@ function renderLateMatrix(){
 }
 
 function renderTablePage(){
-  const all=dedupeRows(filteredData);
+  let all=dedupeRows(filteredData);
+  // Aplicar filtros internos da tabela
+  if(tableFilters.emp)       all=all.filter(r=>r.name.toLowerCase().includes(tableFilters.emp));
+  if(tableFilters.tipoAbono) all=all.filter(r=>(r.exemption?.exemption_type||'')===tableFilters.tipoAbono);
+  if(tableFilters.status)    all=all.filter(r=>(r.exemption?.status||'')===tableFilters.status);
   const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
   const slice=all.slice(start,end);
   document.getElementById('table-body').innerHTML=slice.map(r=>{
@@ -1639,7 +1693,11 @@ function renderTablePage(){
 }
 
 function tablePageChange(dir){
-  const pages=Math.ceil(dedupeRows(filteredData).length/TABLE_PAGE_SIZE);
+  let all=dedupeRows(filteredData);
+  if(tableFilters.emp)       all=all.filter(r=>r.name.toLowerCase().includes(tableFilters.emp));
+  if(tableFilters.tipoAbono) all=all.filter(r=>(r.exemption?.exemption_type||'')===tableFilters.tipoAbono);
+  if(tableFilters.status)    all=all.filter(r=>(r.exemption?.status||'')===tableFilters.status);
+  const pages=Math.ceil(all.length/TABLE_PAGE_SIZE);
   tablePage=Math.max(0,Math.min(tablePage+dir,pages-1));
   renderTablePage();
 }
