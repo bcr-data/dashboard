@@ -1851,13 +1851,9 @@ if (el) {
     document.getElementById('matrix-breadcrumb').textContent = filaFilter ? filaFilter.replace(/^[^-]+-/,'') : '';
 
     try {
-      // csat_agg groupField: csat.Data é DATE, __pbx_calls.Data é string dd-mm-yy
-      const csatGroupField = groupField
-        .replace('Data', "FORMAT_DATE('%d-%m-%y', Data)")
-        .replace("FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', FORMAT_DATE('%d-%m-%y', Data)))", "FORMAT_DATE('%m/%y', Data)")
-        .replace("FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', FORMAT_DATE('%d-%m-%y', Data)))", "FORMAT_DATE('%A', Data)");
-      // Para csat (Data é DATE): reescreve expressões que fazem PARSE_DATE de string
+      // Para csat (Data é DATE): expressões específicas por dimensão
       const csatGF = (() => {
+        if (filaFilter) return 'name';
         switch(matrixDim) {
           case 'data':        return "FORMAT_DATE('%d-%m-%y', Data)";
           case 'mes':         return "FORMAT_DATE('%m/%y', Data)";
