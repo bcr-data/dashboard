@@ -1823,8 +1823,8 @@ if (el) {
       const dimMap = {
         equipe:'origem', fila:'queue_name', colaborador:'name',
         data:'Data',
-        mes:`FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))`,
-        dow:`FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))`,
+        mes:`FORMAT_DATE('%m/%y', Data)`,
+        dow:`FORMAT_DATE('%A', Data)`,
         hora:'CAST(Hora AS STRING)'
       };
       const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
