@@ -557,6 +557,7 @@ document.getElementById('btn-login').addEventListener('click', doLogin);
 
 // ── WORKER QUERY ──
 async function queryBQ(sql) {
+  console.log('[queryBQ]', sql.trim().slice(0, 300));
   const res = await fetch(WORKER, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
@@ -564,6 +565,7 @@ async function queryBQ(sql) {
   });
   if (!res.ok) throw new Error(`Worker error ${res.status}`);
   const json = await res.json();
+  if (json.error) throw new Error(`BigQuery: ${json.error}`);
   if (!json.rows) return [];
   return json.rows.map(row => {
     const obj = {};
@@ -1830,23 +1832,23 @@ if (el) {
       const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
       groupField = dimMap[matrixDim] || 'queue_name';
       labelCol   = labelMap[matrixDim] || 'Fila';
-      if (matrixDim === 'data') orderBy = `PARSE_DATE('%d-%m-%y', c.label) DESC`;
-      if (matrixDim === 'mes')  orderBy = 'c.label';
-      if (matrixDim === 'hora') orderBy = 'CAST(c.label AS INT64)';
+      if (matrixDim === 'data') orderBy = `PARSE_DATE('%d-%m-%y', ${groupField}) DESC`;
+      if (matrixDim === 'mes')  orderBy = `${groupField}`;
+      if (matrixDim === 'hora') orderBy = `CAST(${groupField} AS INT64)`;
     }
 
-    // groupField para csat_agg — a tabela csat tem Data como DATE
-    const csatGroupField = (() => {
-      if (filaFilter) return 'name';
+    // Expressão de JOIN entre __pbx_calls (c) e csat (s) por dimensão
+    const csatJoinExpr = (() => {
+      if (filaFilter) return 's.name = c.name';
       switch(matrixDim) {
-        case 'data':  return `FORMAT_DATE('%d-%m-%y', Data)`;
-        case 'mes':   return `FORMAT_DATE('%m/%y', Data)`;
-        case 'dow':   return `FORMAT_DATE('%A', Data)`;
-        case 'hora':  return 'CAST(Hora AS STRING)';
-        case 'equipe': return 'origem';
-        case 'fila':   return 'queue_name';
-        case 'colaborador': return 'name';
-        default: return 'queue_name';
+        case 'data':        return `s.Data = PARSE_DATE('%d-%m-%y', c.Data)`;
+        case 'mes':         return `FORMAT_DATE('%m/%y', s.Data) = FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', c.Data))`;
+        case 'dow':         return `FORMAT_DATE('%A', s.Data) = FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', c.Data))`;
+        case 'hora':        return `CAST(s.Hora AS STRING) = CAST(c.Hora AS STRING)`;
+        case 'equipe':      return `s.origem = c.origem`;
+        case 'fila':        return `s.queue_name = c.queue_name`;
+        case 'colaborador': return `s.name = c.name`;
+        default:            return `s.queue_name = c.queue_name`;
       }
     })();
 
@@ -1856,35 +1858,29 @@ if (el) {
 
     try {
       const rows = await queryBQ(`
-        WITH calls AS (
-          SELECT ${groupField} as label,
-            SUM(Total_Ligacoes) as total,
-            SUM(Atendidas) as atend,
-            SUM(Abandonadas) as aband,
-            SUM(CASE WHEN TME_seg <= ${slav} THEN Atendidas ELSE 0 END) as atend_sla,
-            SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma_atend,
-            SUM(TME_seg_atendidas) / NULLIF(SUM(Atendidas), 0) as tme_atend,
-            SUM(TME_seg_abandonadas) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
-            SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
-          FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
-          ${where4}
-          GROUP BY 1
-        ),
-        csat_agg AS (
-          SELECT ${csatGroupField} as label,
-            SUM(Total_Encaminhadas_Pesquisa) as enc,
-            SUM(Total_Pesquisas) as resp,
-            SUM(Total_Satisfeito) as sat
-          FROM \`bcrcx-wfm.BCRCX.csat\`
-          WHERE Data BETWEEN DATE('${dsv}') AND DATE('${dev}')
-          ${sqlIn('origem', equipev).replace('AND','AND')}
-          ${sqlIn('queue_name', filav)}
-          ${sqlIn('name', colabv)}
-          GROUP BY 1
-        )
-        SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat
-        FROM calls c LEFT JOIN csat_agg s ON c.label = s.label
-        ORDER BY ${filaFilter ? 'c.total DESC' : orderBy.replace('label','c.label').replace('SUM(Total_Ligacoes) DESC','c.total DESC')}
+        SELECT
+          ${groupField} as label,
+          SUM(c.Total_Ligacoes) as total,
+          SUM(c.Atendidas) as atend,
+          SUM(c.Abandonadas) as aband,
+          SUM(CASE WHEN c.TME_seg <= ${slav} THEN c.Atendidas ELSE 0 END) as atend_sla,
+          SUM(c.TMA_seg) / NULLIF(SUM(c.Atendidas), 0) as tma_atend,
+          SUM(c.TME_seg_atendidas) / NULLIF(SUM(c.Atendidas), 0) as tme_atend,
+          SUM(c.TME_seg_abandonadas) / NULLIF(SUM(c.Abandonadas), 0) as tme_aband,
+          SUM(c.TME_seg) / NULLIF(SUM(c.Total_Ligacoes), 0) as tme_total,
+          COALESCE(SUM(s.Total_Encaminhadas_Pesquisa), 0) as enc,
+          COALESCE(SUM(s.Total_Pesquisas), 0) as resp,
+          COALESCE(SUM(s.Total_Satisfeito), 0) as sat
+        FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` c
+        LEFT JOIN \`bcrcx-wfm.BCRCX.csat\` s
+          ON ${csatJoinExpr}
+          AND DATE(s.Data) BETWEEN DATE('${dsv}') AND DATE('${dev}')
+          ${sqlIn('s.origem', equipev)}
+          ${sqlIn('s.queue_name', filav)}
+          ${sqlIn('s.name', colabv)}
+        ${where4}
+        GROUP BY 1
+        ORDER BY ${filaFilter ? 'SUM(c.Total_Ligacoes) DESC' : orderBy}
         LIMIT 100
       `);
 
