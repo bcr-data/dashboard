@@ -512,7 +512,89 @@ let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDril
 let lateMatrixDrillMode='supervisor', lateMatrixDrillPath=[];
 let tablePage=0;
 const TABLE_PAGE_SIZE=100;
-const tableFilters = { emp:'', tipoAbono:'', status:'' };
+const tableFilters = { emp: new Set(), tipo: new Set(), sts: new Set() };
+
+// ── TABLE FILTERS (multiselect interno da tabela) ─────────────────────────────
+function tfFill(k, opts) {
+  const list = document.getElementById('tf-list-'+k);
+  if(!list) return;
+  list.innerHTML = opts.map(v => {
+    const checked = tableFilters[k].has(v) ? 'checked' : '';
+    const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\\'");
+    return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="tfToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
+  }).join('');
+  tfRenderChips(k);
+}
+
+function tfToggle(k) {
+  const dd = document.getElementById('tf-dd-'+k);
+  const isOpen = dd.style.display !== 'none';
+  ['emp','tipo','sts'].forEach(x => {
+    const d=document.getElementById('tf-dd-'+x); if(d) d.style.display='none';
+    const c=document.getElementById('tf-chev-'+x); if(c) c.classList.remove('open');
+    const t=document.getElementById('tf-trigger-'+x); if(t) t.classList.remove('open');
+  });
+  if(!isOpen) {
+    dd.style.display='block';
+    document.getElementById('tf-chev-'+k).classList.add('open');
+    document.getElementById('tf-trigger-'+k).classList.add('open');
+    const srch=document.getElementById('tf-srch-'+k);
+    if(srch){ srch.value=''; tfFilter(srch,'tf-list-'+k); srch.focus(); }
+  }
+}
+
+function tfToggleOpt(k, v, cb) {
+  if(cb.checked) tableFilters[k].add(v); else tableFilters[k].delete(v);
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+function tfRenderChips(k) {
+  const chips = document.getElementById('tf-chips-'+k);
+  const count = document.getElementById('tf-count-'+k);
+  const placeholders = { emp:'Colaborador', tipo:'Tipo de Abono', sts:'Status' };
+  if(!chips) return;
+  if(count) count.textContent = tableFilters[k].size + ' selecionado' + (tableFilters[k].size!==1?'s':'');
+  if(tableFilters[k].size === 0) {
+    chips.innerHTML = `<span class="ms-placeholder" style="font-size:12px">${placeholders[k]}</span>`;
+    return;
+  }
+  chips.innerHTML = [...tableFilters[k]].map(v => {
+    const short = v.split(' ').slice(0,2).join(' ');
+    const esc = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<span class="ms-chip" style="font-size:10px">${short}<span class="ms-rm" onclick="tfRemoveChip('${k}','${esc}',event)">×</span></span>`;
+  }).join('');
+}
+
+function tfRemoveChip(k, v, e) {
+  e.stopPropagation();
+  tableFilters[k].delete(v);
+  document.querySelectorAll(`#tf-list-${k} .ms-opt`).forEach(el => {
+    if(el.querySelector('span').textContent === v) el.querySelector('input').checked = false;
+  });
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+function tfFilter(inp, listId) {
+  const q = inp.value.toLowerCase();
+  document.querySelectorAll('#'+listId+' .ms-opt').forEach(el => {
+    el.style.display = el.querySelector('span').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function tfClear(k) {
+  tableFilters[k].clear();
+  document.querySelectorAll('#tf-list-'+k+' input').forEach(i=>i.checked=false);
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+window.tfToggle     = tfToggle;
+window.tfToggleOpt  = tfToggleOpt;
+window.tfRemoveChip = tfRemoveChip;
+window.tfFilter     = tfFilter;
+window.tfClear      = tfClear;
 
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
@@ -836,6 +918,14 @@ document.addEventListener('click', e => {
       const tr = document.getElementById('ms-trigger-'+k);
       if(tr) tr.classList.remove('open');
     });
+    ['emp','tipo','sts'].forEach(k => {
+      const dd = document.getElementById('tf-dd-'+k);
+      if(dd) dd.style.display = 'none';
+      const chev = document.getElementById('tf-chev-'+k);
+      if(chev) chev.classList.remove('open');
+      const tr = document.getElementById('tf-trigger-'+k);
+      if(tr) tr.classList.remove('open');
+    });
   }
 });
 
@@ -969,15 +1059,44 @@ function buildLayout() {
           <div class="card-title">Detalhamento por colaborador / dia</div>
           <button class="btn-reset" onclick="exportCSV()" style="height:auto;padding:6px 12px;font-size:12px;font-weight:500">⬇ Exportar CSV</button>
         </div>
-        <div style="display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;align-items:center;background:var(--bg)">
-          <input id="tf-emp" type="text" placeholder="🔍 Colaborador..." oninput="applyTableFilter()" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;outline:none;color:var(--text);background:var(--surface);min-width:180px;flex:1;transition:border-color .15s ease" onfocus="this.style.borderColor='var(--text)'" onblur="this.style.borderColor='var(--border)'">
-          <select id="tf-tipo" onchange="applyTableFilter()" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;outline:none;color:var(--text);background:var(--surface);min-width:160px;flex:1;transition:border-color .15s ease">
-            <option value="">Tipo de Abono</option>
-          </select>
-          <select id="tf-status" onchange="applyTableFilter()" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;outline:none;color:var(--text);background:var(--surface);min-width:140px;flex:1;transition:border-color .15s ease">
-            <option value="">Status</option>
-          </select>
-          <button onclick="clearTableFilters()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap;transition:background .15s ease" onmouseover="this.style.background='var(--border-subtle)'" onmouseout="this.style.background='transparent'">Limpar</button>
+        <div style="display:flex;gap:8px;padding:8px 18px;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;align-items:center;background:var(--bg)">
+          <!-- Colaborador -->
+          <div class="ms-wrap" id="tf-wrap-emp" style="min-width:0;flex:1;max-width:260px">
+            <div class="ms-trigger" id="tf-trigger-emp" onclick="tfToggle('emp')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-emp"><span class="ms-placeholder" style="font-size:12px">Colaborador</span></div>
+              <i class="ms-chevron" id="tf-chev-emp">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-emp" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-emp')" id="tf-srch-emp"></div>
+              <div class="ms-opts" id="tf-list-emp"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-emp">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('emp')">Limpar</button></div>
+            </div>
+          </div>
+          <!-- Tipo de Abono -->
+          <div class="ms-wrap" id="tf-wrap-tipo" style="min-width:0;flex:1;max-width:220px">
+            <div class="ms-trigger" id="tf-trigger-tipo" onclick="tfToggle('tipo')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-tipo"><span class="ms-placeholder" style="font-size:12px">Tipo de Abono</span></div>
+              <i class="ms-chevron" id="tf-chev-tipo">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-tipo" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-tipo')" id="tf-srch-tipo"></div>
+              <div class="ms-opts" id="tf-list-tipo"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-tipo">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('tipo')">Limpar</button></div>
+            </div>
+          </div>
+          <!-- Status -->
+          <div class="ms-wrap" id="tf-wrap-sts" style="min-width:0;flex:1;max-width:200px">
+            <div class="ms-trigger" id="tf-trigger-sts" onclick="tfToggle('sts')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-sts"><span class="ms-placeholder" style="font-size:12px">Status</span></div>
+              <i class="ms-chevron" id="tf-chev-sts">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-sts" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-sts')" id="tf-srch-sts"></div>
+              <div class="ms-opts" id="tf-list-sts"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-sts">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('sts')">Limpar</button></div>
+            </div>
+          </div>
+          <button onclick="clearTableFilters()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='var(--border-subtle)'" onmouseout="this.style.background='transparent'">Limpar</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -1469,41 +1588,33 @@ function renderLateFunnel(){
 
 function renderTableBody(){
   tablePage=0;
-  // Resetar filtros internos da tabela ao re-renderizar (novo filtro global aplicado)
-  tableFilters.emp=''; tableFilters.tipoAbono=''; tableFilters.status='';
-  const empEl = document.getElementById('tf-emp');
-  const tipoEl = document.getElementById('tf-tipo');
-  const statusEl = document.getElementById('tf-status');
-  if(empEl) empEl.value='';
+  // Resetar filtros internos ao re-renderizar
+  tableFilters.emp.clear(); tableFilters.tipo.clear(); tableFilters.sts.clear();
+  ['emp','tipo','sts'].forEach(k => tfRenderChips(k));
 
+  const rows = dedupeRows(filteredData);
+  // Popular Colaborador
+  const emps = [...new Set(rows.map(r=>r.name))].sort();
+  tfFill('emp', emps);
   // Popular Tipo de Abono
-  if(tipoEl){
-    const tipos = [...new Set(dedupeRows(filteredData).map(r=>r.exemption?(r.exemption.exemption_type||''):'').filter(Boolean))].sort();
-    tipoEl.innerHTML = '<option value="">Tipo de Abono</option>' + tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
-  }
+  const tipos = [...new Set(rows.map(r=>r.exemption?(r.exemption.exemption_type||''):'').filter(Boolean))].sort();
+  tfFill('tipo', tipos);
   // Popular Status
-  if(statusEl){
-    const statuses = [...new Set(dedupeRows(filteredData).map(r=>r.exemption?(r.exemption.status||''):'').filter(Boolean))].sort();
-    statusEl.innerHTML = '<option value="">Status</option>' + statuses.map(s=>`<option value="${s}">${s}</option>`).join('');
-  }
+  const statuses = [...new Set(rows.map(r=>r.exemption?(r.exemption.status||''):'').filter(Boolean))].sort();
+  tfFill('sts', statuses);
+
   renderTablePage();
 }
 
-function applyTableFilter(){
-  tableFilters.emp    = (document.getElementById('tf-emp')?.value||'').toLowerCase().trim();
-  tableFilters.tipoAbono = document.getElementById('tf-tipo')?.value||'';
-  tableFilters.status    = document.getElementById('tf-status')?.value||'';
-  tablePage=0;
-  renderTablePage();
-}
+function applyTableFilter(){ tablePage=0; renderTablePage(); }
 
 function clearTableFilters(){
-  tableFilters.emp=''; tableFilters.tipoAbono=''; tableFilters.status='';
-  const empEl=document.getElementById('tf-emp'); if(empEl) empEl.value='';
-  const tipoEl=document.getElementById('tf-tipo'); if(tipoEl) tipoEl.value='';
-  const statusEl=document.getElementById('tf-status'); if(statusEl) statusEl.value='';
-  tablePage=0;
-  renderTablePage();
+  tableFilters.emp.clear(); tableFilters.tipo.clear(); tableFilters.sts.clear();
+  ['emp','tipo','sts'].forEach(k=>{
+    document.querySelectorAll('#tf-list-'+k+' input').forEach(i=>i.checked=false);
+    tfRenderChips(k);
+  });
+  tablePage=0; renderTablePage();
 }
 window.clearTableFilters = clearTableFilters;
 
@@ -1614,10 +1725,9 @@ function renderLateMatrix(){
 
 function renderTablePage(){
   let all=dedupeRows(filteredData);
-  // Aplicar filtros internos da tabela
-  if(tableFilters.emp)       all=all.filter(r=>r.name.toLowerCase().includes(tableFilters.emp));
-  if(tableFilters.tipoAbono) all=all.filter(r=>(r.exemption?.exemption_type||'')===tableFilters.tipoAbono);
-  if(tableFilters.status)    all=all.filter(r=>(r.exemption?.status||'')===tableFilters.status);
+  if(tableFilters.emp.size)  all=all.filter(r=>tableFilters.emp.has(r.name));
+  if(tableFilters.tipo.size) all=all.filter(r=>tableFilters.tipo.has(r.exemption?.exemption_type||''));
+  if(tableFilters.sts.size)  all=all.filter(r=>tableFilters.sts.has(r.exemption?.status||''));
   const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
   const slice=all.slice(start,end);
   document.getElementById('table-body').innerHTML=slice.map(r=>{
@@ -1694,9 +1804,9 @@ function renderTablePage(){
 
 function tablePageChange(dir){
   let all=dedupeRows(filteredData);
-  if(tableFilters.emp)       all=all.filter(r=>r.name.toLowerCase().includes(tableFilters.emp));
-  if(tableFilters.tipoAbono) all=all.filter(r=>(r.exemption?.exemption_type||'')===tableFilters.tipoAbono);
-  if(tableFilters.status)    all=all.filter(r=>(r.exemption?.status||'')===tableFilters.status);
+  if(tableFilters.emp.size)  all=all.filter(r=>tableFilters.emp.has(r.name));
+  if(tableFilters.tipo.size) all=all.filter(r=>tableFilters.tipo.has(r.exemption?.exemption_type||''));
+  if(tableFilters.sts.size)  all=all.filter(r=>tableFilters.sts.has(r.exemption?.status||''));
   const pages=Math.ceil(all.length/TABLE_PAGE_SIZE);
   tablePage=Math.max(0,Math.min(tablePage+dir,pages-1));
   renderTablePage();
