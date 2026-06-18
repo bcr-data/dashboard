@@ -428,6 +428,11 @@ document.getElementById('btn-login').addEventListener('click', doLogin);
   document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 });
 
+// Ao mudar a data, rebusca dados e repopula filtros automaticamente
+['f-date-start','f-date-end'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => applyFilters());
+});
+
 // Check existing session on load
 (async () => {
   const { data: { session } } = await supabase.auth.getSession();
