@@ -281,6 +281,18 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
       <div class="ms-footer"><span class="ms-footer-count" id="ms-count-motivo">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('motivo')">Limpar</button></div>
     </div>
   </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-cargo">
+    <label>Cargo</label>
+    <div class="ms-trigger" id="ms-trigger-cargo" onclick="msToggle('cargo')">
+      <div class="ms-chips" id="ms-chips-cargo"><span class="ms-placeholder">Todos os cargos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-cargo" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-cargo" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-cargo')" id="ms-srch-cargo"></div>
+      <div class="ms-opts" id="ms-list-cargo"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-cargo">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('cargo')">Limpar</button></div>
+    </div>
+  </div>
   <button class="btn-filter" onclick="applyFilters()">Filtrar</button>
   <button class="btn-reset" onclick="resetFilters()">Limpar</button>
 </div>
@@ -504,8 +516,8 @@ let exemptionMap={};
 let timeCardsMap={};
 let loadedDateStart='', loadedDateEnd='';
 // Multiselect state
-const msSel={sup:new Set(), team:new Set(), emp:new Set(), motivo:new Set()};
-const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos', motivo:'Todos os motivos'};
+const msSel={sup:new Set(), team:new Set(), emp:new Set(), motivo:new Set(), cargo:new Set()};
+const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos', motivo:'Todos os motivos', cargo:'Todos os cargos'};
 let absMode='team', hoursMode='supervisor', hoursDrillPath=[], lateMode='supervisor', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[], lateFunnelRoot='supervisor', lateFunnelPath=[];
 let chartAbs=null, chartHours=null, chartLate=null, chartLateFunnel=null, chartTrend=null, chartExAxis=null, chartExDrill=null, chartExMatrix=null;
 let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDrillMode='answered_by', exMatrixDrillPath=[];
@@ -702,7 +714,8 @@ function processRows(rows) {
         date:r.extraction_date, month:monthKey(r.extraction_date),
         previsto:prev, trabalhado:trab, ausencia:ausencia,
         abonado:abonado,
-        exemption: ex
+        exemption: ex,
+        jobTitle: (timeCardsMap[r.name.trim()+'|'+r.extraction_date]?.job_title_name||'')
       });
     });
   }
@@ -753,17 +766,18 @@ async function applyFilters() {
   }
 
   filteredData=allData.filter(d=>{
-    if(msSel.sup.size  && !msSel.sup.has(d.supervisor))  return false;
-    if(msSel.team.size && !msSel.team.has(d.team))       return false;
-    if(msSel.emp.size  && !msSel.emp.has(d.name))        return false;
+    if(msSel.sup.size   && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size  && !msSel.team.has(d.team))       return false;
+    if(msSel.emp.size   && !msSel.emp.has(d.name))        return false;
+    if(msSel.cargo.size && !msSel.cargo.has(d.jobTitle))  return false;
     return true;
   });
   funnelPath=[]; renderAll();
 }
 
 function resetFilters() {
-  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear(); msSel.motivo.clear();
-  ['sup','team','emp','motivo'].forEach(k=>msRenderChips(k));
+  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear(); msSel.motivo.clear(); msSel.cargo.clear();
+  ['sup','team','emp','motivo','cargo'].forEach(k=>msRenderChips(k));
   const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
   document.getElementById('f-date-start').value=`${y}-${m}-01`;
   document.getElementById('f-date-end').value=today.toISOString().slice(0,10);
@@ -803,6 +817,11 @@ function populateFilters() {
   )].sort();
   [...msSel.motivo].forEach(v => { if(!allMotivos.includes(v)) msSel.motivo.delete(v); });
   msFill('motivo', allMotivos);
+
+  // Cargo — valores distintos de job_title_name no período carregado
+  const allCargos = [...new Set(allData.map(d=>d.jobTitle).filter(Boolean))].sort();
+  [...msSel.cargo].forEach(v => { if(!allCargos.includes(v)) msSel.cargo.delete(v); });
+  msFill('cargo', allCargos);
 }
 
 // ── MULTISELECT FUNCTIONS ─────────────────────────────────────────────────────
@@ -823,7 +842,7 @@ function msToggle(k) {
   const trigger = document.getElementById('ms-trigger-'+k);
   const isOpen = dd.style.display !== 'none';
   // close all
-  ['sup','team','emp','motivo'].forEach(x => {
+  ['sup','team','emp','motivo','cargo'].forEach(x => {
     const d=document.getElementById('ms-dd-'+x); if(d) d.style.display = 'none';
     const c=document.getElementById('ms-chev-'+x); if(c) c.classList.remove('open');
     const t=document.getElementById('ms-trigger-'+x); if(t) t.classList.remove('open');
@@ -910,7 +929,7 @@ function msFilter(inp, listId) {
 // Close dropdowns on outside click
 document.addEventListener('click', e => {
   if(!e.target.closest('.ms-wrap')) {
-    ['sup','team','emp','motivo'].forEach(k => {
+    ['sup','team','emp','motivo','cargo'].forEach(k => {
       const dd = document.getElementById('ms-dd-'+k);
       if(dd) dd.style.display = 'none';
       const chev = document.getElementById('ms-chev-'+k);
