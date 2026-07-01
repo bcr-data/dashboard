@@ -655,7 +655,6 @@ async function fetchExemptions(dateStart, dateEnd) {
   // Build lookup map: "employee_name|date" → exemption row (first match, prefer all_day=sim)
   const map={};
   rows.forEach(ex => {
-    if((ex.status||'').trim()==='Falta') return; // 'Falta' não é considerada Motivo Abono: fora do filtro e de qualquer cálculo
     const k=(ex.employee_name||'').trim()+'|'+(ex.date||'');
     if(!map[k] || (ex.all_day||'').toLowerCase()==='sim') map[k]=ex;
   });
@@ -811,11 +810,12 @@ function populateFilters() {
   msFill('emp', allEmps);
 
   // Motivo Abono — valores distintos de exemptions.status no período carregado
+  // 'Falta' fica de fora das opções: não deve ser possível usá-la para descontar o ABS via filtro
   const allMotivos = [...new Set(
     Object.values(exemptionMap)
       .map(ex => (ex.status||'').trim())
       .filter(Boolean)
-  )].sort();
+  )].filter(v => v!=='Falta').sort();
   [...msSel.motivo].forEach(v => { if(!allMotivos.includes(v)) msSel.motivo.delete(v); });
   msFill('motivo', allMotivos);
 
