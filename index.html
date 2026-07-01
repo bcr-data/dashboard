@@ -1789,7 +1789,8 @@ function renderTablePage(){
     const a=r.previsto>0?(ausEfetiva/r.previsto*100):0;
     const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
     const ex=r.exemption;
-    const isAllDay=ex&&(ex.all_day||'').toLowerCase()==='sim';
+    const aprovado = ex && !EXCLUIDOS_SOL.has((ex.solicitation_status||'').trim());
+    const isAllDay=aprovado&&(ex.all_day||'').toLowerCase()==='sim';
     // Exemption columns
     const exType  = ex?(ex.exemption_type||'—'):'—';
     const exStatus= ex?(ex.status||'—'):'—';
@@ -1800,8 +1801,8 @@ function renderTablePage(){
     const exEnd   = isAllDay?'—':(ex?(ex.end_time||'—'):'—');
     const exAttach= ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim'||ex.has_attachment==='Sim')?'✔ Sim':'✘ Não'):'—';
     const exObs   = ex?(ex.observation||'—'):'—';
-    // Total abonado formatado
-    const abonadoH = r.abonado||0;
+    // Total abonado formatado (só conta se aprovado)
+    const abonadoH = aprovado ? (r.abonado||0) : 0;
     const fmtHHMM = h => { const hh=Math.floor(h), mm=Math.round((h-hh)*60); return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
     const abonadoFmt = abonadoH>0 ? fmtHHMM(abonadoH) : '—';
     const abonadoTag = abonadoH>0 ? `<span class="badge badge-exemption">${abonadoFmt}</span>` : '—';
@@ -1809,7 +1810,7 @@ function renderTablePage(){
     const rowClass= isAllDay?'style="background:#fffbeb"':'';
     // ABS cell tag
     const absTag = isAllDay?`<span class="exempt-tag allday">Abono Dia</span>`
-                  :ex?`<span class="exempt-tag">Abono</span>`:'';
+                  :aprovado?`<span class="exempt-tag">Abono</span>`:'';
     // Time card lookup
     const tcKey = r.name.trim()+'|'+r.date;
     const tc = timeCardsMap[tcKey] || null;
@@ -1923,8 +1924,9 @@ function exportCSV(){
     const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
     const fmt=n=>n.replace('.',',');
     const ex=r.exemption;
-    const isAllDay=ex&&(ex.all_day||'').toLowerCase()==='sim';
-    const abonadoH=r.abonado||0;
+    const aprovado = ex && !EXCLUIDOS_SOL.has((ex.solicitation_status||'').trim());
+    const isAllDay=aprovado&&(ex.all_day||'').toLowerCase()==='sim';
+    const abonadoH=aprovado?(r.abonado||0):0;
     const abonadoHH=Math.floor(abonadoH), abonadoMM=Math.round((abonadoH-abonadoHH)*60);
     const abonadoFmt=abonadoH>0?(abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`):'';
     lines.push([
