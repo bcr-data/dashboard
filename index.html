@@ -655,6 +655,7 @@ async function fetchExemptions(dateStart, dateEnd) {
   // Build lookup map: "employee_name|date" → exemption row (first match, prefer all_day=sim)
   const map={};
   rows.forEach(ex => {
+    if((ex.status||'').trim()==='Falta') return; // 'Falta' não é considerada Motivo Abono: fora do filtro e de qualquer cálculo
     const k=(ex.employee_name||'').trim()+'|'+(ex.date||'');
     if(!map[k] || (ex.all_day||'').toLowerCase()==='sim') map[k]=ex;
   });
