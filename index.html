@@ -1920,6 +1920,8 @@ function showError(msg){
 #chat-send:hover{opacity:.85}
 #chat-send:disabled{opacity:.4;cursor:not-allowed}
 #chat-send svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chat-tip{font-size:11px;color:#6366f1;background:#eef2ff;border:1px solid #e0e7ff;border-radius:8px;padding:6px 10px;margin-top:2px;line-height:1.4;cursor:pointer;transition:background .15s ease}
+.chat-tip:hover{background:#e0e7ff}
 </style>
 
 <!-- Botão flutuante -->
@@ -1952,6 +1954,10 @@ function showError(msg){
     <button class="chat-suggestion" onclick="chatSuggest(this)">ABS global do último mês</button>
     <button class="chat-suggestion" onclick="chatSuggest(this)">Top 5 colaboradores com mais ausências</button>
     <button class="chat-suggestion" onclick="chatSuggest(this)">Abonos pendentes</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Qual dia da semana tem mais faltas?</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Colaboradores com mais atrasos</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Taxa de absenteísmo por cargo</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Evolução de faltas semana a semana</button>
   </div>
 
   <div id="chat-footer">
@@ -2041,6 +2047,20 @@ function showError(msg){
     input.focus();
   };
 
+  const CHAT_TIPS = [
+    '💡 Dica: especifique o período para comparar com o dashboard (ex: "nos últimos 30 dias")',
+    '📊 Experimente: "Compare o ABS da TENDA com a VOLVO no último mês"',
+    '🔍 Experimente: "Quais colaboradores tiveram mais de 3 faltas em junho?"',
+    '📅 Experimente: "Qual foi a semana com mais faltas em junho?"',
+    '👥 Experimente: "Quantos colaboradores não registraram ponto nos últimos 7 dias?"',
+    '⏰ Experimente: "Qual turno tem mais atrasos na última semana?"',
+    '📋 Experimente: "Quais abonos estão pendentes de aprovação?"',
+    '📈 Experimente: "O ABS melhorou ou piorou em relação ao mês anterior?"',
+    '🏆 Experimente: "Qual supervisor tem a equipe com menor índice de faltas?"',
+    '⚠️ Experimente: "Quem acumulou mais horas de ausência no mês?"',
+  ];
+  let chatTipIndex = 0;
+
   function chatAddMsg(role, text){
     const msgs = document.getElementById('chat-messages');
     const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
@@ -2048,6 +2068,23 @@ function showError(msg){
     div.className = 'chat-msg ' + role;
     div.innerHTML = `<div class="chat-bubble">${escHtml(text)}</div><span class="chat-time">${now}</span>`;
     msgs.appendChild(div);
+
+    // Mostra dica rotativa a cada resposta do bot
+    if(role === 'bot'){
+      const tip = document.createElement('div');
+      tip.className = 'chat-tip';
+      const tipText = CHAT_TIPS[chatTipIndex % CHAT_TIPS.length];
+      tip.textContent = tipText;
+      tip.onclick = () => {
+        const clean = tipText.replace(/^[^:]+:\s*/, '').replace(/^"/, '').replace(/"$/, '');
+        document.getElementById('chat-input').value = clean;
+        chatAutoResize(document.getElementById('chat-input'));
+        document.getElementById('chat-input').focus();
+      };
+      chatTipIndex++;
+      msgs.appendChild(tip);
+    }
+
     chatScrollBottom();
   }
 
