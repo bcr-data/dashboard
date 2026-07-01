@@ -9,7 +9,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:#fafafa;color:#18181b;font-size:14px;-webkit-font-smoothing:antialiased}
 :root{--bg:#fafafa;--surface:#fff;--border:#e4e4e7;--border-subtle:#f4f4f5;--text:#18181b;--text-2:#71717a;--text-3:#a1a1aa;--brand:#2151E5;--data:#3b82f6;--data-dark:#1e40af;--data-light:#93c5fd;--warn:#f59e0b;--danger:#dc2626;--success:#16a34a;--blue1:#1A2A6C;--blue2:#3b82f6;--blue3:#3b82f6;--blue4:#93c5fd;--blue5:#eff6ff;--dark:#18181b;--mid:#71717a;--light:#a1a1aa}
-.header{background:var(--surface);color:var(--text);padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.header{background:var(--surface);color:var(--text);padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);position:relative;overflow:clip}
 .header::before{content:'';position:absolute;top:0;bottom:0;left:170px;right:0;background-image:url("data:image/svg+xml,%3Csvg width='300' height='520' viewBox='0 0 90 156' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23f7f8fa' stroke-width='0.55'%3E%3Cpath d='M22.5 0L45 13M45 13V39M45 39L22.5 52M22.5 52L0 39M0 39V13M0 13L22.5 0M22.5 52V78M67.5 0L90 13M90 13V39M90 39L67.5 52M67.5 52L45 39M45 39V13M45 13L67.5 0M67.5 52V78M22.5 78L45 91M45 91V117M45 117L22.5 130M22.5 130L0 117M0 117V91M0 91L22.5 78M22.5 130V156M67.5 78L90 91M90 91V117M90 117L67.5 130M67.5 130L45 117M45 117V91M45 91L67.5 78M67.5 130V156'/%3E%3Cpath d='M22.5 26L0 13M22.5 26L45 13M22.5 26V52'/%3E%3Cpath d='M0 65L22.5 52M0 65V91M90 65L67.5 52M90 65V91'/%3E%3Cpath d='M45 65L22.5 78M45 65L67.5 78M45 65V39'/%3E%3Cpath d='M67.5 104L45 91M67.5 104L90 91M67.5 104V130'/%3E%3Cpath d='M0 143L22.5 156M0 143V117M90 143L67.5 156M90 143V117'/%3E%3C/g%3E%3C/svg%3E");background-size:300px 520px;background-position:-70px -30px;-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 8%);mask-image:linear-gradient(90deg,transparent 0%,#000 8%);pointer-events:none}
 .header>*{position:relative;z-index:1}
 .logo-wrap{display:flex;align-items:center;gap:8px}
@@ -68,9 +68,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .chart-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:380px}
 .chart-card.full{grid-column:1/-1}
-.bar-accent{width:4px;height:16px;background:#2151E5;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
-.card-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;letter-spacing:-0.01em}
+.card-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.01em;display:flex;align-items:center;gap:8px}.card-title::before{content:"";display:inline-block;width:3px;height:14px;background:var(--brand);border-radius:2px;flex-shrink:0}
 .toggle-group{display:inline-flex;background:var(--border-subtle);border:none;border-radius:8px;padding:3px;gap:2px;overflow:visible}
 .toggle-btn{background:transparent;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text-2);font-weight:500;transition:color .15s ease,background .15s ease}
 .toggle-btn:not(:last-child){border-right:none}
@@ -83,7 +83,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .funnel-level-title{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px}
 .funnel-bar-row{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:8px;transition:background .12s ease}
 .funnel-bar-row:hover{background:var(--border-subtle)}
-.funnel-label{font-size:12px;color:var(--text);min-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.funnel-label{font-size:12px;color:var(--text);min-width:160px;max-width:220px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35}
 .funnel-bar-bg{flex:1;height:14px;background:var(--border-subtle);border-radius:4px;overflow:hidden}
 .funnel-bar-fill{height:100%;border-radius:4px;background:var(--data);transition:width .3s ease}
 .funnel-bar-fill.warn{background:var(--warn)}.funnel-bar-fill.danger{background:var(--danger)}
@@ -96,12 +96,16 @@ td.registro-ponto{white-space:pre-line;font-size:12px;line-height:1.6}
 .table-card{background:var(--surface);border-radius:12px;padding:0;border:1px solid var(--border);overflow:hidden}
 .table-card>div:first-child{padding:14px 18px;border-bottom:1px solid var(--border-subtle)}
 .table-wrap{overflow-x:auto;max-height:380px;overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{position:sticky;top:0;background:var(--bg);color:var(--text-2);font-weight:500;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:11px;cursor:pointer;white-space:nowrap;transition:color .15s ease}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{position:sticky;top:0;background:var(--bg);color:var(--text-2);font-weight:500;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;cursor:pointer;white-space:nowrap;transition:color .15s ease;text-align:right}
+thead th:first-child{text-align:left}
 thead th:hover{color:var(--text)}
 tbody tr{border-bottom:1px solid var(--border-subtle);transition:background .12s ease}
-tbody tr:hover{background:var(--bg)}
-tbody td{padding:8px 14px;color:var(--text)}
+tbody tr:hover td{background:#f0f4ff}
+tbody td{padding:7px 12px;color:var(--text);background:#fff;text-align:right;white-space:nowrap;vertical-align:middle}
+tbody td:first-child{text-align:left;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;min-width:160px;background:var(--bg)}
+/* Célula de dimensão reutilizável em matrizes e drills */
+.dim-cell{font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;padding:6px 10px;min-width:140px;max-width:200px}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
 .badge-ok{background:transparent;color:#15803d}.badge-ok::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--success)}
 .badge-warn{background:transparent;color:#b45309}.badge-warn::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--warn)}
@@ -135,6 +139,19 @@ tbody td{padding:8px 14px;color:var(--text)}
 .user-chip span{color:#374151}
 .btn-logout{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 11px;font-size:12px;cursor:pointer;transition:background .15s ease}
 .btn-logout:hover{background:var(--border-subtle)}
+.nav-menu-wrap{position:relative}
+.btn-nav{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;cursor:pointer;transition:background .15s ease,border-color .15s ease;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0}
+.btn-nav:hover,.btn-nav.open{background:var(--border-subtle);border-color:var(--text-3)}
+.btn-nav i{display:block;width:14px;height:1.5px;background:currentColor;border-radius:1px;transition:none}
+.btn-nav i:last-child{width:10px}
+.nav-dropdown{position:fixed;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:9999;overflow:hidden;display:none}
+.nav-dropdown.open{display:block}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:13px;color:var(--text);text-decoration:none;cursor:pointer;transition:background .1s ease;user-select:none}
+.nav-item:hover{background:var(--border-subtle)}
+.nav-item.active{color:var(--brand);font-weight:500}
+.nav-item svg{flex-shrink:0;opacity:.55}
+.nav-item.active svg,.nav-item:hover svg{opacity:1}
+.nav-sep{height:1px;background:var(--border-subtle);margin:3px 0}
 .btn-refresh{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 9px;font-size:14px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease;display:flex;align-items:center;justify-content:center;line-height:1}
 .btn-refresh:hover{background:var(--border-subtle);color:var(--brand);border-color:var(--brand)}
 .btn-refresh.refreshing{color:var(--brand);border-color:var(--brand);animation:spin .7s linear infinite}
@@ -189,6 +206,26 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
     <div class="user-chip">
       <button class="btn-refresh" id="btn-refresh" title="Atualizar dashboard" onclick="triggerWebhookRefresh()">↻</button>
       <span id="user-email-display"></span>
+      <div class="nav-menu-wrap" id="nav-wrap">
+        <button class="btn-nav" id="btn-nav" title="Menu" onclick="navToggle()">
+          <i></i><i></i><i></i>
+        </button>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <a class="nav-item active" href="./index.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Absenteísmo
+          </a>
+          <a class="nav-item" href="./ligacoes.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.96 1.18 2 2 0 012.93 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            Ligações
+          </a>
+          <div class="nav-sep"></div>
+          <span class="nav-item" onclick="doLogout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -230,6 +267,30 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
       <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-emp')" id="ms-srch-emp"></div>
       <div class="ms-opts" id="ms-list-emp"></div>
       <div class="ms-footer"><span class="ms-footer-count" id="ms-count-emp">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('emp')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-motivo">
+    <label>Motivo Abono</label>
+    <div class="ms-trigger" id="ms-trigger-motivo" onclick="msToggle('motivo')">
+      <div class="ms-chips" id="ms-chips-motivo"><span class="ms-placeholder">Todos os motivos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-motivo" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-motivo" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-motivo')" id="ms-srch-motivo"></div>
+      <div class="ms-opts" id="ms-list-motivo"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-motivo">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('motivo')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-cargo">
+    <label>Cargo</label>
+    <div class="ms-trigger" id="ms-trigger-cargo" onclick="msToggle('cargo')">
+      <div class="ms-chips" id="ms-chips-cargo"><span class="ms-placeholder">Todos os cargos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-cargo" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-cargo" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-cargo')" id="ms-srch-cargo"></div>
+      <div class="ms-opts" id="ms-list-cargo"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-cargo">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('cargo')">Limpar</button></div>
     </div>
   </div>
   <button class="btn-filter" onclick="applyFilters()">Filtrar</button>
@@ -322,6 +383,7 @@ window.drillUp      = drillUp;
 window.sortTable    = sortTable;
 window.tablePageChange = tablePageChange;
 window.exportCSV    = exportCSV;
+window.applyTableFilter = applyTableFilter;
 window.setExDrillMode = setExDrillMode;
 window.exDrillDown    = exDrillDown;
 window.exDrillUp      = exDrillUp;
@@ -338,7 +400,7 @@ async function triggerWebhookRefresh() {
   try {
     await fetch('https://eventos.55telecom.com/webhook/35b9bcbf-9ad4-428d-a372-a7d78a62bd05', { method:'GET', mode:'no-cors' });
     // Aguarda 1.5s para o webhook processar, depois recarrega os dados
-    await new Promise(r => setTimeout(r, 20000));
+    await new Promise(r => setTimeout(r, 30000));
     location.reload();
   } catch(e) {
     console.warn('[refresh] webhook error:', e);
@@ -350,10 +412,54 @@ async function triggerWebhookRefresh() {
 }
 window.triggerWebhookRefresh = triggerWebhookRefresh;
 
+// NAV MENU — usa position:fixed no dropdown para escapar de qualquer overflow/clip
+function navToggle() {
+  const btn = document.getElementById('btn-nav');
+  const dd  = document.getElementById('nav-dropdown');
+  const isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    const r = btn.getBoundingClientRect();
+    dd.style.top  = (r.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - r.right) + 'px';
+    dd.style.left = 'auto';
+  }
+  dd.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('nav-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('nav-dropdown')?.classList.remove('open');
+    document.getElementById('btn-nav')?.classList.remove('open');
+  }
+});
+window.navToggle = navToggle;
+
+// Ao mudar a data, rebusca dados e repopula filtros sem renderizar o dashboard
+async function reloadFiltersForDate() {
+  const ds = document.getElementById('f-date-start').value;
+  const de = document.getElementById('f-date-end').value;
+  if(!ds || !de) return;
+  if(ds === loadedDateStart && de === loadedDateEnd) return;
+  try {
+    const [rows, exMap, tcMap] = await Promise.all([fetchAll(ds,de), fetchExemptions(ds,de), fetchTimeCards(ds,de)]);
+    exemptionMap = exMap;
+    timeCardsMap = tcMap;
+    processRows(rows);
+    loadedDateStart = ds; loadedDateEnd = de;
+    populateFilters();
+  } catch(e) { console.warn('[reloadFiltersForDate]', e.message); }
+}
+
 // Button + Enter key listeners
 document.getElementById('btn-login').addEventListener('click', doLogin);
 ['login-email','login-password'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+// Ao mudar a data, repopula filtros sem re-renderizar o dashboard
+['f-date-start','f-date-end'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => reloadFiltersForDate());
 });
 
 // Check existing session on load
@@ -387,19 +493,120 @@ const calcAbs = rows => {
   return p>0?+(a/p*100).toFixed(2):0;
 };
 
+// Ausência efetiva de uma linha respeitando o filtro Motivo Abono.
+// Com motivos selecionados: linhas cujo exemption.status está na seleção → ausencia=0
+// Linhas sem match → ausencia normal (entram no ABS)
+// Sem seleção → comportamento padrão (r.ausencia)
+const calcAusenciaEfetiva = r => {
+  if(!msSel.motivo.size) return r.ausencia;
+  const ex = r.exemption;
+  if(ex && msSel.motivo.has((ex.status||'').trim())) return 0;
+  return r.ausencia;
+};
+
+const calcAbsPrincipal = rows => {
+  const u = dedupeRows(rows);
+  const p = u.reduce((s,r)=>s+r.previsto,0);
+  const a = u.reduce((s,r)=>s+calcAusenciaEfetiva(r),0);
+  return p>0?+(a/p*100).toFixed(2):0;
+};
+
 let allData=[], filteredData=[], sortDir={};
 let exemptionMap={};
 let timeCardsMap={};
 let loadedDateStart='', loadedDateEnd='';
 // Multiselect state
-const msSel={sup:new Set(), team:new Set(), emp:new Set()};
-const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos'};
+const msSel={sup:new Set(), team:new Set(), emp:new Set(), motivo:new Set(), cargo:new Set()};
+const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos', motivo:'Todos os motivos', cargo:'Todos os cargos'};
 let absMode='team', hoursMode='supervisor', hoursDrillPath=[], lateMode='supervisor', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[], lateFunnelRoot='supervisor', lateFunnelPath=[];
 let chartAbs=null, chartHours=null, chartLate=null, chartLateFunnel=null, chartTrend=null, chartExAxis=null, chartExDrill=null, chartExMatrix=null;
 let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDrillMode='answered_by', exMatrixDrillPath=[];
 let lateMatrixDrillMode='supervisor', lateMatrixDrillPath=[];
 let tablePage=0;
 const TABLE_PAGE_SIZE=100;
+const tableFilters = { emp: new Set(), tipo: new Set(), sts: new Set() };
+
+// ── TABLE FILTERS (multiselect interno da tabela) ─────────────────────────────
+function tfFill(k, opts) {
+  const list = document.getElementById('tf-list-'+k);
+  if(!list) return;
+  list.innerHTML = opts.map(v => {
+    const checked = tableFilters[k].has(v) ? 'checked' : '';
+    const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\\'");
+    return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="tfToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
+  }).join('');
+  tfRenderChips(k);
+}
+
+function tfToggle(k) {
+  const dd = document.getElementById('tf-dd-'+k);
+  const isOpen = dd.style.display !== 'none';
+  ['emp','tipo','sts'].forEach(x => {
+    const d=document.getElementById('tf-dd-'+x); if(d) d.style.display='none';
+    const c=document.getElementById('tf-chev-'+x); if(c) c.classList.remove('open');
+    const t=document.getElementById('tf-trigger-'+x); if(t) t.classList.remove('open');
+  });
+  if(!isOpen) {
+    dd.style.display='block';
+    document.getElementById('tf-chev-'+k).classList.add('open');
+    document.getElementById('tf-trigger-'+k).classList.add('open');
+    const srch=document.getElementById('tf-srch-'+k);
+    if(srch){ srch.value=''; tfFilter(srch,'tf-list-'+k); srch.focus(); }
+  }
+}
+
+function tfToggleOpt(k, v, cb) {
+  if(cb.checked) tableFilters[k].add(v); else tableFilters[k].delete(v);
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+function tfRenderChips(k) {
+  const chips = document.getElementById('tf-chips-'+k);
+  const count = document.getElementById('tf-count-'+k);
+  const placeholders = { emp:'Colaborador', tipo:'Tipo de Abono', sts:'Status' };
+  if(!chips) return;
+  if(count) count.textContent = tableFilters[k].size + ' selecionado' + (tableFilters[k].size!==1?'s':'');
+  if(tableFilters[k].size === 0) {
+    chips.innerHTML = `<span class="ms-placeholder" style="font-size:12px">${placeholders[k]}</span>`;
+    return;
+  }
+  chips.innerHTML = [...tableFilters[k]].map(v => {
+    const short = v.split(' ').slice(0,2).join(' ');
+    const esc = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<span class="ms-chip" style="font-size:10px">${short}<span class="ms-rm" onclick="tfRemoveChip('${k}','${esc}',event)">×</span></span>`;
+  }).join('');
+}
+
+function tfRemoveChip(k, v, e) {
+  e.stopPropagation();
+  tableFilters[k].delete(v);
+  document.querySelectorAll(`#tf-list-${k} .ms-opt`).forEach(el => {
+    if(el.querySelector('span').textContent === v) el.querySelector('input').checked = false;
+  });
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+function tfFilter(inp, listId) {
+  const q = inp.value.toLowerCase();
+  document.querySelectorAll('#'+listId+' .ms-opt').forEach(el => {
+    el.style.display = el.querySelector('span').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function tfClear(k) {
+  tableFilters[k].clear();
+  document.querySelectorAll('#tf-list-'+k+' input').forEach(i=>i.checked=false);
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+window.tfToggle     = tfToggle;
+window.tfToggleOpt  = tfToggleOpt;
+window.tfRemoveChip = tfRemoveChip;
+window.tfFilter     = tfFilter;
+window.tfClear      = tfClear;
 
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
@@ -507,7 +714,8 @@ function processRows(rows) {
         date:r.extraction_date, month:monthKey(r.extraction_date),
         previsto:prev, trabalhado:trab, ausencia:ausencia,
         abonado:abonado,
-        exemption: ex
+        exemption: ex,
+        jobTitle: (timeCardsMap[r.name.trim()+'|'+r.extraction_date]?.job_title_name||'')
       });
     });
   }
@@ -558,17 +766,18 @@ async function applyFilters() {
   }
 
   filteredData=allData.filter(d=>{
-    if(msSel.sup.size  && !msSel.sup.has(d.supervisor))  return false;
-    if(msSel.team.size && !msSel.team.has(d.team))       return false;
-    if(msSel.emp.size  && !msSel.emp.has(d.name))        return false;
+    if(msSel.sup.size   && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size  && !msSel.team.has(d.team))       return false;
+    if(msSel.emp.size   && !msSel.emp.has(d.name))        return false;
+    if(msSel.cargo.size && !msSel.cargo.has(d.jobTitle))  return false;
     return true;
   });
   funnelPath=[]; renderAll();
 }
 
 function resetFilters() {
-  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear();
-  ['sup','team','emp'].forEach(k=>msRenderChips(k));
+  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear(); msSel.motivo.clear(); msSel.cargo.clear();
+  ['sup','team','emp','motivo','cargo'].forEach(k=>msRenderChips(k));
   const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
   document.getElementById('f-date-start').value=`${y}-${m}-01`;
   document.getElementById('f-date-end').value=today.toISOString().slice(0,10);
@@ -599,13 +808,36 @@ function populateFilters() {
   // remove seleções de colaborador que já não existem no contexto
   [...msSel.emp].forEach(v => { if(!allEmps.includes(v)) msSel.emp.delete(v); });
   msFill('emp', allEmps);
+
+  // Motivo Abono — valores distintos de exemptions.status no período carregado
+  // 'Falta' fica de fora das opções: não deve ser possível usá-la para descontar o ABS via filtro
+  const allMotivos = [...new Set(
+    Object.values(exemptionMap)
+      .map(ex => (ex.status||'').trim())
+      .filter(Boolean)
+  )].filter(v => v!=='Falta').sort();
+  [...msSel.motivo].forEach(v => { if(!allMotivos.includes(v)) msSel.motivo.delete(v); });
+  msFill('motivo', allMotivos);
+
+  // Cargo — valores distintos de job_title_name no período carregado
+  const allCargos = [...new Set(allData.map(d=>d.jobTitle).filter(Boolean))].sort();
+  [...msSel.cargo].forEach(v => { if(!allCargos.includes(v)) msSel.cargo.delete(v); });
+  msFill('cargo', allCargos);
 }
 
 // ── MULTISELECT FUNCTIONS ─────────────────────────────────────────────────────
+const MS_SELECT_ALL = new Set(['sup','team','emp','motivo','cargo']); // filtros com opção "Selecionar todos"
+
 function msFill(k, opts) {
   const list = document.getElementById('ms-list-'+k);
   if(!list) return;
-  list.innerHTML = opts.map(v => {
+  const allChecked = opts.length > 0 && opts.every(v => msSel[k].has(v));
+  const selectAllRow = MS_SELECT_ALL.has(k) ? `
+    <label class="ms-opt" style="border-bottom:1px solid var(--border-subtle);font-weight:500;color:var(--text)">
+      <input type="checkbox" id="ms-all-${k}" ${allChecked?'checked':''} onchange="msSelectAll('${k}',this)">
+      <span>Selecionar todos</span>
+    </label>` : '';
+  list.innerHTML = selectAllRow + opts.map(v => {
     const checked = msSel[k].has(v) ? 'checked' : '';
     const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\\'");
     return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="msToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
@@ -613,16 +845,30 @@ function msFill(k, opts) {
   msRenderChips(k);
 }
 
+function msSelectAll(k, cb) {
+  const list = document.getElementById('ms-list-'+k);
+  if(!list) return;
+  list.querySelectorAll('.ms-opt input[type=checkbox]:not(#ms-all-'+k+')').forEach(input => {
+    input.checked = cb.checked;
+    const span = input.closest('.ms-opt').querySelector('span');
+    if(span) { if(cb.checked) msSel[k].add(span.textContent); else msSel[k].delete(span.textContent); }
+  });
+  msRenderChips(k);
+  if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
+  if(k === 'team') { populateEmpFilter(); }
+}
+window.msSelectAll = msSelectAll;
+
 function msToggle(k) {
   const dd = document.getElementById('ms-dd-'+k);
   const chev = document.getElementById('ms-chev-'+k);
   const trigger = document.getElementById('ms-trigger-'+k);
   const isOpen = dd.style.display !== 'none';
   // close all
-  ['sup','team','emp'].forEach(x => {
-    document.getElementById('ms-dd-'+x).style.display = 'none';
-    document.getElementById('ms-chev-'+x).classList.remove('open');
-    document.getElementById('ms-trigger-'+x).classList.remove('open');
+  ['sup','team','emp','motivo','cargo'].forEach(x => {
+    const d=document.getElementById('ms-dd-'+x); if(d) d.style.display = 'none';
+    const c=document.getElementById('ms-chev-'+x); if(c) c.classList.remove('open');
+    const t=document.getElementById('ms-trigger-'+x); if(t) t.classList.remove('open');
   });
   if(!isOpen) {
     dd.style.display = 'block';
@@ -635,6 +881,14 @@ function msToggle(k) {
 
 function msToggleOpt(k, v, cb) {
   if(cb.checked) msSel[k].add(v); else msSel[k].delete(v);
+  // Sincronizar "Selecionar todos"
+  if(MS_SELECT_ALL.has(k)) {
+    const allCb = document.getElementById('ms-all-'+k);
+    if(allCb) {
+      const all = document.querySelectorAll(`#ms-list-${k} .ms-opt input[type=checkbox]:not(#ms-all-${k})`);
+      allCb.checked = all.length > 0 && [...all].every(i=>i.checked);
+    }
+  }
   msRenderChips(k);
   // Repopula filtros dependentes em cascata
   if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
@@ -678,6 +932,11 @@ function msRenderChips(k) {
     chips.innerHTML = `<span class="ms-placeholder">${msPlaceholder[k]}</span>`;
     return;
   }
+  // Para filtros com muitas opções (emp, cargo): acima de 3 selecionados mostra resumo
+  if(MS_SELECT_ALL.has(k) && msSel[k].size > 3) {
+    chips.innerHTML = `<span class="ms-chip">${msSel[k].size} selecionados<span class="ms-rm" onclick="msClear('${k}');event.stopPropagation()">×</span></span>`;
+    return;
+  }
   chips.innerHTML = [...msSel[k]].map(v => {
     const short = v.split(' ').slice(0,2).join(' ');
     const esc = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
@@ -706,12 +965,20 @@ function msFilter(inp, listId) {
 // Close dropdowns on outside click
 document.addEventListener('click', e => {
   if(!e.target.closest('.ms-wrap')) {
-    ['sup','team','emp'].forEach(k => {
+    ['sup','team','emp','motivo','cargo'].forEach(k => {
       const dd = document.getElementById('ms-dd-'+k);
       if(dd) dd.style.display = 'none';
       const chev = document.getElementById('ms-chev-'+k);
       if(chev) chev.classList.remove('open');
       const tr = document.getElementById('ms-trigger-'+k);
+      if(tr) tr.classList.remove('open');
+    });
+    ['emp','tipo','sts'].forEach(k => {
+      const dd = document.getElementById('tf-dd-'+k);
+      if(dd) dd.style.display = 'none';
+      const chev = document.getElementById('tf-chev-'+k);
+      if(chev) chev.classList.remove('open');
+      const tr = document.getElementById('tf-trigger-'+k);
       if(tr) tr.classList.remove('open');
     });
   }
@@ -724,7 +991,7 @@ function buildLayout() {
       <div class="charts-row">
         <div class="chart-card full">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span><span id="trend-title">Evolução — ABS (%) por Equipe — Top 10 maiores</span></div>
+            <div class="card-title"><span id="trend-title">Evolução — ABS (%) por Equipe — Top 10 maiores</span></div>
             <div style="display:flex;align-items:center;gap:10px">
               <div id="trend-breadcrumb" style="font-size:12px;color:var(--mid)"></div>
               <div class="toggle-group">
@@ -743,7 +1010,7 @@ function buildLayout() {
         <!-- Linha 1: ABS Drill Down | Previsto vs Trabalhado -->
         <div class="funnel-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span>ABS % — Drill Down</div>
+            <div class="card-title">ABS % — Drill Down</div>
             <div class="toggle-group">
               <button class="toggle-btn active" id="fn-btn-supervisor" onclick="setFunnelRoot('supervisor')">Supervisor</button>
               <button class="toggle-btn" id="fn-btn-team" onclick="setFunnelRoot('team')">Equipe</button>
@@ -760,7 +1027,7 @@ function buildLayout() {
         </div>
         <div class="chart-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span><span id="hours-chart-title">Previsto vs trabalhado — supervisor</span></div>
+            <div class="card-title"><span id="hours-chart-title">Previsto vs trabalhado — supervisor</span></div>
             <div class="toggle-group">
               <button class="toggle-btn active" id="hours-btn-supervisor" onclick="setHoursMode('supervisor')">Supervisor</button>
               <button class="toggle-btn" id="hours-btn-team" onclick="setHoursMode('team')">Equipe</button>
@@ -778,7 +1045,7 @@ function buildLayout() {
         <!-- Linha 2: Atraso Drill Down | Matriz de Atraso -->
         <div class="funnel-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span>Total Atraso Operacional — 1ª Entrada — Drill Down</div>
+            <div class="card-title">Total Atraso Operacional — 1ª Entrada — Drill Down</div>
             <div class="toggle-group">
               <button class="toggle-btn active" id="lf-btn-supervisor" onclick="setLateFunnelRoot('supervisor')">Supervisor</button>
               <button class="toggle-btn" id="lf-btn-team" onclick="setLateFunnelRoot('team')">Equipe</button>
@@ -791,7 +1058,7 @@ function buildLayout() {
         </div>
         <div class="chart-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span>Matriz de Atraso — 1ª Entrada</div>
+            <div class="card-title">Matriz de Atraso — 1ª Entrada</div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <div class="funnel-breadcrumb" id="late-matrix-breadcrumb" style="margin-bottom:0"></div>
               <div class="toggle-group">
@@ -808,7 +1075,7 @@ function buildLayout() {
         <!-- Linha 3: Abonos Drill Down | Matriz de Abonos -->
         <div class="chart-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span><span id="ex-drill-title">Abonos — Drill Down (Supervisor)</span></div>
+            <div class="card-title"><span id="ex-drill-title">Abonos — Drill Down (Supervisor)</span></div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <div class="funnel-breadcrumb" id="ex-drill-breadcrumb" style="margin-bottom:0"></div>
               <div class="toggle-group">
@@ -827,7 +1094,7 @@ function buildLayout() {
         </div>
         <div class="chart-card">
           <div class="card-header">
-            <div class="card-title"><span class="bar-accent"></span>Matriz de Abonos</div>
+            <div class="card-title">Matriz de Abonos</div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <div class="funnel-breadcrumb" id="ex-matrix-breadcrumb" style="margin-bottom:0"></div>
               <div class="toggle-group">
@@ -844,8 +1111,47 @@ function buildLayout() {
       </div>
       <div class="table-card">
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <div class="card-title"><span class="bar-accent"></span>Detalhamento por colaborador / dia</div>
+          <div class="card-title">Detalhamento por colaborador / dia</div>
           <button class="btn-reset" onclick="exportCSV()" style="height:auto;padding:6px 12px;font-size:12px;font-weight:500">⬇ Exportar CSV</button>
+        </div>
+        <div style="display:flex;gap:8px;padding:8px 18px;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;align-items:center;background:var(--bg)">
+          <!-- Colaborador -->
+          <div class="ms-wrap" id="tf-wrap-emp" style="min-width:0;flex:1;max-width:260px">
+            <div class="ms-trigger" id="tf-trigger-emp" onclick="tfToggle('emp')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-emp"><span class="ms-placeholder" style="font-size:12px">Colaborador</span></div>
+              <i class="ms-chevron" id="tf-chev-emp">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-emp" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-emp')" id="tf-srch-emp"></div>
+              <div class="ms-opts" id="tf-list-emp"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-emp">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('emp')">Limpar</button></div>
+            </div>
+          </div>
+          <!-- Tipo de Abono -->
+          <div class="ms-wrap" id="tf-wrap-tipo" style="min-width:0;flex:1;max-width:220px">
+            <div class="ms-trigger" id="tf-trigger-tipo" onclick="tfToggle('tipo')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-tipo"><span class="ms-placeholder" style="font-size:12px">Tipo de Abono</span></div>
+              <i class="ms-chevron" id="tf-chev-tipo">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-tipo" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-tipo')" id="tf-srch-tipo"></div>
+              <div class="ms-opts" id="tf-list-tipo"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-tipo">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('tipo')">Limpar</button></div>
+            </div>
+          </div>
+          <!-- Status -->
+          <div class="ms-wrap" id="tf-wrap-sts" style="min-width:0;flex:1;max-width:200px">
+            <div class="ms-trigger" id="tf-trigger-sts" onclick="tfToggle('sts')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-sts"><span class="ms-placeholder" style="font-size:12px">Status</span></div>
+              <i class="ms-chevron" id="tf-chev-sts">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-sts" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-sts')" id="tf-srch-sts"></div>
+              <div class="ms-opts" id="tf-list-sts"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-sts">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('sts')">Limpar</button></div>
+            </div>
+          </div>
+          <button onclick="clearTableFilters()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='var(--border-subtle)'" onmouseout="this.style.background='transparent'">Limpar</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -894,8 +1200,11 @@ function renderAll(){ renderKPIs(); renderTrendChart(); renderLateChart(); rende
 function renderKPIs(){
   const d=dedupeRows(filteredData);
   const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
-  const absG=totP>0?(totA/totP*100):0, pct=totP>0?(totT/totP*100):0;
+  const totAEfetiva = msSel.motivo.size ? d.reduce((s,r)=>s+calcAusenciaEfetiva(r),0) : totA;
+  const absG=totP>0?(totAEfetiva/totP*100):0, pct=totP>0?(totT/totP*100):0;
   const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
+  const faltas   = d.filter(r => r.exemption && (r.exemption.all_day||'').toLowerCase()==='sim').length;
+  const ausencias = d.filter(r => { const ad = (r.exemption?.all_day||'').toLowerCase(); return r.ausencia > 0 && (ad === 'não' || ad === 'nao' || ad === 'false'); }).length;
   const excluidos = new Set(['Pendente','Reprovada']);
   const aprovados=d.filter(r=>r.exemption && !excluidos.has((r.exemption.solicitation_status||'').trim()));
   const totAbonos=aprovados.length;
@@ -935,7 +1244,7 @@ function renderKPIs(){
   };
   const mkHoraKpiMinCount=(label,min,count,sub)=>{
     const {main,sub2}=fmtKpiMin(min);
-    return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;white-space:nowrap">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}<span style="font-size:11px;font-weight:400;color:var(--text-3)">|</span><span style="font-size:11px;font-weight:500;color:var(--mid)">${count} atr.</span></div><div class="kpi-label">${label}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
+    return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;white-space:nowrap">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}</div><div class="kpi-label">${label}</div>${sub?`<div class="kpi-sub">${sub}${count?` · ${count} atr.`:''}</div>`:''}</div>`;
   };
   const mkKpi=(label,val,sub)=>`<div class="kpi"><div class="kpi-val">${val}</div><div class="kpi-label">${label}</div><div class="kpi-sub">${sub}</div></div>`;
   // Colaboradores com registro de ponto no período
@@ -948,9 +1257,9 @@ function renderKPIs(){
     `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">${colsComPonto}<span style="font-size:11px;font-weight:400;color:var(--text-3)">|</span><span style="font-size:11px;font-weight:500;color:var(--mid)">${colsTotal} prev.</span></div><div class="kpi-label">Colaboradores</div><div class="kpi-sub">com registro de ponto</div></div>`,
     mkHoraKpi('Total previsto',   totP, 'horas esperadas'),
     mkHoraKpi('Total trabalhado', totT, pct.toFixed(1)+'% do previsto'),
-    mkHoraKpi('Total ausências',  totA, 'horas faltantes'),
-    mkKpi('ABS Global',      absG.toFixed(2)+'%', 'índice de absenteísmo'),
-    mkKpi('Reg. c/ falta',   regFalta, 'registros com ausência'),
+    mkHoraKpi('Total ausências',  totAEfetiva, msSel.motivo.size?'horas (filtradas por motivo)':'horas faltantes'),
+    mkKpi('ABS Global', absG.toFixed(2)+'%', msSel.motivo.size?'filtrado por motivo':'índice de absenteísmo'),
+    mkKpi('Faltas', faltas, `${ausencias} ausências parciais`),
     mkKpi('Total Abonos',    totAbonos, 'registros abonados'),
     mkHoraKpi('Total Abonado', totAbonado, 'horas abonadas'),
     mkHoraKpiMinCount('Total Atraso', totAtrasMin, totRegAtraso, 'operacional'),
@@ -975,24 +1284,24 @@ function renderTrendChart(){
   if(trendDrillMonth){
     const dayData=filteredData.filter(d=>d.month===trendDrillMonth);
     const days=[...new Set(dayData.map(d=>d.date))].sort();
-    const groups=Object.entries(groupBy(dayData,groupKey)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    const groups=Object.entries(groupBy(dayData,groupKey)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
     labels=days.map(d=>{ const[,mo,dy]=d.split('-'); return `${dy}/${mo}`; });
     datasets=groups.map((g,i)=>({
       label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
-      borderWidth:2.5, pointRadius:4, fill:false, tension:.3, spanGaps:true,
-      data:days.map(day=>{ const r=dayData.filter(x=>x[groupKey]===g&&x.date===day); return r.length?calcAbs(r):null; })
+      borderWidth:2.5, pointRadius:2, fill:false, tension:.3, spanGaps:true,
+      data:days.map(day=>{ const r=dayData.filter(x=>x[groupKey]===g&&x.date===day); return r.length?calcAbsPrincipal(r):null; })
     }));
     breadcrumb=`${monthLabel(trendDrillMonth)} › dias`;
     hint='Clique aqui para voltar para o mês';
     document.getElementById('trend-hint').onclick=()=>{ trendDrillMonth=null; renderTrendChart(); };
   } else {
     const months=[...new Set(filteredData.map(d=>d.month))].sort();
-    const groups=Object.entries(groupBy(filteredData,groupKey)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    const groups=Object.entries(groupBy(filteredData,groupKey)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
     labels=months.map(monthLabel);
     datasets=groups.map((g,i)=>({
       label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
-      borderWidth:2.5, pointRadius:5, fill:false, tension:.3, spanGaps:true,
-      data:months.map(mo=>{ const r=filteredData.filter(d=>d[groupKey]===g&&d.month===mo); return r.length?calcAbs(r):null; })
+      borderWidth:2.5, pointRadius:2.5, fill:false, tension:.3, spanGaps:true,
+      data:months.map(mo=>{ const r=filteredData.filter(d=>d[groupKey]===g&&d.month===mo); return r.length?calcAbsPrincipal(r):null; })
     }));
     hint='Clique em um ponto para ver a evolução diária';
     document.getElementById('trend-hint').onclick=null;
@@ -1026,7 +1335,7 @@ function renderChartAbs(){
   const wrap=document.getElementById('chart-abs-wrap');
   if(!wrap) return;
   const key=absMode==='team'?'team':'name';
-  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
+  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs);
   const labels=e.map(x=>absMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
   const vals=e.map(x=>x.abs);
   const colors=vals.map(v=>v>=5?'#dc2626':v>=3?'#f59e0b':'#3b82f6');
@@ -1259,7 +1568,7 @@ function renderFunnel(){
 }
 
 function getItems(rows,key){
-  return Object.entries(groupBy(rows,key)).map(([k,v])=>({key,label:k,abs:calcAbs(v)})).sort((a,b)=>b.abs-a.abs);
+  return Object.entries(groupBy(rows,key)).map(([k,v])=>({key,label:k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs);
 }
 function drillDown(key,val){ funnelPath.push({key,val}); renderFunnel(); }
 function drillUp(idx){ funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1); renderFunnel(); }
@@ -1332,7 +1641,37 @@ function renderLateFunnel(){
   document.getElementById('late-funnel-hint').textContent = canDrill ? 'Clique em uma barra para detalhar' : '';
 }
 
-function renderTableBody(){ tablePage=0; renderTablePage(); }
+function renderTableBody(){
+  tablePage=0;
+  // Resetar filtros internos ao re-renderizar
+  tableFilters.emp.clear(); tableFilters.tipo.clear(); tableFilters.sts.clear();
+  ['emp','tipo','sts'].forEach(k => tfRenderChips(k));
+
+  const rows = dedupeRows(filteredData);
+  // Popular Colaborador
+  const emps = [...new Set(rows.map(r=>r.name))].sort();
+  tfFill('emp', emps);
+  // Popular Tipo de Abono
+  const tipos = [...new Set(rows.map(r=>r.exemption?(r.exemption.exemption_type||''):'').filter(Boolean))].sort();
+  tfFill('tipo', tipos);
+  // Popular Status
+  const statuses = [...new Set(rows.map(r=>r.exemption?(r.exemption.status||''):'').filter(Boolean))].sort();
+  tfFill('sts', statuses);
+
+  renderTablePage();
+}
+
+function applyTableFilter(){ tablePage=0; renderTablePage(); }
+
+function clearTableFilters(){
+  tableFilters.emp.clear(); tableFilters.tipo.clear(); tableFilters.sts.clear();
+  ['emp','tipo','sts'].forEach(k=>{
+    document.querySelectorAll('#tf-list-'+k+' input').forEach(i=>i.checked=false);
+    tfRenderChips(k);
+  });
+  tablePage=0; renderTablePage();
+}
+window.clearTableFilters = clearTableFilters;
 
 // ── MATRIZ DE ATRASO ─────────────────────────────────────────────────────────
 const LATE_CATS = [
@@ -1420,7 +1759,7 @@ function renderLateMatrix(){
     return `<tr onclick="${canDrill?`lateMatrixDrillDown('${esc}')`:''}"
       style="cursor:${canDrill?'pointer':'default'};border-bottom:1px solid var(--border)"
       onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
-      <td style="padding:6px 10px;font-size:12px;color:var(--dark);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc}">${rowKey}</td>
+      <td style="padding:6px 10px;font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;min-width:140px;max-width:200px" title="${esc}">${rowKey}</td>
       ${cells}
       <td style="text-align:center;padding:5px 10px;background:var(--border-subtle);font-size:11px;font-weight:600;color:var(--dark)">${fmtMin(tot.min)}<div style="color:var(--text-3);font-size:10px;font-weight:400">${tot.count} atr.</div></td>
     </tr>`;
@@ -1440,14 +1779,19 @@ function renderLateMatrix(){
 }
 
 function renderTablePage(){
-  const all=dedupeRows(filteredData);
+  let all=dedupeRows(filteredData);
+  if(tableFilters.emp.size)  all=all.filter(r=>tableFilters.emp.has(r.name));
+  if(tableFilters.tipo.size) all=all.filter(r=>tableFilters.tipo.has(r.exemption?.exemption_type||''));
+  if(tableFilters.sts.size)  all=all.filter(r=>tableFilters.sts.has(r.exemption?.status||''));
   const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
   const slice=all.slice(start,end);
   document.getElementById('table-body').innerHTML=slice.map(r=>{
-    const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
+    const ausEfetiva = calcAusenciaEfetiva(r);
+    const a=r.previsto>0?(ausEfetiva/r.previsto*100):0;
     const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
     const ex=r.exemption;
-    const isAllDay=ex&&(ex.all_day||'').toLowerCase()==='sim';
+    const aprovado = ex && !EXCLUIDOS_SOL.has((ex.solicitation_status||'').trim());
+    const isAllDay=aprovado&&(ex.all_day||'').toLowerCase()==='sim';
     // Exemption columns
     const exType  = ex?(ex.exemption_type||'—'):'—';
     const exStatus= ex?(ex.status||'—'):'—';
@@ -1458,16 +1802,16 @@ function renderTablePage(){
     const exEnd   = isAllDay?'—':(ex?(ex.end_time||'—'):'—');
     const exAttach= ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim'||ex.has_attachment==='Sim')?'✔ Sim':'✘ Não'):'—';
     const exObs   = ex?(ex.observation||'—'):'—';
-    // Total abonado formatado
-    const abonadoH = r.abonado||0;
-    const abonadoHH = Math.floor(abonadoH), abonadoMM = Math.round((abonadoH-abonadoHH)*60);
-    const abonadoFmt = abonadoH>0 ? (abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`) : '—';
+    // Total abonado formatado (só conta se aprovado)
+    const abonadoH = aprovado ? (r.abonado||0) : 0;
+    const fmtHHMM = h => { const hh=Math.floor(h), mm=Math.round((h-hh)*60); return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
+    const abonadoFmt = abonadoH>0 ? fmtHHMM(abonadoH) : '—';
     const abonadoTag = abonadoH>0 ? `<span class="badge badge-exemption">${abonadoFmt}</span>` : '—';
     // Row highlight class when exemption present
     const rowClass= isAllDay?'style="background:#fffbeb"':'';
     // ABS cell tag
     const absTag = isAllDay?`<span class="exempt-tag allday">Abono Dia</span>`
-                  :ex?`<span class="exempt-tag">Abono</span>`:'';
+                  :aprovado?`<span class="exempt-tag">Abono</span>`:'';
     // Time card lookup
     const tcKey = r.name.trim()+'|'+r.date;
     const tc = timeCardsMap[tcKey] || null;
@@ -1492,9 +1836,9 @@ function renderTablePage(){
       <td class="registro-ponto">${registroPonto}</td>
       <td style="font-size:11px;color:var(--text-2);max-width:160px;white-space:normal;word-break:break-word">${shiftName}</td>
       <td style="text-align:center">${lateTag}</td>
-      <td>${r.previsto.toFixed(1)}h</td>
-      <td>${r.trabalhado.toFixed(1)}h</td>
-      <td>${r.ausencia.toFixed(1)}h</td>
+      <td>${fmtHHMM(r.previsto)}</td>
+      <td>${fmtHHMM(r.trabalhado)}</td>
+      <td>${fmtHHMM(r.ausencia)}</td>
       <td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span>${absTag}</div></td>
       <td>${abonadoTag}</td>
       <td>${exType}</td>
@@ -1515,7 +1859,11 @@ function renderTablePage(){
 }
 
 function tablePageChange(dir){
-  const pages=Math.ceil(dedupeRows(filteredData).length/TABLE_PAGE_SIZE);
+  let all=dedupeRows(filteredData);
+  if(tableFilters.emp.size)  all=all.filter(r=>tableFilters.emp.has(r.name));
+  if(tableFilters.tipo.size) all=all.filter(r=>tableFilters.tipo.has(r.exemption?.exemption_type||''));
+  if(tableFilters.sts.size)  all=all.filter(r=>tableFilters.sts.has(r.exemption?.status||''));
+  const pages=Math.ceil(all.length/TABLE_PAGE_SIZE);
   tablePage=Math.max(0,Math.min(tablePage+dir,pages-1));
   renderTablePage();
 }
@@ -1577,8 +1925,9 @@ function exportCSV(){
     const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
     const fmt=n=>n.replace('.',',');
     const ex=r.exemption;
-    const isAllDay=ex&&(ex.all_day||'').toLowerCase()==='sim';
-    const abonadoH=r.abonado||0;
+    const aprovado = ex && !EXCLUIDOS_SOL.has((ex.solicitation_status||'').trim());
+    const isAllDay=aprovado&&(ex.all_day||'').toLowerCase()==='sim';
+    const abonadoH=aprovado?(r.abonado||0):0;
     const abonadoHH=Math.floor(abonadoH), abonadoMM=Math.round((abonadoH-abonadoHH)*60);
     const abonadoFmt=abonadoH>0?(abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`):'';
     lines.push([
@@ -1732,8 +2081,8 @@ function renderExDrillChart(){
     const cursor = canDrill ? 'pointer' : 'default';
     const hover = canDrill ? `onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''"` : '';
     return `<div ${hover} onclick="${canDrill?`exDrillDown('${esc}')`:''}\"
-      style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
-      <div style="font-size:12px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px" title="${esc}">${cat}</div>
+      style="display:grid;grid-template-columns:minmax(120px,180px) 1fr 52px 1fr 52px;gap:4px 6px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
+      <div style="font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35" title="${esc}">${cat}</div>
       <div style="display:flex;align-items:center;gap:4px">
         <div style="flex:1;background:#f4f4f5;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wR}%;height:100%;background:#1e40af;border-radius:3px"></div></div>
         <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${v.count} reg.</div>
@@ -1852,7 +2201,7 @@ function renderExMatrixChart(){
     }).join('');
     return `<tr onclick="${canDrill?`exMatrixDrillDown('${esc}')`:''}" style="cursor:${cursor};border-bottom:1px solid var(--border)"
       onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
-      <td style="padding:6px 10px;font-size:12px;color:var(--dark);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc}">${rk}</td>
+      <td style="padding:6px 10px;font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;min-width:140px;max-width:200px" title="${rk}">${rk}</td>
       ${cells}
       <td style="text-align:center;padding:5px 10px;font-size:11px;background:#fafafa;font-weight:600;color:var(--dark)">${rv._total.count}<div style="color:var(--mid);font-size:10px;font-weight:400">${fmtH(rv._total.horas)}</div></td>
     </tr>`;
@@ -1878,226 +2227,5 @@ function showError(msg){
 
 }); // DOMContentLoaded
 </script>
-<!-- CHAT WIDGET BCR.CX -->
-<style>
-#chat-fab{position:fixed;bottom:28px;right:28px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#2151E5;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(33,81,229,.35);display:flex;align-items:center;justify-content:center;transition:transform .2s ease,box-shadow .2s ease}
-#chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(33,81,229,.45)}
-#chat-fab svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#chat-panel{position:fixed;bottom:92px;right:28px;z-index:9999;width:380px;max-height:560px;background:#fff;border-radius:16px;border:1px solid #e4e4e7;box-shadow:0 8px 40px rgba(0,0,0,.12);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}
-#chat-panel.open{display:flex}
-#chat-header{background:#2151E5;padding:14px 16px;display:flex;align-items:center;gap:10px}
-#chat-header-icon{width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-#chat-header-icon svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#chat-header-info{flex:1}
-#chat-header-info strong{display:block;font-size:13px;font-weight:600;color:#fff}
-#chat-header-info span{font-size:11px;color:rgba(255,255,255,.75)}
-#chat-close{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.75);font-size:18px;line-height:1;padding:0;transition:color .15s ease}
-#chat-close:hover{color:#fff}
-#chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:380px}
-#chat-messages::-webkit-scrollbar{width:4px}
-#chat-messages::-webkit-scrollbar-track{background:transparent}
-#chat-messages::-webkit-scrollbar-thumb{background:#e4e4e7;border-radius:2px}
-.chat-msg{display:flex;flex-direction:column;gap:4px;max-width:88%}
-.chat-msg.user{align-self:flex-end;align-items:flex-end}
-.chat-msg.bot{align-self:flex-start;align-items:flex-start}
-.chat-bubble{padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.5;word-break:break-word}
-.chat-msg.user .chat-bubble{background:#2151E5;color:#fff;border-bottom-right-radius:3px}
-.chat-msg.bot .chat-bubble{background:#f4f4f5;color:#18181b;border-bottom-left-radius:3px;white-space:pre-wrap}
-.chat-time{font-size:10px;color:#a1a1aa;padding:0 2px}
-.chat-typing{align-self:flex-start;display:flex;gap:4px;padding:12px 14px;background:#f4f4f5;border-radius:12px;border-bottom-left-radius:3px}
-.chat-typing span{width:7px;height:7px;border-radius:50%;background:#a1a1aa;animation:typing .9s infinite}
-.chat-typing span:nth-child(2){animation-delay:.15s}
-.chat-typing span:nth-child(3){animation-delay:.3s}
-@keyframes typing{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
-#chat-suggestions{padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:6px}
-.chat-suggestion{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;transition:background .15s ease;white-space:nowrap}
-.chat-suggestion:hover{background:#dbeafe}
-#chat-footer{padding:10px 12px;border-top:1px solid #f4f4f5;display:flex;gap:8px;align-items:center}
-#chat-input{flex:1;border:1px solid #e4e4e7;border-radius:10px;padding:9px 12px;font-size:13px;color:#18181b;outline:none;resize:none;font-family:inherit;transition:border-color .15s ease;line-height:1.4;max-height:80px;overflow-y:auto}
-#chat-input:focus{border-color:#2151E5;box-shadow:0 0 0 3px rgba(33,81,229,.08)}
-#chat-input::placeholder{color:#a1a1aa}
-#chat-send{background:#2151E5;border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s ease;flex-shrink:0}
-#chat-send:hover{opacity:.85}
-#chat-send:disabled{opacity:.4;cursor:not-allowed}
-#chat-send svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.chat-tip{font-size:11px;color:#6366f1;background:#eef2ff;border:1px solid #e0e7ff;border-radius:8px;padding:6px 10px;margin-top:2px;line-height:1.4;cursor:pointer;transition:background .15s ease}
-.chat-tip:hover{background:#e0e7ff}
-</style>
-
-<!-- Botão flutuante -->
-<button id="chat-fab" onclick="chatToggle()" title="Assistente IA — Absenteísmo">
-  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-</button>
-
-<!-- Painel de chat -->
-<div id="chat-panel">
-  <div id="chat-header">
-    <div id="chat-header-icon">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-    </div>
-    <div id="chat-header-info">
-      <strong>ABS Agent</strong>
-      <span>Análise de Absenteísmo com IA</span>
-    </div>
-    <button id="chat-close" onclick="chatToggle()">✕</button>
-  </div>
-
-  <div id="chat-messages">
-    <div class="chat-msg bot">
-      <div class="chat-bubble">Olá! Sou o assistente de absenteísmo da BCR.CX. Posso responder perguntas sobre faltas, abonos, atrasos e indicadores das equipes. Como posso ajudar?</div>
-      <span class="chat-time">agora</span>
-    </div>
-  </div>
-
-  <div id="chat-suggestions">
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Qual equipe tem mais faltas?</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">ABS global do último mês</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Top 5 colaboradores com mais ausências</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Abonos pendentes</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Qual dia da semana tem mais faltas?</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Colaboradores com mais atrasos</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Taxa de absenteísmo por cargo</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Evolução de faltas semana a semana</button>
-  </div>
-
-  <div id="chat-footer">
-    <textarea id="chat-input" placeholder="Digite sua pergunta..." rows="1" onkeydown="chatKeydown(event)" oninput="chatAutoResize(this)"></textarea>
-    <button id="chat-send" onclick="chatSend()" title="Enviar">
-      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-    </button>
-  </div>
-</div>
-
-<script>
-(function(){
-  const WEBHOOK = 'https://eventos.55telecom.com/webhook/bot-dash';
-  let chatOpen = false;
-  let chatBusy = false;
-  let chatSession = 'session-' + Date.now();
-
-  window.chatToggle = function(){
-    chatOpen = !chatOpen;
-    document.getElementById('chat-panel').classList.toggle('open', chatOpen);
-    if(chatOpen) document.getElementById('chat-input').focus();
-  };
-
-  window.chatSuggest = function(btn){
-    const txt = btn.textContent;
-    document.getElementById('chat-input').value = txt;
-    chatAutoResize(document.getElementById('chat-input'));
-    chatSend();
-  };
-
-  window.chatKeydown = function(e){
-    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSend(); }
-  };
-
-  window.chatAutoResize = function(el){
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 80) + 'px';
-  };
-
-  window.chatSend = async function(){
-    if(chatBusy) return;
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if(!text) return;
-
-    chatBusy = true;
-    input.value = '';
-    input.style.height = 'auto';
-    document.getElementById('chat-send').disabled = true;
-    document.getElementById('chat-suggestions').style.display = 'none';
-
-    // Mensagem do usuário
-    chatAddMsg('user', text);
-
-    // Typing indicator
-    const typing = document.createElement('div');
-    typing.className = 'chat-typing';
-    typing.id = 'chat-typing';
-    typing.innerHTML = '<span></span><span></span><span></span>';
-    document.getElementById('chat-messages').appendChild(typing);
-    chatScrollBottom();
-
-    try {
-      const res = await fetch(WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          texto: 'bot-dash ' + text,
-          autor: 'Dashboard',
-          channelId: chatSession,
-          messageId: 'msg-' + Date.now()
-        })
-      });
-
-      const data = await res.json();
-      const resposta = data.resposta || data.output || 'Não consegui obter uma resposta. Tente novamente.';
-
-      typing.remove();
-      chatAddMsg('bot', resposta);
-    } catch(err) {
-      typing.remove();
-      chatAddMsg('bot', '⚠️ Erro ao conectar com o assistente. Verifique se o workflow está ativo no n8n.');
-    }
-
-    chatBusy = false;
-    document.getElementById('chat-send').disabled = false;
-    input.focus();
-  };
-
-  const CHAT_TIPS = [
-    '💡 Dica: especifique o período para comparar com o dashboard (ex: "nos últimos 30 dias")',
-    '📊 Experimente: "Compare o ABS da TENDA com a VOLVO no último mês"',
-    '🔍 Experimente: "Quais colaboradores tiveram mais de 3 faltas em junho?"',
-    '📅 Experimente: "Qual foi a semana com mais faltas em junho?"',
-    '👥 Experimente: "Quantos colaboradores não registraram ponto nos últimos 7 dias?"',
-    '⏰ Experimente: "Qual turno tem mais atrasos na última semana?"',
-    '📋 Experimente: "Quais abonos estão pendentes de aprovação?"',
-    '📈 Experimente: "O ABS melhorou ou piorou em relação ao mês anterior?"',
-    '🏆 Experimente: "Qual supervisor tem a equipe com menor índice de faltas?"',
-    '⚠️ Experimente: "Quem acumulou mais horas de ausência no mês?"',
-  ];
-  let chatTipIndex = 0;
-
-  function chatAddMsg(role, text){
-    const msgs = document.getElementById('chat-messages');
-    const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-    const div = document.createElement('div');
-    div.className = 'chat-msg ' + role;
-    div.innerHTML = `<div class="chat-bubble">${escHtml(text)}</div><span class="chat-time">${now}</span>`;
-    msgs.appendChild(div);
-
-    // Mostra dica rotativa a cada resposta do bot
-    if(role === 'bot'){
-      const tip = document.createElement('div');
-      tip.className = 'chat-tip';
-      const tipText = CHAT_TIPS[chatTipIndex % CHAT_TIPS.length];
-      tip.textContent = tipText;
-      tip.onclick = () => {
-        const clean = tipText.replace(/^[^:]+:\s*/, '').replace(/^"/, '').replace(/"$/, '');
-        document.getElementById('chat-input').value = clean;
-        chatAutoResize(document.getElementById('chat-input'));
-        document.getElementById('chat-input').focus();
-      };
-      chatTipIndex++;
-      msgs.appendChild(tip);
-    }
-
-    chatScrollBottom();
-  }
-
-  function chatScrollBottom(){
-    const msgs = document.getElementById('chat-messages');
-    msgs.scrollTop = msgs.scrollHeight;
-  }
-
-  function escHtml(t){
-    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-})();
-</script>
-
 </body>
 </html>
