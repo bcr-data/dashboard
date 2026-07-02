@@ -1,0 +1,2450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Gerencial BCR.CX</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:#fafafa;color:#18181b;font-size:14px;-webkit-font-smoothing:antialiased}
+:root{--bg:#fafafa;--surface:#fff;--border:#e4e4e7;--border-subtle:#f4f4f5;--text:#18181b;--text-2:#71717a;--text-3:#a1a1aa;--brand:#2151E5;--data:#3b82f6;--data-dark:#1e40af;--data-light:#93c5fd;--warn:#f59e0b;--danger:#dc2626;--success:#16a34a;--blue1:#1A2A6C;--blue2:#3b82f6;--blue3:#3b82f6;--blue4:#93c5fd;--blue5:#eff6ff;--dark:#18181b;--mid:#71717a;--light:#a1a1aa}
+.header{background:var(--surface);color:var(--text);padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);position:relative;overflow:clip}
+.header::before{content:'';position:absolute;top:0;bottom:0;left:170px;right:0;background-image:url("data:image/svg+xml,%3Csvg width='300' height='520' viewBox='0 0 90 156' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23f7f8fa' stroke-width='0.55'%3E%3Cpath d='M22.5 0L45 13M45 13V39M45 39L22.5 52M22.5 52L0 39M0 39V13M0 13L22.5 0M22.5 52V78M67.5 0L90 13M90 13V39M90 39L67.5 52M67.5 52L45 39M45 39V13M45 13L67.5 0M67.5 52V78M22.5 78L45 91M45 91V117M45 117L22.5 130M22.5 130L0 117M0 117V91M0 91L22.5 78M22.5 130V156M67.5 78L90 91M90 91V117M90 117L67.5 130M67.5 130L45 117M45 117V91M45 91L67.5 78M67.5 130V156'/%3E%3Cpath d='M22.5 26L0 13M22.5 26L45 13M22.5 26V52'/%3E%3Cpath d='M0 65L22.5 52M0 65V91M90 65L67.5 52M90 65V91'/%3E%3Cpath d='M45 65L22.5 78M45 65L67.5 78M45 65V39'/%3E%3Cpath d='M67.5 104L45 91M67.5 104L90 91M67.5 104V130'/%3E%3Cpath d='M0 143L22.5 156M0 143V117M90 143L67.5 156M90 143V117'/%3E%3C/g%3E%3C/svg%3E");background-size:300px 520px;background-position:-70px -30px;-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 8%);mask-image:linear-gradient(90deg,transparent 0%,#000 8%);pointer-events:none}
+.header>*{position:relative;z-index:1}
+.logo-wrap{display:flex;align-items:center;gap:8px}
+.logo-wrap img{height:28px;width:auto}
+.header-divider{width:1px;height:20px;background:var(--border)}
+.header-title{flex:initial;text-align:left}.header-title h1{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.01em}.header-title p{font-size:12px;color:var(--text-2);margin-top:1px}
+.header-meta{font-size:12px;text-align:right;color:var(--text-2);margin-left:auto}
+.filters{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
+.filter-group label{font-size:11px;font-weight:500;color:var(--text-2)}
+.filter-group select,.filter-group input[type=date]{border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s ease}
+.filter-group select:hover,.filter-group input[type=date]:hover{border-color:var(--text-3)}
+.filter-group select:focus,.filter-group input[type=date]:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+.btn-filter{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:500;height:36px;transition:opacity .15s ease;flex-shrink:0}
+.btn-filter:hover{opacity:.85}
+.btn-reset{background:transparent;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;height:36px;transition:background .15s ease,border-color .15s ease;flex-shrink:0}
+.btn-reset:hover{background:var(--border-subtle);border-color:var(--text-3)}
+/* MULTISELECT */
+.ms-wrap{position:relative}
+.ms-trigger{border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;color:var(--text);background:var(--surface);cursor:pointer;display:flex;align-items:center;gap:6px;height:36px;overflow:hidden;transition:border-color .15s ease,height .15s ease}
+.ms-trigger:hover{border-color:var(--text-3)}
+.ms-trigger.open{border-color:var(--text);height:auto;min-height:36px;align-items:flex-start;padding:6px 10px;flex-wrap:wrap}
+.ms-chips{display:flex;gap:4px;flex:1;align-items:center;overflow-x:auto;overflow-y:hidden;height:24px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.ms-chips::-webkit-scrollbar{height:3px}
+.ms-chips::-webkit-scrollbar-track{background:transparent}
+.ms-chips::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ms-trigger.open .ms-chips{overflow:visible;height:auto;flex-wrap:wrap}
+.ms-chevron{flex-shrink:0;font-size:14px;color:var(--text-3);transition:transform .15s ease;align-self:center}
+.ms-chevron.open{transform:rotate(180deg)}
+.ms-chips{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.ms-chip{background:#eff6ff;color:#1e40af;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:500;display:flex;align-items:center;gap:2px;white-space:nowrap}
+.ms-chip .ms-rm{cursor:pointer;opacity:.6;font-size:13px;line-height:1}
+.ms-chip .ms-rm:hover{opacity:1}
+.ms-placeholder{color:var(--text);font-size:13px}
+.ms-chevron{font-size:14px;color:var(--text-3);flex-shrink:0;transition:transform .15s ease;margin-left:auto}
+.ms-chevron.open{transform:rotate(180deg)}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:10px;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.07);overflow:hidden}
+.ms-search{padding:8px;border-bottom:1px solid var(--border-subtle)}
+.ms-search input{width:100%;border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;outline:none;color:var(--text);background:var(--bg);transition:border-color .15s ease}
+.ms-search input:focus{border-color:var(--text)}
+.ms-opts{max-height:200px;overflow-y:auto}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:13px;color:var(--text);cursor:pointer;transition:background .1s ease}
+.ms-opt:hover{background:var(--border-subtle)}
+.ms-opt input[type=checkbox]{accent-color:var(--brand);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.ms-footer{padding:7px 12px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center}
+.ms-footer-count{font-size:11px;color:var(--text-3)}
+.ms-footer-clear{font-size:11px;color:var(--text-2);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px}
+.ms-footer-clear:hover{color:var(--text);background:var(--border-subtle)}
+.main{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-width:1600px;margin:0 auto;width:100%}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border);transition:border-color .15s ease}
+.kpi:hover{border-color:var(--text-3)}
+.kpi-val{font-size:26px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-0.02em}
+.kpi-label{font-size:12px;color:var(--text-2);margin-top:8px}
+.kpi-sub{font-size:11px;color:var(--text-3);margin-top:3px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chart-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:380px}
+.chart-card.full{grid-column:1/-1}
+
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.01em;display:flex;align-items:center;gap:8px}.card-title::before{content:"";display:inline-block;width:3px;height:14px;background:var(--brand);border-radius:2px;flex-shrink:0}
+.toggle-group{display:inline-flex;background:var(--border-subtle);border:none;border-radius:8px;padding:3px;gap:2px;overflow:visible}
+.toggle-btn{background:transparent;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text-2);font-weight:500;transition:color .15s ease,background .15s ease}
+.toggle-btn:not(:last-child){border-right:none}
+.toggle-btn:hover{color:var(--text)}
+.toggle-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.legend-row{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:var(--text-2)}
+.legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:4px}
+.funnel-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:380px}
+.funnel-wrap{display:flex;flex-direction:column;gap:4px;margin-top:4px;flex:1;overflow-y:auto;max-height:340px}
+.funnel-level-title{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px}
+.funnel-bar-row{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:8px;transition:background .12s ease}
+.funnel-bar-row:hover{background:var(--border-subtle)}
+.funnel-label{font-size:12px;color:var(--text);min-width:160px;max-width:220px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35}
+.funnel-bar-bg{flex:1;height:14px;background:var(--border-subtle);border-radius:4px;overflow:hidden}
+.funnel-bar-fill{height:100%;border-radius:4px;background:var(--data);transition:width .3s ease}
+.funnel-bar-fill.warn{background:var(--warn)}.funnel-bar-fill.danger{background:var(--danger)}
+.funnel-pct{font-size:12px;font-weight:600;color:var(--text);min-width:52px;text-align:right}
+.funnel-breadcrumb{font-size:12px;color:var(--text-2);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.funnel-breadcrumb span{color:var(--data-dark);cursor:pointer;font-weight:500}
+.funnel-breadcrumb span:hover{text-decoration:underline}
+.funnel-hint{font-size:11px;color:var(--text-3);margin-top:8px}
+td.registro-ponto{white-space:pre-line;font-size:12px;line-height:1.6}
+.table-card{background:var(--surface);border-radius:12px;padding:0;border:1px solid var(--border);overflow:hidden}
+.table-card>div:first-child{padding:14px 18px;border-bottom:1px solid var(--border-subtle)}
+.table-wrap{overflow-x:auto;max-height:380px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{position:sticky;top:0;background:var(--bg);color:var(--text-2);font-weight:500;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;cursor:pointer;white-space:nowrap;transition:color .15s ease;text-align:right}
+thead th:first-child{text-align:left}
+thead th:hover{color:var(--text)}
+tbody tr{border-bottom:1px solid var(--border-subtle);transition:background .12s ease}
+tbody tr:hover td{background:#f0f4ff}
+tbody td{padding:7px 12px;color:var(--text);background:#fff;text-align:right;white-space:nowrap;vertical-align:middle}
+tbody td:first-child{text-align:left;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;min-width:160px;background:var(--bg)}
+/* Célula de dimensão reutilizável em matrizes e drills */
+.dim-cell{font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;padding:6px 10px;min-width:140px;max-width:200px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
+.badge-ok{background:transparent;color:#15803d}.badge-ok::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--success)}
+.badge-warn{background:transparent;color:#b45309}.badge-warn::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--warn)}
+.badge-danger{background:transparent;color:#b91c1c}.badge-danger::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--danger)}
+.abs-bar{display:flex;align-items:center;gap:6px}
+.abs-bar-bg{flex:1;height:5px;background:var(--border-subtle);border-radius:3px;overflow:hidden;min-width:60px}
+.abs-bar-fill{height:100%;border-radius:3px;background:var(--data)}
+.abs-bar-fill.warn{background:var(--warn)}.abs-bar-fill.danger{background:var(--danger)}
+.loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:60px;color:var(--text-2);font-size:14px}
+.spinner{width:26px;height:26px;border:2.5px solid var(--border-subtle);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;color:#b91c1c;font-size:13px;margin:20px 24px}
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.login-card{background:var(--surface);border-radius:16px;padding:40px 36px;width:100%;max-width:380px;border:1px solid var(--border)}
+.login-logo{display:flex;justify-content:center;margin-bottom:28px}
+.login-logo img{height:44px;width:auto}
+.login-title{font-size:19px;font-weight:600;color:var(--text);text-align:center;margin-bottom:4px;letter-spacing:-0.01em}
+.login-sub{font-size:13px;color:var(--text-3);text-align:center;margin-bottom:28px}
+.login-field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.login-field label{font-size:12px;font-weight:500;color:var(--text-2)}
+.login-field input{border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text);outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+.login-field input:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+.btn-login{width:100%;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:500;cursor:pointer;margin-top:6px;transition:opacity .15s ease}
+.btn-login:hover{opacity:.9}
+.btn-login:disabled{opacity:.5;cursor:not-allowed}
+.login-error{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#b91c1c;font-size:13px;margin-top:12px;display:none}
+.login-spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+/* USER CHIP */
+.user-chip{display:flex;align-items:center;gap:8px;font-size:12px}
+.user-chip span{color:#374151}
+.btn-logout{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 11px;font-size:12px;cursor:pointer;transition:background .15s ease}
+.btn-logout:hover{background:var(--border-subtle)}
+.nav-menu-wrap{position:relative}
+.btn-nav{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;cursor:pointer;transition:background .15s ease,border-color .15s ease;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0}
+.btn-nav:hover,.btn-nav.open{background:var(--border-subtle);border-color:var(--text-3)}
+.btn-nav i{display:block;width:14px;height:1.5px;background:currentColor;border-radius:1px;transition:none}
+.btn-nav i:last-child{width:10px}
+.nav-dropdown{position:fixed;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:9999;overflow:hidden;display:none}
+.nav-dropdown.open{display:block}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:13px;color:var(--text);text-decoration:none;cursor:pointer;transition:background .1s ease;user-select:none}
+.nav-item:hover{background:var(--border-subtle)}
+.nav-item.active{color:var(--brand);font-weight:500}
+.nav-item svg{flex-shrink:0;opacity:.55}
+.nav-item.active svg,.nav-item:hover svg{opacity:1}
+.nav-sep{height:1px;background:var(--border-subtle);margin:3px 0}
+.btn-refresh{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:7px;padding:4px 9px;font-size:14px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease;display:flex;align-items:center;justify-content:center;line-height:1}
+.btn-refresh:hover{background:var(--border-subtle);color:var(--brand);border-color:var(--brand)}
+.btn-refresh.refreshing{color:var(--brand);border-color:var(--brand);animation:spin .7s linear infinite}
+@keyframes refreshPulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+/* EXEMPTION */
+.badge-exemption{background:#dbeafe;color:#1e40af;border:none}
+.badge-exempt-allday{background:#fef3c7;color:#92400e;border:none}
+td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
+.exempt-tag{display:inline-flex;align-items:center;gap:3px;background:#dbeafe;color:#1e40af;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:500;border:none;white-space:nowrap}
+.exempt-tag.allday{background:#fef3c7;color:#92400e;border:none}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="./logo.png" alt="BCR.CX">
+    </div>
+    <div class="login-title">Dashboard Gerencial</div>
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="btn-login">
+      <span id="login-label">Entrar</span>
+      <div class="login-spinner" id="login-spinner"></div>
+    </button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none">
+
+<div class="header">
+  <div class="logo-wrap">
+    <img src="./logo.png" alt="BCR.CX">
+  </div>
+  <div class="header-divider"></div>
+  <div class="header-title">
+    <h1>Dashboard Gerencial - Absenteísmo</h1>
+    <p>Acompanhamento de frequência e ausências por equipe</p>
+  </div>
+  <div class="header-meta" id="header-meta">
+    <div class="user-chip">
+      <button class="btn-refresh" id="btn-refresh" title="Atualizar dashboard" onclick="triggerWebhookRefresh()">↻</button>
+      <span id="user-email-display"></span>
+      <div class="nav-menu-wrap" id="nav-wrap">
+        <button class="btn-nav" id="btn-nav" title="Menu" onclick="navToggle()">
+          <i></i><i></i><i></i>
+        </button>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <a class="nav-item active" href="./index.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Absenteísmo
+          </a>
+          <a class="nav-item" href="./ligacoes.html">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.96 1.18 2 2 0 012.93 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            Ligações
+          </a>
+          <div class="nav-sep"></div>
+          <span class="nav-item" onclick="doLogout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="filters" id="filters-bar" style="display:none">
+  <div class="filter-group"><label>Data início</label><input type="date" id="f-date-start"></div>
+  <div class="filter-group"><label>Data fim</label><input type="date" id="f-date-end"></div>
+  <div class="filter-group ms-wrap" id="ms-wrap-sup">
+    <label>Supervisor</label>
+    <div class="ms-trigger" id="ms-trigger-sup" onclick="msToggle('sup')">
+      <div class="ms-chips" id="ms-chips-sup"><span class="ms-placeholder">Todos os supervisores</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-sup" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-sup" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-sup')" id="ms-srch-sup"></div>
+      <div class="ms-opts" id="ms-list-sup"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-sup">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('sup')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-team">
+    <label>Equipe</label>
+    <div class="ms-trigger" id="ms-trigger-team" onclick="msToggle('team')">
+      <div class="ms-chips" id="ms-chips-team"><span class="ms-placeholder">Todas as equipes</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-team" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-team" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-team')" id="ms-srch-team"></div>
+      <div class="ms-opts" id="ms-list-team"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-team">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('team')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-emp">
+    <label>Colaborador</label>
+    <div class="ms-trigger" id="ms-trigger-emp" onclick="msToggle('emp')">
+      <div class="ms-chips" id="ms-chips-emp"><span class="ms-placeholder">Todos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-emp" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-emp" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-emp')" id="ms-srch-emp"></div>
+      <div class="ms-opts" id="ms-list-emp"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-emp">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('emp')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-motivo">
+    <label>Motivo Abono</label>
+    <div class="ms-trigger" id="ms-trigger-motivo" onclick="msToggle('motivo')">
+      <div class="ms-chips" id="ms-chips-motivo"><span class="ms-placeholder">Todos os motivos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-motivo" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-motivo" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-motivo')" id="ms-srch-motivo"></div>
+      <div class="ms-opts" id="ms-list-motivo"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-motivo">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('motivo')">Limpar</button></div>
+    </div>
+  </div>
+  <div class="filter-group ms-wrap" id="ms-wrap-cargo">
+    <label>Cargo</label>
+    <div class="ms-trigger" id="ms-trigger-cargo" onclick="msToggle('cargo')">
+      <div class="ms-chips" id="ms-chips-cargo"><span class="ms-placeholder">Todos os cargos</span></div>
+      <i class="ti ti-chevron-down ms-chevron" id="ms-chev-cargo" aria-hidden="true"></i>
+    </div>
+    <div class="ms-dropdown" id="ms-dd-cargo" style="display:none">
+      <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-cargo')" id="ms-srch-cargo"></div>
+      <div class="ms-opts" id="ms-list-cargo"></div>
+      <div class="ms-footer"><span class="ms-footer-count" id="ms-count-cargo">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('cargo')">Limpar</button></div>
+    </div>
+  </div>
+  <button class="btn-filter" onclick="applyFilters()">Filtrar</button>
+  <button class="btn-reset" onclick="resetFilters()">Limpar</button>
+</div>
+
+<div id="app">
+  <div class="loading"><div class="spinner"></div>Buscando dados do Supabase...</div>
+</div>
+
+</div><!-- /dashboard -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
+const TABLE  = 'absenteeism';
+const TABLE_EX = 'exemptions';
+const TABLE_TC = 'time_cards';
+const PAGE   = 5000;
+
+// Supabase client
+const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('btn-login');
+  const label    = document.getElementById('login-label');
+  const spinner  = document.getElementById('login-spinner');
+
+  errEl.style.display = 'none';
+  if(!email || !password){ errEl.textContent='Preencha e-mail e senha.'; errEl.style.display='block'; return; }
+
+  btn.disabled = true; label.style.display='none'; spinner.style.display='block';
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  btn.disabled = false; label.style.display='block'; spinner.style.display='none';
+
+  if(error){
+    errEl.textContent = error.message.includes('Invalid login') ? 'E-mail ou senha incorretos.' : error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  showDashboard(data.user);
+}
+
+async function doLogout() {
+  await supabase.auth.signOut();
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+  document.getElementById('app').innerHTML = '<div class="loading"><div class="spinner"></div>Buscando dados do Supabase...</div>';
+}
+
+function showDashboard(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('user-email-display').textContent = user.email;
+  init();
+}
+
+// Expõe funções usadas em onclick inline para o escopo global
+window.applyFilters = applyFilters;
+window.resetFilters = resetFilters;
+window.msToggle     = msToggle;
+window.msToggleOpt  = msToggleOpt;
+window.msClear      = msClear;
+window.msFilter     = msFilter;
+window.msRemoveChip = msRemoveChip;
+window.setLateMode   = setLateMode;
+window.setLateFunnelRoot = setLateFunnelRoot;
+window.lateFunnelDrillDown = lateFunnelDrillDown;
+window.lateFunnelDrillUp   = lateFunnelDrillUp;
+window.setLateMatrixDrillMode = setLateMatrixDrillMode;
+window.lateMatrixDrillDown    = lateMatrixDrillDown;
+window.lateMatrixDrillUp      = lateMatrixDrillUp;
+window.setTrendMode = setTrendMode;
+window.setAbsMode   = setAbsMode;
+window.setHoursMode = setHoursMode;
+window.hoursDrillDown = hoursDrillDown;
+window.hoursDrillUp   = hoursDrillUp;
+window.setFunnelRoot= setFunnelRoot;
+window.drillDown    = drillDown;
+window.drillUp      = drillUp;
+window.sortTable    = sortTable;
+window.tablePageChange = tablePageChange;
+window.exportCSV    = exportCSV;
+window.applyTableFilter = applyTableFilter;
+window.setExDrillMode = setExDrillMode;
+window.exDrillDown    = exDrillDown;
+window.exDrillUp      = exDrillUp;
+window.setExMatrixDrillMode = setExMatrixDrillMode;
+window.exMatrixDrillDown    = exMatrixDrillDown;
+window.exMatrixDrillUp      = exMatrixDrillUp;
+
+async function triggerWebhookRefresh() {
+  const btn = document.getElementById('btn-refresh');
+  if(!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add('refreshing');
+  btn.title = 'Atualizando...';
+  try {
+    await fetch('https://eventos.55telecom.com/webhook/35b9bcbf-9ad4-428d-a372-a7d78a62bd05', { method:'GET', mode:'no-cors' });
+    // Aguarda 1.5s para o webhook processar, depois recarrega os dados
+    await new Promise(r => setTimeout(r, 30000));
+    location.reload();
+  } catch(e) {
+    console.warn('[refresh] webhook error:', e);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('refreshing');
+    btn.title = 'Atualizar dashboard';
+  }
+}
+window.triggerWebhookRefresh = triggerWebhookRefresh;
+
+// NAV MENU — usa position:fixed no dropdown para escapar de qualquer overflow/clip
+function navToggle() {
+  const btn = document.getElementById('btn-nav');
+  const dd  = document.getElementById('nav-dropdown');
+  const isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    const r = btn.getBoundingClientRect();
+    dd.style.top  = (r.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - r.right) + 'px';
+    dd.style.left = 'auto';
+  }
+  dd.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('nav-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('nav-dropdown')?.classList.remove('open');
+    document.getElementById('btn-nav')?.classList.remove('open');
+  }
+});
+window.navToggle = navToggle;
+
+// Ao mudar a data, rebusca dados e repopula filtros sem renderizar o dashboard
+async function reloadFiltersForDate() {
+  const ds = document.getElementById('f-date-start').value;
+  const de = document.getElementById('f-date-end').value;
+  if(!ds || !de) return;
+  if(ds === loadedDateStart && de === loadedDateEnd) return;
+  try {
+    const [rows, exMap, tcMap] = await Promise.all([fetchAll(ds,de), fetchExemptions(ds,de), fetchTimeCards(ds,de)]);
+    exemptionMap = exMap;
+    timeCardsMap = tcMap;
+    processRows(rows);
+    loadedDateStart = ds; loadedDateEnd = de;
+    populateFilters();
+  } catch(e) { console.warn('[reloadFiltersForDate]', e.message); }
+}
+
+// Button + Enter key listeners
+document.getElementById('btn-login').addEventListener('click', doLogin);
+['login-email','login-password'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+// Ao mudar a data, repopula filtros sem re-renderizar o dashboard
+['f-date-start','f-date-end'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => reloadFiltersForDate());
+});
+
+// Check existing session on load
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if(session) {
+    showDashboard(session.user);
+  }
+})();
+// ─────────────────────────────────────────────────────────────────────────────
+
+const parseTime  = t => { if(!t||t==='00:00')return 0; const[h,m]=t.split(':'); return+h+(+m/60); };
+const allLeaders = l => l ? l.split(',').map(x=>x.trim()).filter(Boolean) : ['N/A'];
+const monthKey   = d => d.slice(0,7);
+const monthLabel = k => { const[y,m]=k.split('-'); return `${'JanFevMarAbrMaiJunJulAgoSetOutNovDez'.slice((+m-1)*3,(+m-1)*3+3)}/${y.slice(2)}`; };
+const groupBy    = (arr,key) => arr.reduce((a,r)=>{ (a[r[key]]=a[r[key]]||[]).push(r); return a; },{});
+
+const dedupeRows = rows => {
+  const seen = new Set();
+  return rows.filter(r => {
+    const key = r.name+'|'+r.date+'|'+r.team;
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+};
+
+const calcAbs = rows => {
+  const u = dedupeRows(rows);
+  const p = u.reduce((s,r)=>s+r.previsto,0);
+  const a = u.reduce((s,r)=>s+r.ausencia,0);
+  return p>0?+(a/p*100).toFixed(2):0;
+};
+
+// Ausência efetiva de uma linha respeitando o filtro Motivo Abono.
+// Com motivos selecionados: linhas cujo exemption.status está na seleção → ausencia=0
+// Linhas sem match → ausencia normal (entram no ABS)
+// Sem seleção → comportamento padrão (r.ausencia)
+const calcAusenciaEfetiva = r => {
+  if(!msSel.motivo.size) return r.ausencia;
+  const ex = r.exemption;
+  if(ex && msSel.motivo.has((ex.status||'').trim())) return 0;
+  return r.ausencia;
+};
+
+const calcAbsPrincipal = rows => {
+  const u = dedupeRows(rows);
+  const p = u.reduce((s,r)=>s+r.previsto,0);
+  const a = u.reduce((s,r)=>s+calcAusenciaEfetiva(r),0);
+  return p>0?+(a/p*100).toFixed(2):0;
+};
+
+let allData=[], filteredData=[], sortDir={};
+let exemptionMap={};
+let timeCardsMap={};
+let loadedDateStart='', loadedDateEnd='';
+// Multiselect state
+const msSel={sup:new Set(), team:new Set(), emp:new Set(), motivo:new Set(), cargo:new Set()};
+const msPlaceholder={sup:'Todos os supervisores', team:'Todas as equipes', emp:'Todos', motivo:'Todos os motivos', cargo:'Todos os cargos'};
+let absMode='team', hoursMode='supervisor', hoursDrillPath=[], lateMode='supervisor', trendMode='team', trendDrillMonth=null, funnelRoot='supervisor', funnelPath=[], lateFunnelRoot='supervisor', lateFunnelPath=[];
+let chartAbs=null, chartHours=null, chartLate=null, chartLateFunnel=null, chartTrend=null, chartExAxis=null, chartExDrill=null, chartExMatrix=null;
+let exAxisMode='status', exDrillMode='answered_by', exDrillPath=[], exMatrixDrillMode='answered_by', exMatrixDrillPath=[];
+let lateMatrixDrillMode='supervisor', lateMatrixDrillPath=[];
+let tablePage=0;
+const TABLE_PAGE_SIZE=100;
+const tableFilters = { emp: new Set(), tipo: new Set(), sts: new Set() };
+
+// ── TABLE FILTERS (multiselect interno da tabela) ─────────────────────────────
+function tfFill(k, opts) {
+  const list = document.getElementById('tf-list-'+k);
+  if(!list) return;
+  list.innerHTML = opts.map(v => {
+    const checked = tableFilters[k].has(v) ? 'checked' : '';
+    const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\\'");
+    return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="tfToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
+  }).join('');
+  tfRenderChips(k);
+}
+
+function tfToggle(k) {
+  const dd = document.getElementById('tf-dd-'+k);
+  const isOpen = dd.style.display !== 'none';
+  ['emp','tipo','sts'].forEach(x => {
+    const d=document.getElementById('tf-dd-'+x); if(d) d.style.display='none';
+    const c=document.getElementById('tf-chev-'+x); if(c) c.classList.remove('open');
+    const t=document.getElementById('tf-trigger-'+x); if(t) t.classList.remove('open');
+  });
+  if(!isOpen) {
+    dd.style.display='block';
+    document.getElementById('tf-chev-'+k).classList.add('open');
+    document.getElementById('tf-trigger-'+k).classList.add('open');
+    const srch=document.getElementById('tf-srch-'+k);
+    if(srch){ srch.value=''; tfFilter(srch,'tf-list-'+k); srch.focus(); }
+  }
+}
+
+function tfToggleOpt(k, v, cb) {
+  if(cb.checked) tableFilters[k].add(v); else tableFilters[k].delete(v);
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+function tfRenderChips(k) {
+  const chips = document.getElementById('tf-chips-'+k);
+  const count = document.getElementById('tf-count-'+k);
+  const placeholders = { emp:'Colaborador', tipo:'Tipo de Abono', sts:'Status' };
+  if(!chips) return;
+  if(count) count.textContent = tableFilters[k].size + ' selecionado' + (tableFilters[k].size!==1?'s':'');
+  if(tableFilters[k].size === 0) {
+    chips.innerHTML = `<span class="ms-placeholder" style="font-size:12px">${placeholders[k]}</span>`;
+    return;
+  }
+  chips.innerHTML = [...tableFilters[k]].map(v => {
+    const short = v.split(' ').slice(0,2).join(' ');
+    const esc = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<span class="ms-chip" style="font-size:10px">${short}<span class="ms-rm" onclick="tfRemoveChip('${k}','${esc}',event)">×</span></span>`;
+  }).join('');
+}
+
+function tfRemoveChip(k, v, e) {
+  e.stopPropagation();
+  tableFilters[k].delete(v);
+  document.querySelectorAll(`#tf-list-${k} .ms-opt`).forEach(el => {
+    if(el.querySelector('span').textContent === v) el.querySelector('input').checked = false;
+  });
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+function tfFilter(inp, listId) {
+  const q = inp.value.toLowerCase();
+  document.querySelectorAll('#'+listId+' .ms-opt').forEach(el => {
+    el.style.display = el.querySelector('span').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function tfClear(k) {
+  tableFilters[k].clear();
+  document.querySelectorAll('#tf-list-'+k+' input').forEach(i=>i.checked=false);
+  tfRenderChips(k);
+  applyTableFilter();
+}
+
+window.tfToggle     = tfToggle;
+window.tfToggleOpt  = tfToggleOpt;
+window.tfRemoveChip = tfRemoveChip;
+window.tfFilter     = tfFilter;
+window.tfClear      = tfClear;
+
+async function fetchAll(dateStart, dateEnd) {
+  let rows=[], offset=0, total=null;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session ? session.access_token : SB_KEY;
+  while(true) {
+    const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
+    let url = `${SB_URL}/rest/v1/${TABLE}?select=*&order=extraction_date.asc`;
+    if(dateStart) url += `&extraction_date=gte.${dateStart}`;
+    if(dateEnd)   url += `&extraction_date=lte.${dateEnd}`;
+    const res = await fetch(url, { headers });
+    if(!res.ok) throw new Error(`Supabase error: ${res.status} ${res.statusText}`);
+    if(total===null){ const cr=res.headers.get('Content-Range'); if(cr) total=parseInt(cr.split('/')[1])||null; }
+    const page = await res.json();
+    rows.push(...page);
+    if(total!==null && rows.length>=total) break;
+    if(page.length<PAGE) break;
+    offset+=PAGE;
+  }
+  return rows;
+}
+
+async function fetchExemptions(dateStart, dateEnd) {
+  let rows=[], offset=0, total=null;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session ? session.access_token : SB_KEY;
+  while(true) {
+    const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
+    let url = `${SB_URL}/rest/v1/${TABLE_EX}?select=*&order=date.asc`;
+    if(dateStart) url += `&date=gte.${dateStart}`;
+    if(dateEnd)   url += `&date=lte.${dateEnd}`;
+    const res = await fetch(url, { headers });
+    if(!res.ok) {
+      const errBody = await res.text();
+      console.error('exemptions fetch failed:', res.status, errBody);
+      return {};
+    }
+    if(total===null){ const cr=res.headers.get('Content-Range'); if(cr) total=parseInt(cr.split('/')[1])||null; }
+    const page = await res.json();
+    rows.push(...page);
+    if(total!==null && rows.length>=total) break;
+    if(page.length<PAGE) break;
+    offset+=PAGE;
+  }
+  console.log(`[exemptions] ${rows.length} registros carregados para ${dateStart} → ${dateEnd}`);
+  // Build lookup map: "employee_name|date" → exemption row (first match, prefer all_day=sim)
+  const map={};
+  rows.forEach(ex => {
+    const k=(ex.employee_name||'').trim()+'|'+(ex.date||'');
+    if(!map[k] || (ex.all_day||'').toLowerCase()==='sim') map[k]=ex;
+  });
+  console.log(`[exemptions] ${Object.keys(map).length} chaves no mapa`);
+  // Log primeiras 3 chaves para inspeção
+  Object.keys(map).slice(0,3).forEach(k => console.log('[exemptions] chave:', k));
+  return map;
+}
+
+async function fetchTimeCards(dateStart, dateEnd) {
+  let rows=[], offset=0, total=null;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session ? session.access_token : SB_KEY;
+  while(true) {
+    const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
+    let url = `${SB_URL}/rest/v1/${TABLE_TC}?select=*&order=date.asc`;
+    if(dateStart) url += `&date=gte.${dateStart}`;
+    if(dateEnd)   url += `&date=lte.${dateEnd}`;
+    const res = await fetch(url, { headers });
+    if(!res.ok) { console.error('time_cards fetch failed:', res.status); return {}; }
+    if(total===null){ const cr=res.headers.get('Content-Range'); if(cr) total=parseInt(cr.split('/')[1])||null; }
+    const page = await res.json();
+    rows.push(...page);
+    if(total!==null && rows.length>=total) break;
+    if(page.length<PAGE) break;
+    offset+=PAGE;
+  }
+  const map={};
+  rows.forEach(tc => {
+    const k=(tc.employee_name||'').trim()+'|'+(tc.date||'');
+    map[k]=tc;
+  });
+  return map;
+}
+
+function processRows(rows) {
+  allData = [];
+  let exHits = 0, exAllDay = 0;
+  for(const r of rows) {
+    const prev = parseTime(r.total_working_time);
+    const trab = parseTime(r.total_worked_time);
+    const ausOriginal = parseTime(r.total_missing_time);
+    allLeaders(r.leaders).forEach(sup => {
+      const exKey = r.name.trim()+'|'+r.extraction_date;
+      const ex = exemptionMap[exKey] || null;
+      const isAllDay = ex && (ex.all_day||'').toLowerCase()==='sim';
+      const ausencia = isAllDay ? prev : ausOriginal;
+      // Total abonado: all_day=sim → total_working_time; parcial → exemption_duration
+      let abonado = 0;
+      if(ex) {
+        abonado = isAllDay ? prev : parseTime(ex.exemption_duration || '00:00');
+      }
+      if(ex) exHits++;
+      if(isAllDay) exAllDay++;
+      allData.push({
+        name:r.name, team:r.cost_center, supervisor:sup,
+        date:r.extraction_date, month:monthKey(r.extraction_date),
+        previsto:prev, trabalhado:trab, ausencia:ausencia,
+        abonado:abonado,
+        exemption: ex,
+        jobTitle: (timeCardsMap[r.name.trim()+'|'+r.extraction_date]?.job_title_name||'')
+      });
+    });
+  }
+  console.log(`[processRows] ${allData.length} linhas | ${exHits} com abono | ${exAllDay} all_day=sim`);
+  allData.filter(r=>r.exemption).slice(0,3).forEach(r =>
+    console.log(`[match] ${r.name} | ${r.date} | all_day:${r.exemption.all_day} | aus:${r.ausencia} | abonado:${r.abonado} | prev:${r.previsto}`)
+  );
+}
+
+async function init() {
+  const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
+  const past30=new Date(today); past30.setDate(past30.getDate()-30);
+  const py=past30.getFullYear(), pm=String(past30.getMonth()+1).padStart(2,'0'), pd=String(past30.getDate()).padStart(2,'0');
+  const defaultStart=`${py}-${pm}-${pd}`, defaultEnd=today.toISOString().slice(0,10);
+  try {
+    const [rows, exMap, tcMap] = await Promise.all([
+      fetchAll(defaultStart, defaultEnd),
+      fetchExemptions(defaultStart, defaultEnd),
+      fetchTimeCards(defaultStart, defaultEnd)
+    ]);
+    exemptionMap = exMap;
+    timeCardsMap = tcMap;
+    processRows(rows);
+    if(!allData.length){ showError('Nenhum registro encontrado para o período selecionado.'); return; }
+    filteredData=[...allData];
+    loadedDateStart=defaultStart; loadedDateEnd=defaultEnd;
+    document.getElementById('f-date-start').value=defaultStart;
+    document.getElementById('f-date-end').value=defaultEnd;
+    document.getElementById('filters-bar').style.display='flex';
+    populateFilters(); buildLayout(); renderAll();
+  } catch(e){ showError(`Erro ao conectar ao Supabase: ${e.message}`); }
+}
+
+async function applyFilters() {
+  const ds=document.getElementById('f-date-start').value;
+  const de=document.getElementById('f-date-end').value;
+
+  if(ds!==loadedDateStart || de!==loadedDateEnd) {
+    document.getElementById('app').innerHTML='<div class="loading"><div class="spinner"></div>Atualizando...</div>';
+    try {
+      const [rows, exMap, tcMap] = await Promise.all([fetchAll(ds,de), fetchExemptions(ds,de), fetchTimeCards(ds,de)]);
+      exemptionMap = exMap;
+      timeCardsMap = tcMap;
+      processRows(rows);
+      loadedDateStart=ds; loadedDateEnd=de;
+      funnelPath=[]; populateFilters(); buildLayout();
+    } catch(e){ showError(`Erro ao buscar dados: ${e.message}`); return; }
+  }
+
+  filteredData=allData.filter(d=>{
+    if(msSel.sup.size   && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size  && !msSel.team.has(d.team))       return false;
+    if(msSel.emp.size   && !msSel.emp.has(d.name))        return false;
+    if(msSel.cargo.size && !msSel.cargo.has(d.jobTitle))  return false;
+    return true;
+  });
+  funnelPath=[]; renderAll();
+}
+
+function resetFilters() {
+  msSel.sup.clear(); msSel.team.clear(); msSel.emp.clear(); msSel.motivo.clear(); msSel.cargo.clear();
+  ['sup','team','emp','motivo','cargo'].forEach(k=>msRenderChips(k));
+  const today=new Date(), y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0');
+  document.getElementById('f-date-start').value=`${y}-${m}-01`;
+  document.getElementById('f-date-end').value=today.toISOString().slice(0,10);
+  applyFilters();
+}
+
+function populateFilters() {
+  // Supervisor — todas as opções
+  const allSups = [...new Set(allData.map(d=>d.supervisor))].sort();
+  msFill('sup', allSups);
+
+  // Equipe — filtrada pelos supervisores selecionados
+  const dataForTeam = msSel.sup.size
+    ? allData.filter(d => msSel.sup.has(d.supervisor))
+    : allData;
+  const allTeams = [...new Set(dataForTeam.map(d=>d.team))].sort();
+  // remove seleções de equipe que já não existem no contexto
+  [...msSel.team].forEach(v => { if(!allTeams.includes(v)) msSel.team.delete(v); });
+  msFill('team', allTeams);
+
+  // Colaborador — filtrado pelos supervisores E equipes selecionadas
+  const dataForEmp = allData.filter(d => {
+    if(msSel.sup.size  && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size && !msSel.team.has(d.team))       return false;
+    return true;
+  });
+  const allEmps = [...new Set(dataForEmp.map(d=>d.name))].sort();
+  // remove seleções de colaborador que já não existem no contexto
+  [...msSel.emp].forEach(v => { if(!allEmps.includes(v)) msSel.emp.delete(v); });
+  msFill('emp', allEmps);
+
+  // Motivo Abono — valores distintos de exemptions.status no período carregado
+  // 'Falta' fica de fora das opções: não deve ser possível usá-la para descontar o ABS via filtro
+  const allMotivos = [...new Set(
+    Object.values(exemptionMap)
+      .map(ex => (ex.status||'').trim())
+      .filter(Boolean)
+  )].filter(v => v!=='Falta').sort();
+  [...msSel.motivo].forEach(v => { if(!allMotivos.includes(v)) msSel.motivo.delete(v); });
+  msFill('motivo', allMotivos);
+
+  // Cargo — valores distintos de job_title_name no período carregado
+  const allCargos = [...new Set(allData.map(d=>d.jobTitle).filter(Boolean))].sort();
+  [...msSel.cargo].forEach(v => { if(!allCargos.includes(v)) msSel.cargo.delete(v); });
+  msFill('cargo', allCargos);
+}
+
+// ── MULTISELECT FUNCTIONS ─────────────────────────────────────────────────────
+const MS_SELECT_ALL = new Set(['sup','team','emp','motivo','cargo']); // filtros com opção "Selecionar todos"
+
+function msFill(k, opts) {
+  const list = document.getElementById('ms-list-'+k);
+  if(!list) return;
+  const allChecked = opts.length > 0 && opts.every(v => msSel[k].has(v));
+  const selectAllRow = MS_SELECT_ALL.has(k) ? `
+    <label class="ms-opt" style="border-bottom:1px solid var(--border-subtle);font-weight:500;color:var(--text)">
+      <input type="checkbox" id="ms-all-${k}" ${allChecked?'checked':''} onchange="msSelectAll('${k}',this)">
+      <span>Selecionar todos</span>
+    </label>` : '';
+  list.innerHTML = selectAllRow + opts.map(v => {
+    const checked = msSel[k].has(v) ? 'checked' : '';
+    const esc = v.replace(/"/g,'&quot;').replace(/'/g,"\\'");
+    return `<label class="ms-opt"><input type="checkbox" ${checked} onchange="msToggleOpt('${k}','${esc}',this)"><span>${v}</span></label>`;
+  }).join('');
+  msRenderChips(k);
+}
+
+function msSelectAll(k, cb) {
+  const list = document.getElementById('ms-list-'+k);
+  if(!list) return;
+  list.querySelectorAll('.ms-opt input[type=checkbox]:not(#ms-all-'+k+')').forEach(input => {
+    input.checked = cb.checked;
+    const span = input.closest('.ms-opt').querySelector('span');
+    if(span) { if(cb.checked) msSel[k].add(span.textContent); else msSel[k].delete(span.textContent); }
+  });
+  msRenderChips(k);
+  if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
+  if(k === 'team') { populateEmpFilter(); }
+}
+window.msSelectAll = msSelectAll;
+
+function msToggle(k) {
+  const dd = document.getElementById('ms-dd-'+k);
+  const chev = document.getElementById('ms-chev-'+k);
+  const trigger = document.getElementById('ms-trigger-'+k);
+  const isOpen = dd.style.display !== 'none';
+  // close all
+  ['sup','team','emp','motivo','cargo'].forEach(x => {
+    const d=document.getElementById('ms-dd-'+x); if(d) d.style.display = 'none';
+    const c=document.getElementById('ms-chev-'+x); if(c) c.classList.remove('open');
+    const t=document.getElementById('ms-trigger-'+x); if(t) t.classList.remove('open');
+  });
+  if(!isOpen) {
+    dd.style.display = 'block';
+    chev.classList.add('open');
+    trigger.classList.add('open');
+    const srch = document.getElementById('ms-srch-'+k);
+    if(srch){ srch.value=''; msFilter(srch,'ms-list-'+k); srch.focus(); }
+  }
+}
+
+function msToggleOpt(k, v, cb) {
+  if(cb.checked) msSel[k].add(v); else msSel[k].delete(v);
+  // Sincronizar "Selecionar todos"
+  if(MS_SELECT_ALL.has(k)) {
+    const allCb = document.getElementById('ms-all-'+k);
+    if(allCb) {
+      const all = document.querySelectorAll(`#ms-list-${k} .ms-opt input[type=checkbox]:not(#ms-all-${k})`);
+      allCb.checked = all.length > 0 && [...all].every(i=>i.checked);
+    }
+  }
+  msRenderChips(k);
+  // Repopula filtros dependentes em cascata
+  if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
+  if(k === 'team') { populateEmpFilter(); }
+}
+
+function populateTeamFilter() {
+  const dataForTeam = msSel.sup.size
+    ? allData.filter(d => msSel.sup.has(d.supervisor))
+    : allData;
+  const allTeams = [...new Set(dataForTeam.map(d=>d.team))].sort();
+  [...msSel.team].forEach(v => { if(!allTeams.includes(v)) msSel.team.delete(v); });
+  msFill('team', allTeams);
+}
+
+function populateEmpFilter() {
+  const dataForEmp = allData.filter(d => {
+    if(msSel.sup.size  && !msSel.sup.has(d.supervisor))  return false;
+    if(msSel.team.size && !msSel.team.has(d.team))       return false;
+    return true;
+  });
+  const allEmps = [...new Set(dataForEmp.map(d=>d.name))].sort();
+  [...msSel.emp].forEach(v => { if(!allEmps.includes(v)) msSel.emp.delete(v); });
+  msFill('emp', allEmps);
+}
+
+function msClear(k) {
+  msSel[k].clear();
+  document.querySelectorAll('#ms-list-'+k+' input').forEach(i=>i.checked=false);
+  msRenderChips(k);
+  if(k === 'sup')  { populateTeamFilter(); populateEmpFilter(); }
+  if(k === 'team') { populateEmpFilter(); }
+}
+
+function msRenderChips(k) {
+  const chips = document.getElementById('ms-chips-'+k);
+  const count = document.getElementById('ms-count-'+k);
+  if(!chips) return;
+  if(count) count.textContent = msSel[k].size + ' selecionado' + (msSel[k].size!==1?'s':'');
+  if(msSel[k].size === 0) {
+    chips.innerHTML = `<span class="ms-placeholder">${msPlaceholder[k]}</span>`;
+    return;
+  }
+  // Para filtros com muitas opções (emp, cargo): acima de 3 selecionados mostra resumo
+  if(MS_SELECT_ALL.has(k) && msSel[k].size > 3) {
+    chips.innerHTML = `<span class="ms-chip">${msSel[k].size} selecionados<span class="ms-rm" onclick="msClear('${k}');event.stopPropagation()">×</span></span>`;
+    return;
+  }
+  chips.innerHTML = [...msSel[k]].map(v => {
+    const short = v.split(' ').slice(0,2).join(' ');
+    const esc = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<span class="ms-chip">${short}<span class="ms-rm" onclick="msRemoveChip('${k}','${esc}',event)">×</span></span>`;
+  }).join('');
+}
+
+function msRemoveChip(k, v, e) {
+  e.stopPropagation();
+  msSel[k].delete(v);
+  const cb = document.querySelector(`#ms-list-${k} input[type=checkbox]`);
+  // uncheck matching checkbox
+  document.querySelectorAll(`#ms-list-${k} .ms-opt`).forEach(el => {
+    if(el.querySelector('span').textContent === v) el.querySelector('input').checked = false;
+  });
+  msRenderChips(k);
+}
+
+function msFilter(inp, listId) {
+  const q = inp.value.toLowerCase();
+  document.querySelectorAll('#'+listId+' .ms-opt').forEach(el => {
+    el.style.display = el.querySelector('span').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', e => {
+  if(!e.target.closest('.ms-wrap')) {
+    ['sup','team','emp','motivo','cargo'].forEach(k => {
+      const dd = document.getElementById('ms-dd-'+k);
+      if(dd) dd.style.display = 'none';
+      const chev = document.getElementById('ms-chev-'+k);
+      if(chev) chev.classList.remove('open');
+      const tr = document.getElementById('ms-trigger-'+k);
+      if(tr) tr.classList.remove('open');
+    });
+    ['emp','tipo','sts'].forEach(k => {
+      const dd = document.getElementById('tf-dd-'+k);
+      if(dd) dd.style.display = 'none';
+      const chev = document.getElementById('tf-chev-'+k);
+      if(chev) chev.classList.remove('open');
+      const tr = document.getElementById('tf-trigger-'+k);
+      if(tr) tr.classList.remove('open');
+    });
+  }
+});
+
+function buildLayout() {
+  document.getElementById('app').innerHTML=`
+    <div class="main">
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="charts-row">
+        <div class="chart-card full">
+          <div class="card-header">
+            <div class="card-title"><span id="trend-title">Evolução — ABS (%) por Equipe — Top 10 maiores</span></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div id="trend-breadcrumb" style="font-size:12px;color:var(--mid)"></div>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="trend-btn-team" onclick="setTrendMode('team')">Equipe</button>
+                <button class="toggle-btn" id="trend-btn-emp" onclick="setTrendMode('emp')">Colaborador</button>
+              </div>
+            </div>
+          </div>
+          <div class="legend-row" id="trend-legend"></div>
+          <div style="position:relative;height:260px"><canvas id="chartTrend"></canvas></div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="trend-hint">Clique em um mês para ver a evolução diária</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:460px;gap:12px">
+
+        <!-- Linha 1: ABS Drill Down | Previsto vs Trabalhado -->
+        <div class="funnel-card">
+          <div class="card-header">
+            <div class="card-title">ABS % — Drill Down</div>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="fn-btn-supervisor" onclick="setFunnelRoot('supervisor')">Supervisor</button>
+              <button class="toggle-btn" id="fn-btn-team" onclick="setFunnelRoot('team')">Equipe</button>
+              <button class="toggle-btn" id="fn-btn-name" onclick="setFunnelRoot('name')">Colaborador</button>
+            </div>
+          </div>
+          <div class="legend-row">
+            <span><span class="legend-dot" style="background:#dc2626"></span>ABS %</span>
+            <span><span class="legend-dot" style="background:#f59e0b"></span>Meta 3%</span>
+          </div>
+          <div class="funnel-breadcrumb" id="funnel-breadcrumb"></div>
+          <div class="funnel-wrap" id="funnel-wrap"></div>
+          <div class="funnel-hint" id="funnel-hint">Clique em uma barra para detalhar</div>
+        </div>
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title"><span id="hours-chart-title">Previsto vs trabalhado — supervisor</span></div>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="hours-btn-supervisor" onclick="setHoursMode('supervisor')">Supervisor</button>
+              <button class="toggle-btn" id="hours-btn-team" onclick="setHoursMode('team')">Equipe</button>
+              <button class="toggle-btn" id="hours-btn-emp" onclick="setHoursMode('emp')">Colaborador</button>
+            </div>
+          </div>
+          <div class="funnel-breadcrumb" id="hours-breadcrumb"></div>
+          <div class="legend-row">
+            <span><span class="legend-dot" style="background:#1e40af"></span>Previsto</span>
+            <span><span class="legend-dot" style="background:#93c5fd"></span>Trabalhado</span>
+          </div>
+          <div style="overflow-y:auto;flex:1"><div style="position:relative;" id="chart-hours-wrap"><canvas id="chartHours"></canvas></div></div>
+        </div>
+
+        <!-- Linha 2: Atraso Drill Down | Matriz de Atraso -->
+        <div class="funnel-card">
+          <div class="card-header">
+            <div class="card-title">Total Atraso Operacional — 1ª Entrada — Drill Down</div>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="lf-btn-supervisor" onclick="setLateFunnelRoot('supervisor')">Supervisor</button>
+              <button class="toggle-btn" id="lf-btn-team" onclick="setLateFunnelRoot('team')">Equipe</button>
+              <button class="toggle-btn" id="lf-btn-name" onclick="setLateFunnelRoot('name')">Colaborador</button>
+            </div>
+          </div>
+          <div class="funnel-breadcrumb" id="late-funnel-breadcrumb"></div>
+          <div class="funnel-wrap" id="late-funnel-wrap"></div>
+          <div class="funnel-hint" id="late-funnel-hint">Clique em uma barra para detalhar</div>
+        </div>
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title">Matriz de Atraso — 1ª Entrada</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div class="funnel-breadcrumb" id="late-matrix-breadcrumb" style="margin-bottom:0"></div>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="lm-btn-supervisor" onclick="setLateMatrixDrillMode('supervisor')">Supervisor</button>
+                <button class="toggle-btn"        id="lm-btn-team"       onclick="setLateMatrixDrillMode('team')">Equipe</button>
+                <button class="toggle-btn"        id="lm-btn-name"       onclick="setLateMatrixDrillMode('name')">Colaborador</button>
+              </div>
+            </div>
+          </div>
+          <div style="overflow-y:auto;overflow-x:auto;flex:1" id="late-matrix-wrap"></div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="late-matrix-hint">Clique em uma linha para detalhar</div>
+        </div>
+
+        <!-- Linha 3: Abonos Drill Down | Matriz de Abonos -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title"><span id="ex-drill-title">Abonos — Drill Down (Supervisor)</span></div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div class="funnel-breadcrumb" id="ex-drill-breadcrumb" style="margin-bottom:0"></div>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="ex-drill-btn-answered_by"   onclick="setExDrillMode('answered_by')">Supervisor</button>
+                <button class="toggle-btn"         id="ex-drill-btn-team_name"     onclick="setExDrillMode('team_name')">Equipe</button>
+                <button class="toggle-btn"         id="ex-drill-btn-employee_name" onclick="setExDrillMode('employee_name')">Colaborador</button>
+              </div>
+            </div>
+          </div>
+          <div class="legend-row">
+            <span><span class="legend-dot" style="background:#1e40af"></span>Registros</span>
+            <span><span class="legend-dot" style="background:#93c5fd"></span>Horas abonadas</span>
+          </div>
+          <div style="overflow-y:auto;flex:1"><div style="position:relative;" id="chart-ex-drill-wrap"><canvas id="chartExDrill" role="img" aria-label="Drill down de abonos"></canvas></div></div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="ex-drill-hint">Clique em uma barra para detalhar</div>
+        </div>
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title">Matriz de Abonos</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div class="funnel-breadcrumb" id="ex-matrix-breadcrumb" style="margin-bottom:0"></div>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="ex-matrix-btn-answered_by"   onclick="setExMatrixDrillMode('answered_by')">Supervisor</button>
+                <button class="toggle-btn"         id="ex-matrix-btn-employee_name" onclick="setExMatrixDrillMode('employee_name')">Colaborador</button>
+                <button class="toggle-btn"         id="ex-matrix-btn-status"        onclick="setExMatrixDrillMode('status')">Status</button>
+              </div>
+            </div>
+          </div>
+          <div style="overflow-y:auto;overflow-x:auto;flex:1" id="ex-matrix-wrap"></div>
+          <div style="font-size:11px;color:var(--light);margin-top:6px;" id="ex-matrix-hint">Clique em uma linha para detalhar</div>
+        </div>
+
+      </div>
+      <div class="table-card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title">Detalhamento por colaborador / dia</div>
+          <button class="btn-reset" onclick="exportCSV()" style="height:auto;padding:6px 12px;font-size:12px;font-weight:500">⬇ Exportar CSV</button>
+        </div>
+        <div style="display:flex;gap:8px;padding:8px 18px;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;align-items:center;background:var(--bg)">
+          <!-- Colaborador -->
+          <div class="ms-wrap" id="tf-wrap-emp" style="min-width:0;flex:1;max-width:260px">
+            <div class="ms-trigger" id="tf-trigger-emp" onclick="tfToggle('emp')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-emp"><span class="ms-placeholder" style="font-size:12px">Colaborador</span></div>
+              <i class="ms-chevron" id="tf-chev-emp">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-emp" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-emp')" id="tf-srch-emp"></div>
+              <div class="ms-opts" id="tf-list-emp"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-emp">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('emp')">Limpar</button></div>
+            </div>
+          </div>
+          <!-- Tipo de Abono -->
+          <div class="ms-wrap" id="tf-wrap-tipo" style="min-width:0;flex:1;max-width:220px">
+            <div class="ms-trigger" id="tf-trigger-tipo" onclick="tfToggle('tipo')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-tipo"><span class="ms-placeholder" style="font-size:12px">Tipo de Abono</span></div>
+              <i class="ms-chevron" id="tf-chev-tipo">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-tipo" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-tipo')" id="tf-srch-tipo"></div>
+              <div class="ms-opts" id="tf-list-tipo"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-tipo">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('tipo')">Limpar</button></div>
+            </div>
+          </div>
+          <!-- Status -->
+          <div class="ms-wrap" id="tf-wrap-sts" style="min-width:0;flex:1;max-width:200px">
+            <div class="ms-trigger" id="tf-trigger-sts" onclick="tfToggle('sts')" style="height:32px;font-size:12px;padding:0 8px">
+              <div class="ms-chips" id="tf-chips-sts"><span class="ms-placeholder" style="font-size:12px">Status</span></div>
+              <i class="ms-chevron" id="tf-chev-sts">▾</i>
+            </div>
+            <div class="ms-dropdown" id="tf-dd-sts" style="display:none">
+              <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="tfFilter(this,'tf-list-sts')" id="tf-srch-sts"></div>
+              <div class="ms-opts" id="tf-list-sts"></div>
+              <div class="ms-footer"><span class="ms-footer-count" id="tf-count-sts">0 selecionados</span><button class="ms-footer-clear" onclick="tfClear('sts')">Limpar</button></div>
+            </div>
+          </div>
+          <button onclick="clearTableFilters()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-size:12px;color:var(--text-2);cursor:pointer;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='var(--border-subtle)'" onmouseout="this.style.background='transparent'">Limpar</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th onclick="sortTable(0)">Colaborador ↕</th>
+              <th onclick="sortTable(1)">Equipe ↕</th>
+              <th onclick="sortTable(2)">Supervisor ↕</th>
+              <th onclick="sortTable(3)">Cargo ↕</th>
+              <th onclick="sortTable(4)">Data ↕</th>
+              <th onclick="sortTable(5)">Mês ↕</th>
+              <th onclick="sortTable(6)">Registro Ponto ↕</th>
+              <th onclick="sortTable(7)">Jornada ↕</th>
+              <th onclick="sortTable(8)">Total Atraso ↕</th>
+              <th onclick="sortTable(9)">Previsto ↕</th>
+              <th onclick="sortTable(10)">Trabalhado ↕</th>
+              <th onclick="sortTable(11)">Ausência ↕</th>
+              <th onclick="sortTable(12)">ABS % ↕</th>
+              <th onclick="sortTable(13)">Total Abonado ↕</th>
+              <th onclick="sortTable(14)">Tipo de Abono ↕</th>
+              <th onclick="sortTable(15)">Status ↕</th>
+              <th onclick="sortTable(16)">Solicitação ↕</th>
+              <th onclick="sortTable(17)">Aprovada por ↕</th>
+              <th onclick="sortTable(18)">Dia todo ↕</th>
+              <th onclick="sortTable(19)">Horário Início Abono ↕</th>
+              <th onclick="sortTable(20)">Horário Fim Abono ↕</th>
+              <th>Possui Anexo</th>
+              <th>Observação</th>
+            </tr></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--border-subtle);font-size:12px;color:var(--text-3)">
+          <span id="table-info"></span>
+          <div style="display:flex;gap:8px">
+            <button class="btn-reset" id="btn-prev" onclick="tablePageChange(-1)">‹ Anterior</button>
+            <button class="btn-reset" id="btn-next" onclick="tablePageChange(1)">Próximo ›</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  chartAbs=null; chartHours=null; chartLate=null; chartLateFunnel=null; chartTrend=null; chartExAxis=null; chartExDrill=null; chartExMatrix=null; exDrillPath=[]; exMatrixDrillPath=[]; lateMatrixDrillPath=[]; hoursDrillPath=[];
+}
+
+function renderAll(){ renderKPIs(); renderTrendChart(); renderLateChart(); renderChartHours(); renderFunnel(); renderLateFunnel(); renderLateMatrix(); renderExAxisChart(); renderExDrillChart(); renderExMatrixChart(); renderTableBody(); }
+
+function renderKPIs(){
+  const d=dedupeRows(filteredData);
+  const totP=d.reduce((s,r)=>s+r.previsto,0), totT=d.reduce((s,r)=>s+r.trabalhado,0), totA=d.reduce((s,r)=>s+r.ausencia,0);
+  const totAEfetiva = msSel.motivo.size ? d.reduce((s,r)=>s+calcAusenciaEfetiva(r),0) : totA;
+  const absG=totP>0?(totAEfetiva/totP*100):0, pct=totP>0?(totT/totP*100):0;
+  const regFalta=d.filter(r=>r.ausencia>0||(r.exemption&&(r.exemption.all_day||'').toLowerCase()==='sim')).length;
+  const faltas   = d.filter(r => r.exemption && (r.exemption.all_day||'').toLowerCase()==='sim').length;
+  const ausencias = d.filter(r => { const ad = (r.exemption?.all_day||'').toLowerCase(); return r.ausencia > 0 && (ad === 'não' || ad === 'nao' || ad === 'false'); }).length;
+  const excluidos = new Set(['Pendente','Reprovada']);
+  const aprovados=d.filter(r=>r.exemption && !excluidos.has((r.exemption.solicitation_status||'').trim()));
+  const totAbonos=aprovados.length;
+  const totAbonado=aprovados.reduce((s,r)=>s+(r.abonado||0),0);
+  // Total Atraso: soma de late_arrival dos colaboradores no período filtrado
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const seenTc = new Set();
+  let totAtrasMin = 0;
+  let totRegAtraso = 0;
+  d.forEach(r => {
+    const k = r.name.trim()+'|'+r.date;
+    if(seenTc.has(k)) return;
+    seenTc.add(k);
+    const tc = timeCardsMap[k];
+    if(tc && tc.late_arrival) {
+      totAtrasMin += toMin(tc.late_arrival);
+      totRegAtraso++;
+    }
+  });
+  const totAtrasH = totAtrasMin / 60;
+  const fmtKpi = h => {
+    const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+    return {main:`${hh}h`, sub2: mm>0?`${mm}min`:''};
+  };
+  const fmtKpiMin = min => {
+    const hh=Math.floor(min/60), mm=Math.round(min%60);
+    return {main:`${hh}h`, sub2: mm>0?`${mm}min`:''};
+  };
+  const fmtSimple = h => { const hh=Math.floor(h),mm=Math.round((h-hh)*60); return mm>0?`${hh}h ${String(mm).padStart(2,'0')}min`:`${hh}h`; };
+  const mkHoraKpi=(label,h,sub)=>{
+    const {main,sub2}=fmtKpi(h);
+    return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:5px">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}</div><div class="kpi-label">${label}</div><div class="kpi-sub">${sub}</div></div>`;
+  };
+  const mkHoraKpiMin=(label,min,sub)=>{
+    const {main,sub2}=fmtKpiMin(min);
+    return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:5px">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}</div><div class="kpi-label">${label}</div><div class="kpi-sub">${sub}</div></div>`;
+  };
+  const mkHoraKpiMinCount=(label,min,count,sub)=>{
+    const {main,sub2}=fmtKpiMin(min);
+    return `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;white-space:nowrap">${main}${sub2?`<span style="font-size:13px;font-weight:400;color:var(--mid)">${sub2}</span>`:''}</div><div class="kpi-label">${label}</div>${sub?`<div class="kpi-sub">${sub}${count?` · ${count} atr.`:''}</div>`:''}</div>`;
+  };
+  const mkKpi=(label,val,sub)=>`<div class="kpi"><div class="kpi-val">${val}</div><div class="kpi-label">${label}</div><div class="kpi-sub">${sub}</div></div>`;
+  // Colaboradores com registro de ponto no período
+  const colsComPonto = new Set(
+    d.filter(r => timeCardsMap[r.name.trim()+'|'+r.date]).map(r => r.name)
+  ).size;
+  const colsTotal = new Set(filteredData.map(r=>r.name)).size;
+
+  document.getElementById('kpi-row').innerHTML=[
+    `<div class="kpi"><div class="kpi-val" style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">${colsComPonto}<span style="font-size:11px;font-weight:400;color:var(--text-3)">|</span><span style="font-size:11px;font-weight:500;color:var(--mid)">${colsTotal} prev.</span></div><div class="kpi-label">Colaboradores</div><div class="kpi-sub">com registro de ponto</div></div>`,
+    mkHoraKpi('Total previsto',   totP, 'horas esperadas'),
+    mkHoraKpi('Total trabalhado', totT, pct.toFixed(1)+'% do previsto'),
+    mkHoraKpi('Total ausências',  totAEfetiva, msSel.motivo.size?'horas (filtradas por motivo)':'horas faltantes'),
+    mkKpi('ABS Global', absG.toFixed(2)+'%', msSel.motivo.size?'filtrado por motivo':'índice de absenteísmo'),
+    mkKpi('Faltas', faltas, `${ausencias} ausências parciais`),
+    mkKpi('Total Abonos',    totAbonos, 'registros abonados'),
+    mkHoraKpi('Total Abonado', totAbonado, 'horas abonadas'),
+    mkHoraKpiMinCount('Total Atraso', totAtrasMin, totRegAtraso, 'operacional'),
+  ].join('');
+}
+
+function setTrendMode(m){
+  trendMode=m; trendDrillMonth=null;
+  document.getElementById('trend-btn-team').classList.toggle('active',m==='team');
+  document.getElementById('trend-btn-emp').classList.toggle('active',m==='emp');
+  document.getElementById('trend-title').textContent=m==='team'
+    ?'Evolução — ABS (%) por Equipe — Top 10 maiores'
+    :'Evolução — ABS (*) por Colaborador — Top 10 maiores';
+  renderTrendChart();
+}
+
+function renderTrendChart(){
+  const groupKey=trendMode==='team'?'team':'name';
+  const colors=['#3b82f6','#dc2626','#16a34a','#f59e0b','#8b5cf6','#0891b2','#db2777','#78716c','#475569','#65a30d'];
+  let labels,datasets,hint='',breadcrumb='';
+
+  if(trendDrillMonth){
+    const dayData=filteredData.filter(d=>d.month===trendDrillMonth);
+    const days=[...new Set(dayData.map(d=>d.date))].sort();
+    const groups=Object.entries(groupBy(dayData,groupKey)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    labels=days.map(d=>{ const[,mo,dy]=d.split('-'); return `${dy}/${mo}`; });
+    datasets=groups.map((g,i)=>({
+      label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
+      borderWidth:2.5, pointRadius:2, fill:false, tension:.3, spanGaps:true,
+      data:days.map(day=>{ const r=dayData.filter(x=>x[groupKey]===g&&x.date===day); return r.length?calcAbsPrincipal(r):null; })
+    }));
+    breadcrumb=`${monthLabel(trendDrillMonth)} › dias`;
+    hint='Clique aqui para voltar para o mês';
+    document.getElementById('trend-hint').onclick=()=>{ trendDrillMonth=null; renderTrendChart(); };
+  } else {
+    const months=[...new Set(filteredData.map(d=>d.month))].sort();
+    const groups=Object.entries(groupBy(filteredData,groupKey)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs).slice(0,10).map(x=>x.k);
+    labels=months.map(monthLabel);
+    datasets=groups.map((g,i)=>({
+      label:g, borderColor:colors[i%10], backgroundColor:colors[i%10],
+      borderWidth:2.5, pointRadius:2.5, fill:false, tension:.3, spanGaps:true,
+      data:months.map(mo=>{ const r=filteredData.filter(d=>d[groupKey]===g&&d.month===mo); return r.length?calcAbsPrincipal(r):null; })
+    }));
+    hint='Clique em um ponto para ver a evolução diária';
+    document.getElementById('trend-hint').onclick=null;
+  }
+
+  document.getElementById('trend-breadcrumb').textContent=breadcrumb;
+  document.getElementById('trend-hint').textContent=hint;
+  document.getElementById('trend-legend').innerHTML=datasets.map((d,i)=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:18px;height:3px;background:${colors[i%10]};display:inline-block;border-radius:2px"></span><span style="font-size:12px;color:var(--mid)">${d.label}</span></span>`).join('');
+
+  if(chartTrend)chartTrend.destroy();
+  chartTrend=new Chart(document.getElementById('chartTrend'),{
+    type:'line', data:{labels,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      onClick:(evt,els)=>{ if(!trendDrillMonth&&els.length){ const months=[...new Set(filteredData.map(d=>d.month))].sort(); trendDrillMonth=months[els[0].index]; renderTrendChart(); } },
+      scales:{ y:{title:{display:true,text:'ABS %'},min:0,grid:{color:'#f4f4f5'},ticks:{callback:v=>v+'%'}}, x:{grid:{color:'#f4f4f5'}} }
+    }
+  });
+}
+
+function setAbsMode(m){
+  absMode=m;
+  document.getElementById('abs-btn-team').classList.toggle('active',m==='team');
+  document.getElementById('abs-btn-emp').classList.toggle('active',m==='emp');
+  document.getElementById('abs-chart-title').textContent=m==='team'?'ABS (%) por equipe':'ABS (%) por colaborador';
+  renderChartAbs();
+}
+
+function renderChartAbs(){
+  const wrap=document.getElementById('chart-abs-wrap');
+  if(!wrap) return;
+  const key=absMode==='team'?'team':'name';
+  const e=Object.entries(groupBy(filteredData,key)).map(([k,v])=>({k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs);
+  const labels=e.map(x=>absMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
+  const vals=e.map(x=>x.abs);
+  const colors=vals.map(v=>v>=5?'#dc2626':v>=3?'#f59e0b':'#3b82f6');
+  const maxVal=Math.max(...vals,3)*1.3;
+  wrap.style.height=Math.max(200,labels.length*(absMode==='emp'?20:30)+60)+'px';
+  if(chartAbs)chartAbs.destroy();
+  const absLabelPlugin={id:'absLabel',afterDatasetsDraw(chart){
+    const{ctx}=chart;
+    chart.data.datasets[0].data.forEach((val,i)=>{
+      if(!val) return;
+      const bar=chart.getDatasetMeta(0).data[i];
+      ctx.save();
+      ctx.fillStyle='#71717a';ctx.font=`500 ${absMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillText(val.toFixed(1)+'%', bar.x+4, bar.y);
+      ctx.restore();
+    });
+  }};
+  chartAbs=new Chart(document.getElementById('chartAbs'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'ABS %',data:vals,backgroundColor:colors,borderRadius:4},
+      {label:'Meta 3%',data:labels.map(()=>3),type:'line',borderColor:'#f59e0b',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false}
+    ]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false,max:maxVal},
+        y:{grid:{display:false},ticks:{font:{size:absMode==='emp'?10:12}}}
+      }
+    },
+    plugins:[absLabelPlugin]
+  });
+}
+
+function setHoursMode(m){
+  hoursMode=m; hoursDrillPath=[];
+  ['supervisor','team','emp'].forEach(k=>{
+    const el=document.getElementById('hours-btn-'+k);
+    if(el) el.classList.toggle('active',m===k);
+  });
+  const titles={supervisor:'supervisor',team:'equipe',emp:'colaborador'};
+  document.getElementById('hours-chart-title').textContent='Previsto vs trabalhado — '+titles[m];
+  renderChartHours();
+}
+function hoursDrillDown(val){ hoursDrillPath.push(val); renderChartHours(); }
+function hoursDrillUp(idx){ hoursDrillPath=idx===-1?[]:hoursDrillPath.slice(0,idx+1); renderChartHours(); }
+
+function renderChartHours(){
+  const wrap=document.getElementById('chart-hours-wrap');
+  if(!wrap) return;
+
+  // Sequência de drill: supervisor → team → name
+  const SEQ={supervisor:['supervisor','team','name'], team:['team','name'], emp:['name']};
+  const seq=SEQ[hoursMode];
+  const depth=hoursDrillPath.length;
+  const groupKey=seq[Math.min(depth,seq.length-1)];
+  const canDrill=depth<seq.length-1;
+
+  // Filtrar por drill path
+  let rows=filteredData;
+  hoursDrillPath.forEach((val,i)=>{ rows=rows.filter(r=>r[seq[i]]===val); });
+
+  // Breadcrumb
+  const bc=document.getElementById('hours-breadcrumb');
+  if(bc){
+    bc.innerHTML='<span onclick="hoursDrillUp(-1)" style="color:var(--data-dark);cursor:pointer;font-weight:500">Início</span>';
+    hoursDrillPath.forEach((v,i)=>{
+      bc.innerHTML+=` › <span onclick="hoursDrillUp(${i})" style="color:var(--data-dark);cursor:pointer;font-weight:500">${v.length>20?v.slice(0,20)+'…':v}</span>`;
+    });
+  }
+
+  const e=Object.entries(groupBy(rows,groupKey)).map(([k,v])=>{
+    const u=dedupeRows(v);
+    return {k, prev:+u.reduce((s,r)=>s+r.previsto,0).toFixed(1), trab:+u.reduce((s,r)=>s+r.trabalhado,0).toFixed(1)};
+  }).sort((a,b)=>b.prev-a.prev);
+
+  const labels=e.map(x=>hoursMode==='emp'?x.k.split(' ').slice(0,2).join(' '):x.k);
+  const prev=e.map(x=>x.prev), trab=e.map(x=>x.trab);
+  const maxVal=Math.max(...prev,...trab,1)*1.25;
+  wrap.style.height=Math.max(200,labels.length*(hoursMode==='emp'?20:30)+60)+'px';
+  if(chartHours)chartHours.destroy();
+
+  const hoursLabelPlugin={id:'hoursLabel',afterDatasetsDraw(chart){
+    const{ctx}=chart;
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden) return;
+      meta.data.forEach((bar,i)=>{
+        const val=ds.data[i]; if(!val) return;
+        ctx.save();
+        ctx.fillStyle='#71717a';ctx.font=`500 ${hoursMode==='emp'?10:11}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+        ctx.textAlign='left';ctx.textBaseline='middle';
+        ctx.fillText(val+'h', bar.x+4, bar.y);
+        ctx.restore();
+      });
+    });
+  }};
+
+  chartHours=new Chart(document.getElementById('chartHours'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Previsto',   data:prev, backgroundColor:'#1e40af',borderRadius:3},
+      {label:'Trabalhado', data:trab, backgroundColor:'#93c5fd',borderRadius:3}
+    ]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}h`}}
+      },
+      scales:{
+        x:{display:false,max:maxVal},
+        y:{grid:{display:false},ticks:{font:{size:hoursMode==='emp'?10:12}}}
+      },
+      onClick(evt,els){
+        if(!canDrill||!els.length) return;
+        const idx=els[0].index;
+        hoursDrillDown(e[idx].k);
+      }
+    },
+    plugins:[hoursLabelPlugin]
+  });
+}
+
+function setLateMode(m){
+  lateMode=m;
+  ['supervisor','team','emp'].forEach(k=>document.getElementById('late-btn-'+k).classList.toggle('active',m===k));
+  renderLateChart();
+}
+
+function renderLateChart(){
+  const wrap = document.getElementById('chart-late-wrap');
+  if(!wrap) return;
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const seen = new Set();
+  const lateByKey = {};
+  const countByKey = {};
+  filteredData.forEach(r => {
+    const tcKey = r.name.trim()+'|'+r.date;
+    if(seen.has(tcKey)) return;
+    seen.add(tcKey);
+    const tc = timeCardsMap[tcKey];
+    const min = tc && tc.late_arrival ? toMin(tc.late_arrival) : 0;
+    if(!min) return;
+    let gk;
+    if(lateMode==='supervisor') gk = r.supervisor;
+    else if(lateMode==='team')  gk = r.team;
+    else                        gk = r.name;
+    lateByKey[gk]  = (lateByKey[gk]||0)  + min;
+    countByKey[gk] = (countByKey[gk]||0) + 1;
+  });
+  const sorted = Object.entries(lateByKey).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const labels = sorted.map(([k])=>k);
+  const values = sorted.map(([,v])=>v);
+  const counts = sorted.map(([k])=>countByKey[k]||0);
+  const maxVal = Math.max(...values, 1);
+  const barH = 28, minH = 200;
+  wrap.style.height = Math.max(minH, labels.length * barH) + 'px';
+  if(chartLate) chartLate.destroy();
+  const lateLabelPlugin = {
+    id:'lateLabel',
+    afterDatasetsDraw(chart){
+      const {ctx}=chart;
+      chart.data.datasets.forEach((ds,di)=>{
+        const meta=chart.getDatasetMeta(di);
+        meta.data.forEach((bar,i)=>{
+          const val=ds.data[i]; if(!val) return;
+          const hh=Math.floor(val/60), mm=Math.round(val%60);
+          const timeLabel = hh>0 ? (mm>0?`${hh}h${mm}min`:`${hh}h`) : `${mm}min`;
+          const cnt = counts[i];
+          const label = `${timeLabel} | ${cnt} atraso${cnt>1?'s':''}`;
+          ctx.save(); ctx.fillStyle='#71717a';
+          ctx.font='500 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+          ctx.textAlign='left'; ctx.textBaseline='middle';
+          ctx.fillText(label, bar.x+4, bar.y); ctx.restore();
+        });
+      });
+    }
+  };
+  chartLate = new Chart(document.getElementById('chartLate'),{
+    type:'bar',
+    data:{ labels, datasets:[{ data:values, backgroundColor:'#dc2626', borderRadius:3 }] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ display:false, max: maxVal * 1.25 },
+        y:{ grid:{display:false}, ticks:{font:{size:lateMode==='emp'?10:12}} }
+      }
+    },
+    plugins:[lateLabelPlugin]
+  });
+}
+
+function setFunnelRoot(r){
+  ['supervisor','team','name'].forEach(k=>document.getElementById('fn-btn-'+k).classList.toggle('active',r===k));
+  renderFunnel();
+}
+
+function renderFunnel(){
+  let rows=filteredData;
+  funnelPath.forEach(s=>{ rows=rows.filter(r=>r[s.key]===s.val); });
+  const depth=funnelPath.length;
+  let levelLabel,items;
+  if(funnelRoot==='supervisor'){
+    if(depth===0){levelLabel='Supervisor';items=getItems(rows,'supervisor');}
+    else if(depth===1){levelLabel='Equipe';items=getItems(rows,'team');}
+    else{levelLabel='Colaborador';items=getItems(rows,'name');}
+  } else if(funnelRoot==='team'){
+    if(depth===0){levelLabel='Equipe';items=getItems(rows,'team');}
+    else{levelLabel='Colaborador';items=getItems(rows,'name');}
+  } else {
+    levelLabel='Colaborador'; items=getItems(rows,'name');
+  }
+  const maxAbs=Math.max(...items.map(i=>i.abs),0.01);
+  const canDrill=(funnelRoot==='supervisor'&&depth<2)||(funnelRoot==='team'&&depth<1);
+  const bc=document.getElementById('funnel-breadcrumb');
+  bc.innerHTML='<span onclick="drillUp(-1)">Início</span>';
+  funnelPath.forEach((s,i)=>{ bc.innerHTML+=` › <span onclick="drillUp(${i})">${s.val}</span>`; });
+  if(funnelPath.length) bc.innerHTML+=` › <strong>${levelLabel}</strong>`;
+  document.getElementById('funnel-wrap').innerHTML=`<div class="funnel-level-title">${levelLabel}</div>`+items.map(item=>{
+    const w=item.abs/maxAbs*100, cls=item.abs>=5?'danger':item.abs>=3?'warn':'';
+    const metaW = Math.min(3/maxAbs*100, 100);
+    const esc=item.label.replace(/'/g,"\\'");
+    return `<div class="funnel-bar-row" onclick="${canDrill?`drillDown('${item.key}','${esc}')`:''}" style="cursor:${canDrill?'pointer':'default'}"><div class="funnel-label">${item.label}</div><div class="funnel-bar-bg" style="position:relative"><div class="funnel-bar-fill ${cls}" style="width:${w}%"></div><div style="position:absolute;top:0;bottom:0;left:${metaW}%;width:2px;background:#f59e0b;opacity:0.8;pointer-events:none"></div></div><div class="funnel-pct">${item.abs.toFixed(2)}%</div></div>`;
+  }).join('');
+  document.getElementById('funnel-hint').textContent=canDrill?'Clique em uma barra para detalhar':'';
+}
+
+function getItems(rows,key){
+  return Object.entries(groupBy(rows,key)).map(([k,v])=>({key,label:k,abs:calcAbsPrincipal(v)})).sort((a,b)=>b.abs-a.abs);
+}
+function drillDown(key,val){ funnelPath.push({key,val}); renderFunnel(); }
+function drillUp(idx){ funnelPath=idx===-1?[]:funnelPath.slice(0,idx+1); renderFunnel(); }
+
+// ── LATE FUNNEL ───────────────────────────────────────────────────────────────
+function setLateFunnelRoot(r){
+  lateFunnelRoot=r; lateFunnelPath=[];
+  ['supervisor','team','name'].forEach(k=>document.getElementById('lf-btn-'+k).classList.toggle('active',r===k));
+  renderLateFunnel();
+}
+function lateFunnelDrillDown(key,val){ lateFunnelPath.push({key,val}); renderLateFunnel(); }
+function lateFunnelDrillUp(idx){ lateFunnelPath=idx===-1?[]:lateFunnelPath.slice(0,idx+1); renderLateFunnel(); }
+
+function renderLateFunnel(){
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const fmtMin = min => { const hh=Math.floor(min/60), mm=Math.round(min%60); return hh>0?(mm>0?`${hh}h${mm}min`:`${hh}h`):`${mm}min`; };
+
+  let rows=filteredData;
+  lateFunnelPath.forEach(s=>{ rows=rows.filter(r=>r[s.key]===s.val); });
+  const depth=lateFunnelPath.length;
+  let levelLabel, groupKey;
+  if(lateFunnelRoot==='supervisor'){
+    if(depth===0){ levelLabel='Supervisor'; groupKey='supervisor'; }
+    else if(depth===1){ levelLabel='Equipe'; groupKey='team'; }
+    else { levelLabel='Colaborador'; groupKey='name'; }
+  } else if(lateFunnelRoot==='team'){
+    if(depth===0){ levelLabel='Equipe'; groupKey='team'; }
+    else { levelLabel='Colaborador'; groupKey='name'; }
+  } else {
+    levelLabel='Colaborador'; groupKey='name';
+  }
+
+  // Calcular atraso por grupo (deduplicado por colaborador/dia)
+  const seen = new Set();
+  const lateByGroup = {};
+  const countByGroup = {};
+  rows.forEach(r => {
+    const tcKey = r.name.trim()+'|'+r.date;
+    if(seen.has(tcKey)) return;
+    seen.add(tcKey);
+    const tc = timeCardsMap[tcKey];
+    const min = tc && tc.late_arrival ? toMin(tc.late_arrival) : 0;
+    if(!min) return;
+    const gk = r[groupKey];
+    lateByGroup[gk]  = (lateByGroup[gk]||0)  + min;
+    countByGroup[gk] = (countByGroup[gk]||0) + 1;
+  });
+
+  const items = Object.entries(lateByGroup).sort((a,b)=>b[1]-a[1]);
+  const maxVal = Math.max(...items.map(([,v])=>v), 1);
+  const canDrill = (lateFunnelRoot==='supervisor'&&depth<2)||(lateFunnelRoot==='team'&&depth<1);
+
+  const bc = document.getElementById('late-funnel-breadcrumb');
+  bc.innerHTML = '<span onclick="lateFunnelDrillUp(-1)">Início</span>';
+  lateFunnelPath.forEach((s,i)=>{ bc.innerHTML+=` › <span onclick="lateFunnelDrillUp(${i})">${s.val}</span>`; });
+  if(lateFunnelPath.length) bc.innerHTML+=` › <strong>${levelLabel}</strong>`;
+
+  document.getElementById('late-funnel-wrap').innerHTML =
+    `<div class="funnel-level-title">${levelLabel}</div>` +
+    items.map(([label, min]) => {
+      const w = min/maxVal*100;
+      const cnt = countByGroup[label]||0;
+      const esc = label.replace(/'/g,"\\'");
+      return `<div class="funnel-bar-row" onclick="${canDrill?`lateFunnelDrillDown('${groupKey}','${esc}')`:''}" style="cursor:${canDrill?'pointer':'default'}">
+        <div class="funnel-label">${label}</div>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill danger" style="width:${w}%"></div></div>
+        <div class="funnel-pct" style="min-width:110px;text-align:right">${fmtMin(min)} <span style="font-size:10px;font-weight:400;color:var(--text-3)">| ${cnt}</span></div>
+      </div>`;
+    }).join('');
+  document.getElementById('late-funnel-hint').textContent = canDrill ? 'Clique em uma barra para detalhar' : '';
+}
+
+function renderTableBody(){
+  tablePage=0;
+  // Resetar filtros internos ao re-renderizar
+  tableFilters.emp.clear(); tableFilters.tipo.clear(); tableFilters.sts.clear();
+  ['emp','tipo','sts'].forEach(k => tfRenderChips(k));
+
+  const rows = dedupeRows(filteredData);
+  // Popular Colaborador
+  const emps = [...new Set(rows.map(r=>r.name))].sort();
+  tfFill('emp', emps);
+  // Popular Tipo de Abono
+  const tipos = [...new Set(rows.map(r=>r.exemption?(r.exemption.exemption_type||''):'').filter(Boolean))].sort();
+  tfFill('tipo', tipos);
+  // Popular Status
+  const statuses = [...new Set(rows.map(r=>r.exemption?(r.exemption.status||''):'').filter(Boolean))].sort();
+  tfFill('sts', statuses);
+
+  renderTablePage();
+}
+
+function applyTableFilter(){ tablePage=0; renderTablePage(); }
+
+function clearTableFilters(){
+  tableFilters.emp.clear(); tableFilters.tipo.clear(); tableFilters.sts.clear();
+  ['emp','tipo','sts'].forEach(k=>{
+    document.querySelectorAll('#tf-list-'+k+' input').forEach(i=>i.checked=false);
+    tfRenderChips(k);
+  });
+  tablePage=0; renderTablePage();
+}
+window.clearTableFilters = clearTableFilters;
+
+// ── MATRIZ DE ATRASO ─────────────────────────────────────────────────────────
+const LATE_CATS = [
+  { key:'pontual',   label:'Pontual',         min:1,  max:5  },
+  { key:'leve',      label:'Atraso leve',     min:6,  max:10 },
+  { key:'moderado',  label:'Atraso moderado', min:11, max:30 },
+  { key:'grave',     label:'Atraso grave',    min:31, max:Infinity },
+];
+const LATE_MATRIX_SEQS = {
+  'supervisor': ['supervisor','team','name'],
+  'team':       ['team','name'],
+  'name':       ['name']
+};
+
+function setLateMatrixDrillMode(m){
+  lateMatrixDrillMode=m; lateMatrixDrillPath=[];
+  ['supervisor','team','name'].forEach(k=>document.getElementById('lm-btn-'+k).classList.toggle('active',m===k));
+  renderLateMatrix();
+}
+function lateMatrixDrillDown(val){ lateMatrixDrillPath.push(val); renderLateMatrix(); }
+function lateMatrixDrillUp(idx){ lateMatrixDrillPath=idx===-1?[]:lateMatrixDrillPath.slice(0,idx+1); renderLateMatrix(); }
+
+function renderLateMatrix(){
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=hhmm.split(':').map(Number); return h*60+m; };
+  const fmtMin = min => { const hh=Math.floor(min/60), mm=Math.round(min%60); return hh>0?(mm>0?`${hh}h${mm}min`:`${hh}h`):`${mm}min`; };
+  const catOf  = min => {
+    if(!min || min === 0) return null; // sem atraso, ignora
+    return LATE_CATS.find(c => min>=c.min && min<=c.max)?.key || null;
+  };
+
+  const seq = LATE_MATRIX_SEQS[lateMatrixDrillMode];
+  const depth = lateMatrixDrillPath.length;
+  const groupKey = seq[Math.min(depth, seq.length-1)];
+  const canDrill = depth < seq.length-1;
+
+  // Filtrar rows pelo drill path
+  let rows = filteredData;
+  lateMatrixDrillPath.forEach((val,i) => { rows = rows.filter(r => r[seq[i]]===val); });
+
+  // Acumular por grupo e categoria — deduplica por name|date (mesmo padrão do KPI)
+  const seen = new Set();
+  const rowMap = {};
+  rows.forEach(r => {
+    const tcKey = r.name.trim()+'|'+r.date;
+    if(seen.has(tcKey)) return;
+    seen.add(tcKey);
+    const tc = timeCardsMap[tcKey];
+    const min = tc && tc.late_arrival ? toMin(tc.late_arrival) : 0;
+    const cat = catOf(min);
+    if(!cat) return;
+    const gk = r[groupKey];
+    if(!rowMap[gk]) rowMap[gk] = { _total:{min:0,count:0}, pontual:{min:0,count:0}, leve:{min:0,count:0}, moderado:{min:0,count:0}, grave:{min:0,count:0} };
+    rowMap[gk][cat].min   += min;
+    rowMap[gk][cat].count += 1;
+    rowMap[gk]._total.min   += min;
+    rowMap[gk]._total.count += 1;
+  });
+
+  const rowsSorted = Object.entries(rowMap).sort((a,b)=>b[1]._total.min - a[1]._total.min);
+
+  // Breadcrumb
+  const bc = document.getElementById('late-matrix-breadcrumb');
+  bc.innerHTML = '<span onclick="lateMatrixDrillUp(-1)" style="color:var(--blue2);cursor:pointer;font-weight:600">Início</span>';
+  lateMatrixDrillPath.forEach((v,i)=>{
+    bc.innerHTML += ` › <span onclick="lateMatrixDrillUp(${i})" style="color:var(--blue2);cursor:pointer;font-weight:600">${v.length>18?v.slice(0,18)+'…':v}</span>`;
+  });
+
+  const dimLabel = lateMatrixDrillMode==='supervisor'?['Supervisor','Equipe','Colaborador'][depth]: lateMatrixDrillMode==='team'?['Equipe','Colaborador'][depth]:'Colaborador';
+
+  const colColors = { pontual:'#16a34a', leve:'#f59e0b', moderado:'#f97316', grave:'#dc2626' };
+
+  const hdrCols = LATE_CATS.map(c=>`<th style="min-width:110px;text-align:center;padding:6px 8px;background:var(--bg);font-size:11px;font-weight:500;color:var(--text-2);white-space:nowrap;border-bottom:2px solid ${colColors[c.key]}">${c.label}</th>`).join('');
+
+  const bodyRows = rowsSorted.map(([rowKey, rv]) => {
+    const esc = rowKey.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const cells = LATE_CATS.map(c => {
+      const v = rv[c.key];
+      if(!v || v.count===0) return `<td style="text-align:center;padding:5px 8px;font-size:11px"><span style="color:#ccc">—</span></td>`;
+      return `<td style="text-align:center;padding:5px 8px;background:#fafafa;font-size:11px">
+        <div style="font-weight:600;color:${colColors[c.key]}">${fmtMin(v.min)}</div>
+        <div style="color:var(--text-3);font-size:10px">${v.count} atr.</div>
+      </td>`;
+    }).join('');
+    const tot = rv._total;
+    return `<tr onclick="${canDrill?`lateMatrixDrillDown('${esc}')`:''}"
+      style="cursor:${canDrill?'pointer':'default'};border-bottom:1px solid var(--border)"
+      onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
+      <td style="padding:6px 10px;font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;min-width:140px;max-width:200px" title="${esc}">${rowKey}</td>
+      ${cells}
+      <td style="text-align:center;padding:5px 10px;background:var(--border-subtle);font-size:11px;font-weight:600;color:var(--dark)">${fmtMin(tot.min)}<div style="color:var(--text-3);font-size:10px;font-weight:400">${tot.count} atr.</div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('late-matrix-wrap').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto">
+      <thead><tr>
+        <th style="padding:6px 10px;background:var(--bg);color:var(--text-2);font-size:11px;font-weight:500;text-align:left;white-space:nowrap">${dimLabel}</th>
+        ${hdrCols}
+        <th style="min-width:80px;text-align:center;padding:6px 8px;background:var(--border-subtle);color:var(--text-2);font-size:11px;font-weight:500">Total</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>`;
+
+  document.getElementById('late-matrix-hint').textContent = canDrill ? 'Clique em uma linha para detalhar' : '';
+}
+
+function renderTablePage(){
+  let all=dedupeRows(filteredData);
+  if(tableFilters.emp.size)  all=all.filter(r=>tableFilters.emp.has(r.name));
+  if(tableFilters.tipo.size) all=all.filter(r=>tableFilters.tipo.has(r.exemption?.exemption_type||''));
+  if(tableFilters.sts.size)  all=all.filter(r=>tableFilters.sts.has(r.exemption?.status||''));
+  const start=tablePage*TABLE_PAGE_SIZE, end=start+TABLE_PAGE_SIZE;
+  const slice=all.slice(start,end);
+  document.getElementById('table-body').innerHTML=slice.map(r=>{
+    const ausEfetiva = calcAusenciaEfetiva(r);
+    const a=r.previsto>0?(ausEfetiva/r.previsto*100):0;
+    const bc=a>=5?'badge-danger':a>=2?'badge-warn':'badge-ok', bw=a>=3?'danger':a>=1?'warn':'';
+    const ex=r.exemption;
+    const aprovado = ex && !EXCLUIDOS_SOL.has((ex.solicitation_status||'').trim());
+    const isAllDay=aprovado&&(ex.all_day||'').toLowerCase()==='sim';
+    // Exemption columns
+    const exType  = ex?(ex.exemption_type||'—'):'—';
+    const exStatus= ex?(ex.status||'—'):'—';
+    const exSol   = ex?(ex.solicitation_status||'—'):'—';
+    const exBy    = ex?(ex.answered_by||'—'):'—';
+    const exAllDay= ex?(ex.all_day||'—'):'—';
+    const exStart = isAllDay?'—':(ex?(ex.start_time||'—'):'—');
+    const exEnd   = isAllDay?'—':(ex?(ex.end_time||'—'):'—');
+    const exAttach= ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim'||ex.has_attachment==='Sim')?'✔ Sim':'✘ Não'):'—';
+    const exObs   = ex?(ex.observation||'—'):'—';
+    // Total abonado formatado (só conta se aprovado)
+    const abonadoH = aprovado ? (r.abonado||0) : 0;
+    const fmtHHMM = h => { const hh=Math.floor(h), mm=Math.round((h-hh)*60); return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
+    const abonadoFmt = abonadoH>0 ? fmtHHMM(abonadoH) : '—';
+    const abonadoTag = abonadoH>0 ? `<span class="badge badge-exemption">${abonadoFmt}</span>` : '—';
+    // Row highlight class when exemption present
+    const rowClass= isAllDay?'style="background:#fffbeb"':'';
+    // ABS cell tag
+    const absTag = isAllDay?`<span class="exempt-tag allday">Abono Dia</span>`
+                  :aprovado?`<span class="exempt-tag">Abono</span>`:'';
+    // Time card lookup
+    const tcKey = r.name.trim()+'|'+r.date;
+    const tc = timeCardsMap[tcKey] || null;
+    const registroPonto = tc ? (tc.registro_ponto || '—') : '—';
+    const lateArrival = tc ? (tc.late_arrival || null) : null;
+    const jobTitle = tc ? (tc.job_title_name || '—') : '—';
+    const shiftName = tc ? (tc.shift_name || '—') : '—';
+    let lateTag = '—';
+    if(lateArrival) {
+      const [lh, lm] = lateArrival.split(':').map(Number);
+      const totalMin = lh * 60 + lm;
+      const lateColor = totalMin > 10 ? '#dc2626' : '#16a34a';
+      lateTag = `<span style="font-weight:600;color:${lateColor}">${lateArrival}</span>`;
+    }
+    return `<tr ${rowClass}>
+      <td>${r.name}</td>
+      <td>${r.team}</td>
+      <td>${r.supervisor}</td>
+      <td>${jobTitle}</td>
+      <td>${r.date}</td>
+      <td>${monthLabel(r.month)}</td>
+      <td class="registro-ponto">${registroPonto}</td>
+      <td style="font-size:11px;color:var(--text-2);max-width:160px;white-space:normal;word-break:break-word">${shiftName}</td>
+      <td style="text-align:center">${lateTag}</td>
+      <td>${fmtHHMM(r.previsto)}</td>
+      <td>${fmtHHMM(r.trabalhado)}</td>
+      <td>${fmtHHMM(r.ausencia)}</td>
+      <td><div class="abs-bar"><div class="abs-bar-bg"><div class="abs-bar-fill ${bw}" style="width:${Math.min(a/10*100,100)}%"></div></div><span class="badge ${bc}">${a.toFixed(2)}%</span>${absTag}</div></td>
+      <td>${abonadoTag}</td>
+      <td>${exType}</td>
+      <td>${exStatus}</td>
+      <td>${exSol}</td>
+      <td>${exBy}</td>
+      <td>${exAllDay}</td>
+      <td>${exStart}</td>
+      <td>${exEnd}</td>
+      <td>${exAttach}</td>
+      <td style="max-width:180px;white-space:normal;word-break:break-word">${exObs}</td>
+    </tr>`;
+  }).join('');
+  const total=all.length, pages=Math.ceil(total/TABLE_PAGE_SIZE);
+  document.getElementById('table-info').textContent=`Exibindo ${start+1}–${Math.min(end,total)} de ${total} registros`;
+  document.getElementById('btn-prev').disabled=tablePage===0;
+  document.getElementById('btn-next').disabled=tablePage>=pages-1;
+}
+
+function tablePageChange(dir){
+  let all=dedupeRows(filteredData);
+  if(tableFilters.emp.size)  all=all.filter(r=>tableFilters.emp.has(r.name));
+  if(tableFilters.tipo.size) all=all.filter(r=>tableFilters.tipo.has(r.exemption?.exemption_type||''));
+  if(tableFilters.sts.size)  all=all.filter(r=>tableFilters.sts.has(r.exemption?.status||''));
+  const pages=Math.ceil(all.length/TABLE_PAGE_SIZE);
+  tablePage=Math.max(0,Math.min(tablePage+dir,pages-1));
+  renderTablePage();
+}
+
+function sortTable(col){
+  const dir=sortDir[col]=!sortDir[col];
+  const toMin = hhmm => { if(!hhmm) return 0; const[h,m]=(hhmm||'').split(':').map(Number); return h*60+m; };
+  filteredData.sort((a,b)=>{
+    let av,bv;
+    switch(col){
+      case 0:  av=a.name;       bv=b.name;       break;
+      case 1:  av=a.team;       bv=b.team;       break;
+      case 2:  av=a.supervisor; bv=b.supervisor; break;
+      case 3: { // Cargo: vem do timeCardsMap
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=(ta&&ta.job_title_name)||''; bv=(tb&&tb.job_title_name)||''; break;
+      }
+      case 4:  av=a.date;       bv=b.date;       break;
+      case 5:  av=a.month;      bv=b.month;      break;
+      case 6: { // Registro Ponto
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=(ta&&ta.registro_ponto)||''; bv=(tb&&tb.registro_ponto)||''; break;
+      }
+      case 7: { // Jornada
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=(ta&&ta.shift_name)||''; bv=(tb&&tb.shift_name)||''; break;
+      }
+      case 8: { // Total Atraso
+        const ta=timeCardsMap[a.name.trim()+'|'+a.date], tb=timeCardsMap[b.name.trim()+'|'+b.date];
+        av=toMin(ta&&ta.late_arrival); bv=toMin(tb&&tb.late_arrival);
+        return dir?av-bv:bv-av;
+      }
+      case 9:  return dir?a.previsto-b.previsto:b.previsto-a.previsto;
+      case 10: return dir?a.trabalhado-b.trabalhado:b.trabalhado-a.trabalhado;
+      case 11: return dir?a.ausencia-b.ausencia:b.ausencia-a.ausencia;
+      case 12: { const ap=a.previsto>0?a.ausencia/a.previsto:0,bp=b.previsto>0?b.ausencia/b.previsto:0; return dir?ap-bp:bp-ap; }
+      case 13: return dir?a.abonado-b.abonado:b.abonado-a.abonado;
+      case 14: av=a.exemption&&a.exemption.exemption_type||''; bv=b.exemption&&b.exemption.exemption_type||''; break;
+      case 15: av=a.exemption&&a.exemption.status||''; bv=b.exemption&&b.exemption.status||''; break;
+      case 16: av=a.exemption&&a.exemption.solicitation_status||''; bv=b.exemption&&b.exemption.solicitation_status||''; break;
+      case 17: av=a.exemption&&a.exemption.answered_by||''; bv=b.exemption&&b.exemption.answered_by||''; break;
+      case 18: av=a.exemption&&a.exemption.all_day||''; bv=b.exemption&&b.exemption.all_day||''; break;
+      case 19: av=a.exemption&&a.exemption.start_time||''; bv=b.exemption&&b.exemption.start_time||''; break;
+      case 20: av=a.exemption&&a.exemption.end_time||''; bv=b.exemption&&b.exemption.end_time||''; break;
+      default: av=''; bv='';
+    }
+    if(av===undefined)av=''; if(bv===undefined)bv='';
+    return dir?(av>bv?1:-1):(av<bv?1:-1);
+  });
+  tablePage=0; renderTablePage();
+}
+
+function exportCSV(){
+  const rows=dedupeRows(filteredData);
+  const header=['Colaborador','Equipe','Supervisor','Data','Mês','Previsto(h)','Trabalhado(h)','Ausência(h)','ABS%','Total Abonado',
+                'Tipo de Abono','Status','Solicitação','Aprovada por','Dia todo','Horário Início Abono','Horário Fim Abono','Possui Anexo','Observação'];
+  const lines=[header.join(';')];
+  rows.forEach(r=>{
+    const a=r.previsto>0?(r.ausencia/r.previsto*100):0;
+    const fmt=n=>n.replace('.',',');
+    const ex=r.exemption;
+    const aprovado = ex && !EXCLUIDOS_SOL.has((ex.solicitation_status||'').trim());
+    const isAllDay=aprovado&&(ex.all_day||'').toLowerCase()==='sim';
+    const abonadoH=aprovado?(r.abonado||0):0;
+    const abonadoHH=Math.floor(abonadoH), abonadoMM=Math.round((abonadoH-abonadoHH)*60);
+    const abonadoFmt=abonadoH>0?(abonadoMM>0?`${abonadoHH}h ${String(abonadoMM).padStart(2,'0')}min`:`${abonadoHH}h`):'';
+    lines.push([
+      r.name, r.team, r.supervisor, r.date, monthLabel(r.month),
+      fmt(r.previsto.toFixed(1)), fmt(r.trabalhado.toFixed(1)), fmt(r.ausencia.toFixed(1)), fmt(a.toFixed(2)),
+      abonadoFmt,
+      ex?(ex.exemption_type||''):'',
+      ex?(ex.status||''):'',
+      ex?(ex.solicitation_status||''):'',
+      ex?(ex.answered_by||''):'',
+      ex?(ex.all_day||''):'',
+      isAllDay?'':(ex?(ex.start_time||''):''),
+      isAllDay?'':(ex?(ex.end_time||''):''),
+      ex?((ex.has_attachment===true||ex.has_attachment==='true'||ex.has_attachment==='sim'||ex.has_attachment==='Sim')?'Sim':'Não'):'',
+      ex?(ex.observation||''):''
+    ].join(';'));
+  });
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='absenteismo.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── HELPERS para gráficos de abono ────────────────────────────────────────────
+function getExemptions() {
+  const seen = new Set();
+  const result = [];
+  for(const r of filteredData) {
+    if(!r.exemption) continue;
+    const key = r.name+'|'+r.date;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    result.push(r);
+  }
+  return result;
+}
+
+const fmtH = h => {
+  const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+  return mm>0?`${hh}h${String(mm).padStart(2,'0')}m`:`${hh}h`;
+};
+
+// Plugin inline para mostrar valor no fim da barra
+const barLabelPlugin = {
+  id:'barLabel',
+  afterDatasetsDraw(chart){
+    const {ctx}=chart;
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden) return;
+      meta.data.forEach((bar,i)=>{
+        const val=ds.data[i];
+        if(!val) return;
+        const label=ds.label==='Horas abonadas'?fmtH(val):val+' reg.';
+        ctx.save();
+        ctx.fillStyle='#71717a';
+        ctx.font='500 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+        ctx.textAlign='left';
+        ctx.textBaseline='middle';
+        ctx.fillText(label, bar.x+4, bar.y);
+        ctx.restore();
+      });
+    });
+  }
+};
+
+// ── GRÁFICO 1: drill down tabela mini-barras ──────────────────────────────────
+const DRILL_SEQUENCES = {
+  'answered_by':   ['answered_by','team_name','employee_name','exemption_type','status','observation'],
+  'team_name':     ['team_name','employee_name','exemption_type','status','observation'],
+  'employee_name': ['employee_name','exemption_type','status','observation']
+};
+const DRILL_LABELS = {
+  'answered_by':'Supervisor','team_name':'Equipe','employee_name':'Colaborador',
+  'exemption_type':'Tipo de Abono','status':'Status','observation':'Observação'
+};
+const EXCLUIDOS_SOL = new Set(['Pendente','Reprovada']);
+
+function isAbonado(r){
+  return r.exemption && !EXCLUIDOS_SOL.has((r.exemption.solicitation_status||'').trim());
+}
+
+function setExDrillMode(m){
+  exDrillMode=m; exDrillPath=[];
+  ['answered_by','team_name','employee_name'].forEach(k=>{
+    document.getElementById('ex-drill-btn-'+k).classList.toggle('active',m===k);
+  });
+  document.getElementById('ex-drill-title').textContent='Abonos — Drill Down ('+DRILL_LABELS[m]+')';
+  renderExDrillChart();
+}
+
+function exDrillDown(val){
+  exDrillPath.push(val);
+  renderExDrillChart();
+}
+
+function exDrillUp(idx){
+  exDrillPath = idx===-1 ? [] : exDrillPath.slice(0,idx+1);
+  renderExDrillChart();
+}
+
+function renderExDrillChart(){
+  const seq = DRILL_SEQUENCES[exDrillMode];
+  const depth = exDrillPath.length;
+  const currentKey = seq[Math.min(depth, seq.length-1)];
+  const canDrill = depth < seq.length-1;
+
+  let exRows = getExemptions();
+  exDrillPath.forEach((val,i) => {
+    const fk = seq[i];
+    exRows = exRows.filter(r => (r.exemption[fk]||'N/A').trim()===val);
+  });
+
+  const grouped = {};
+  exRows.forEach(r => {
+    const cat = (r.exemption[currentKey]||'N/A').trim() || 'N/A';
+    if(!grouped[cat]) grouped[cat]={count:0, horas:0};
+    grouped[cat].count++;
+    grouped[cat].horas += isAbonado(r)?(r.abonado||0):0;
+  });
+  const sorted = Object.entries(grouped).sort((a,b)=>b[1].count-a[1].count);
+  const maxR = Math.max(...sorted.map(([,v])=>v.count),1);
+  const maxH = Math.max(...sorted.map(([,v])=>v.horas),1);
+
+  const bc = document.getElementById('ex-drill-breadcrumb');
+  bc.innerHTML = '<span onclick="exDrillUp(-1)" style="color:var(--blue2);cursor:pointer;font-weight:600">Início</span>';
+  exDrillPath.forEach((v,i)=>{
+    bc.innerHTML += ` › <span onclick="exDrillUp(${i})" style="color:var(--blue2);cursor:pointer;font-weight:600">${v.length>20?v.slice(0,20)+'…':v}</span>`;
+  });
+  if(exDrillPath.length) bc.innerHTML += ` › <strong>${DRILL_LABELS[currentKey]||currentKey}</strong>`;
+  document.getElementById('ex-drill-hint').textContent = canDrill ? 'Clique em uma linha para detalhar' : '';
+
+  // Indicador de camadas disponíveis
+  const seqLabels = seq.map(k => DRILL_LABELS[k]||k);
+  const drillPathIndicator = seqLabels.map((l,i) => {
+    const active = i === depth;
+    const done   = i < depth;
+    return `<span style="font-size:10px;padding:1px 6px;border-radius:10px;white-space:nowrap;
+      background:${active?'#18181b':done?'#eff6ff':'#f4f4f5'};
+      color:${active?'#fff':done?'#1e40af':'#a1a1aa'};
+      font-weight:${active?'600':'400'}">${l}</span>`;
+  }).join('<span style="font-size:10px;color:#ccc;margin:0 1px">›</span>');
+
+  const wrap = document.getElementById('chart-ex-drill-wrap');
+  const rows = sorted.map(([cat,v])=>{
+    const wR = Math.round(v.count/maxR*100);
+    const wH = Math.round(v.horas/maxH*100);
+    const fmtHoras = v.horas>0 ? fmtH(v.horas) : '—';
+    const esc = cat.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const cursor = canDrill ? 'pointer' : 'default';
+    const hover = canDrill ? `onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''"` : '';
+    return `<div ${hover} onclick="${canDrill?`exDrillDown('${esc}')`:''}\"
+      style="display:grid;grid-template-columns:minmax(120px,180px) 1fr 52px 1fr 52px;gap:4px 6px;align-items:center;padding:5px 6px;border-radius:6px;cursor:${cursor}">
+      <div style="font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35" title="${esc}">${cat}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="flex:1;background:#f4f4f5;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wR}%;height:100%;background:#1e40af;border-radius:3px"></div></div>
+        <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${v.count} reg.</div>
+      </div>
+      <div></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="flex:1;background:#f4f4f5;border-radius:3px;height:10px;overflow:hidden"><div style="width:${wH}%;height:100%;background:#93c5fd;border-radius:3px"></div></div>
+        <div style="font-size:11px;color:var(--mid);white-space:nowrap;min-width:42px">${fmtHoras}</div>
+      </div>
+      <div></div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:6px 6px 8px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      ${drillPathIndicator}
+    </div>
+    <div style="display:grid;grid-template-columns:160px 1fr 52px 1fr 52px;gap:4px 6px;padding:2px 6px 6px;font-size:11px;color:var(--text-2);font-weight:500">
+      <div>${DRILL_LABELS[currentKey]||currentKey}</div><div colspan="2">Registros</div><div></div><div colspan="2">Horas Abonadas</div>
+    </div>
+    ${rows}`;
+}
+
+// ── GRÁFICO 2: Matriz ─────────────────────────────────────────────────────────
+const MATRIX_SEQUENCES = {
+  'answered_by':   ['answered_by','team_name','employee_name','status','observation'],
+  'employee_name': ['employee_name','status','observation'],
+  'status':        ['status','observation']
+};
+const MATRIX_LABELS = {
+  'answered_by':'Supervisor','team_name':'Equipe','employee_name':'Colaborador',
+  'status':'Status','observation':'Observação'
+};
+
+function setExMatrixDrillMode(m){
+  exMatrixDrillMode=m; exMatrixDrillPath=[];
+  ['answered_by','employee_name','status'].forEach(k=>{
+    const el = document.getElementById('ex-matrix-btn-'+k);
+    if(el) el.classList.toggle('active',m===k);
+  });
+  renderExMatrixChart();
+}
+
+function exMatrixDrillDown(val){
+  exMatrixDrillPath.push(val);
+  renderExMatrixChart();
+}
+
+function exMatrixDrillUp(idx){
+  exMatrixDrillPath = idx===-1 ? [] : exMatrixDrillPath.slice(0,idx+1);
+  renderExMatrixChart();
+}
+
+function renderExMatrixChart(){
+  const seq = MATRIX_SEQUENCES[exMatrixDrillMode];
+  const depth = exMatrixDrillPath.length;
+  const currentKey = seq[Math.min(depth, seq.length-1)];
+  const canDrill = depth < seq.length-1;
+
+  // Helper: pega o valor correto dependendo do campo
+  const getField = (r, fk) => {
+    if(fk === 'team_name') return r.team || 'N/A';
+    return (r.exemption[fk]||'N/A').trim();
+  };
+
+  let exRows = getExemptions();
+  exMatrixDrillPath.forEach((val,i) => {
+    const fk = seq[i];
+    exRows = exRows.filter(r => getField(r, fk)===val);
+  });
+
+  // Colunas: solicitation_status únicos (sem NULL)
+  const colSet = new Set();
+  exRows.forEach(r => {
+    const sol = (r.exemption.solicitation_status||'').trim();
+    if(sol) colSet.add(sol);
+  });
+  const cols = [...colSet].sort();
+
+  // Linhas: currentKey
+  const rowMap = {};
+  exRows.forEach(r => {
+    const rowKey = getField(r, currentKey);
+    const sol = (r.exemption.solicitation_status||'').trim();
+    if(!rowMap[rowKey]) rowMap[rowKey] = {_total:{count:0,horas:0}};
+    cols.forEach(c => { if(!rowMap[rowKey][c]) rowMap[rowKey][c]={count:0,horas:0}; });
+    if(sol && rowMap[rowKey][sol]){
+      rowMap[rowKey][sol].count++;
+      rowMap[rowKey][sol].horas += isAbonado(r)?(r.abonado||0):0;
+    }
+    rowMap[rowKey]._total.count++;
+    rowMap[rowKey]._total.horas += isAbonado(r)?(r.abonado||0):0;
+  });
+
+  const rowsSorted = Object.entries(rowMap).sort((a,b)=>b[1]._total.count-a[1]._total.count);
+
+  const bc = document.getElementById('ex-matrix-breadcrumb');
+  bc.innerHTML = '<span onclick="exMatrixDrillUp(-1)" style="color:var(--blue2);cursor:pointer;font-weight:600">Início</span>';
+  exMatrixDrillPath.forEach((v,i)=>{
+    bc.innerHTML += ` › <span onclick="exMatrixDrillUp(${i})" style="color:var(--blue2);cursor:pointer;font-weight:600">${v.length>18?v.slice(0,18)+'…':v}</span>`;
+  });
+  if(exMatrixDrillPath.length) bc.innerHTML += ` › <strong>${MATRIX_LABELS[currentKey]||currentKey}</strong>`;
+  document.getElementById('ex-matrix-hint').textContent = canDrill ? 'Clique em uma linha para detalhar' : '';
+
+  const colW = 80;
+  const hdrCols = cols.map(c=>`<th style="min-width:${colW}px;text-align:center;padding:6px 8px;background:var(--bg);color:var(--text-2);font-size:11px;font-weight:500;white-space:nowrap">${c}</th>`).join('');
+  const bodyRows = rowsSorted.map(([rk,rv])=>{
+    const esc = rk.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const cursor = canDrill ? 'pointer' : 'default';
+    const cells = cols.map(c=>{
+      const cv = rv[c]||{count:0,horas:0};
+      const bg = cv.count>0?'#eff6ff':'';
+      return `<td style="text-align:center;padding:5px 8px;background:${bg};font-size:11px">
+        ${cv.count>0?`<div style="font-weight:600;color:var(--dark)">${cv.count}</div><div style="color:var(--mid);font-size:10px">${fmtH(cv.horas)}</div>`:'<span style="color:#ccc">—</span>'}
+      </td>`;
+    }).join('');
+    return `<tr onclick="${canDrill?`exMatrixDrillDown('${esc}')`:''}" style="cursor:${cursor};border-bottom:1px solid var(--border)"
+      onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''">
+      <td style="padding:6px 10px;font-size:12px;font-weight:400;color:#18181b;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;vertical-align:middle;min-width:140px;max-width:200px" title="${rk}">${rk}</td>
+      ${cells}
+      <td style="text-align:center;padding:5px 10px;font-size:11px;background:#fafafa;font-weight:600;color:var(--dark)">${rv._total.count}<div style="color:var(--mid);font-size:10px;font-weight:400">${fmtH(rv._total.horas)}</div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('ex-matrix-wrap').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto">
+      <thead><tr>
+        <th style="padding:6px 10px;background:var(--bg);color:var(--text-2);font-size:11px;font-weight:500;text-align:left;white-space:nowrap">${MATRIX_LABELS[currentKey]||currentKey}</th>
+        ${hdrCols}
+        <th style="min-width:70px;text-align:center;padding:6px 8px;background:var(--border-subtle);color:var(--text-2);font-size:11px;font-weight:500">Total</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>`;
+}
+
+// renderExAxisChart mantido vazio (substituído pelo drill)
+function renderExAxisChart(){}
+
+function showError(msg){
+  document.getElementById('app').innerHTML=`<div class="error-box">⚠️ ${msg}</div>`;
+}
+
+}); // DOMContentLoaded
+</script>
+<!-- CHAT WIDGET BCR.CX -->
+<style>
+#chat-fab{position:fixed;bottom:28px;right:28px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#2151E5;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(33,81,229,.35);display:flex;align-items:center;justify-content:center;transition:transform .2s ease,box-shadow .2s ease}
+#chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(33,81,229,.45)}
+#chat-fab svg{width:26px;height:26px}
+#chat-panel{position:fixed;bottom:92px;right:28px;z-index:9999;width:430px;max-height:560px;background:#fff;border-radius:16px;border:1px solid #e4e4e7;box-shadow:0 8px 40px rgba(0,0,0,.12);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}
+#chat-panel.open{display:flex}
+#chat-header{background:#2151E5;padding:14px 16px;display:flex;align-items:center;gap:10px}
+#chat-header-icon{width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#chat-header-icon svg{width:18px;height:18px}
+#chat-header-info{flex:1}
+#chat-header-info strong{display:block;font-size:14px;font-weight:600;color:#fff}
+#chat-close{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.75);font-size:18px;line-height:1;padding:0;transition:color .15s ease}
+#chat-close:hover{color:#fff}
+#chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:380px}
+#chat-messages::-webkit-scrollbar{width:4px}
+#chat-messages::-webkit-scrollbar-track{background:transparent}
+#chat-messages::-webkit-scrollbar-thumb{background:#e4e4e7;border-radius:2px}
+.chat-msg{display:flex;flex-direction:column;gap:4px;max-width:88%}
+.chat-msg.user{align-self:flex-end;align-items:flex-end}
+.chat-msg.bot{align-self:flex-start;align-items:flex-start}
+.chat-bubble{padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.5;word-break:break-word}
+.chat-msg.user .chat-bubble{background:#2151E5;color:#fff;border-bottom-right-radius:3px}
+.chat-msg.bot .chat-bubble{background:#f4f4f5;color:#18181b;border-bottom-left-radius:3px;white-space:pre-wrap}
+.chat-time{font-size:10px;color:#a1a1aa;padding:0 2px}
+.chat-typing{align-self:flex-start;display:flex;gap:4px;padding:12px 14px;background:#f4f4f5;border-radius:12px;border-bottom-left-radius:3px}
+.chat-typing span{width:7px;height:7px;border-radius:50%;background:#a1a1aa;animation:typing .9s infinite}
+.chat-typing span:nth-child(2){animation-delay:.15s}
+.chat-typing span:nth-child(3){animation-delay:.3s}
+@keyframes typing{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
+#chat-suggestions{padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:6px}
+.chat-suggestion{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;transition:background .15s ease;white-space:nowrap}
+.chat-suggestion:hover{background:#dbeafe}
+.chat-tip{font-size:11px;color:#6366f1;background:#eef2ff;border:1px solid #e0e7ff;border-radius:8px;padding:6px 10px;margin-top:2px;line-height:1.4;cursor:pointer;transition:background .15s ease}
+.chat-tip:hover{background:#e0e7ff}
+#chat-footer{padding:10px 12px;border-top:1px solid #f4f4f5;display:flex;gap:8px;align-items:center}
+#chat-input{flex:1;border:1px solid #e4e4e7;border-radius:10px;padding:9px 12px;font-size:13px;color:#18181b;outline:none;resize:none;font-family:inherit;transition:border-color .15s ease;line-height:1.4;max-height:80px;overflow-y:auto}
+#chat-input:focus{border-color:#2151E5;box-shadow:0 0 0 3px rgba(33,81,229,.08)}
+#chat-input::placeholder{color:#a1a1aa}
+#chat-send{background:#2151E5;border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s ease;flex-shrink:0}
+#chat-send:hover{opacity:.85}
+#chat-send:disabled{opacity:.4;cursor:not-allowed}
+#chat-send svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+
+<button id="chat-fab" onclick="chatToggle()" title="BCR.CX Agent">
+  <svg viewBox="0 0 100 100" fill="none">
+    <path d="M38 16H26a10 10 0 0 0-10 10v48a10 10 0 0 0 10 10h48a10 10 0 0 0 10-10V62" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M60 10 L64 20 L74 24 L64 28 L60 38 L56 28 L46 24 L56 20 Z" fill="#fff"/>
+    <path d="M78 30 L80.5 36 L86.5 38.5 L80.5 41 L78 47 L75.5 41 L69.5 38.5 L75.5 36 Z" fill="#fff"/>
+  </svg>
+</button>
+
+<div id="chat-panel">
+  <div id="chat-header">
+    <div id="chat-header-icon">
+      <svg viewBox="0 0 100 100" fill="none">
+        <path d="M38 16H26a10 10 0 0 0-10 10v48a10 10 0 0 0 10 10h48a10 10 0 0 0 10-10V62" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M60 10 L64 20 L74 24 L64 28 L60 38 L56 28 L46 24 L56 20 Z" fill="#fff"/>
+        <path d="M78 30 L80.5 36 L86.5 38.5 L80.5 41 L78 47 L75.5 41 L69.5 38.5 L75.5 36 Z" fill="#fff"/>
+      </svg>
+    </div>
+    <div id="chat-header-info">
+      <strong>BCR.CX Agent</strong>
+    </div>
+    <button id="chat-close" onclick="chatToggle()">✕</button>
+  </div>
+
+  <div id="chat-messages">
+    <div class="chat-msg bot">
+      <div class="chat-bubble">Olá! Sou o BCR.CX Agent. Posso analisar dados de absenteísmo e de ligações/atendimento. Qual período deseja analisar?</div>
+      <span class="chat-time">agora</span>
+    </div>
+  </div>
+
+  <div id="chat-suggestions">
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Qual equipe tem mais faltas?</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">ABS global do último mês</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Nível de serviço da última semana</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">TMA médio por fila</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">CSAT do último mês</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Abonos pendentes</button>
+  </div>
+
+  <div id="chat-footer">
+    <textarea id="chat-input" placeholder="Digite sua pergunta..." rows="1" onkeydown="chatKeydown(event)" oninput="chatAutoResize(this)"></textarea>
+    <button id="chat-send" onclick="chatSend()" title="Enviar">
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const WEBHOOK = 'https://eventos.55telecom.com/webhook/bot-dash';
+  let chatOpen = false;
+  let chatBusy = false;
+  let chatSession = 'session-' + Date.now();
+  let chatTipIndex = 0;
+
+  const CHAT_TIPS = [
+    '💡 Especifique o período para comparar com o dashboard (ex: "nos últimos 30 dias")',
+    '📊 Experimente: "Compare o ABS da TENDA com a VOLVO no último mês"',
+    '🔍 Experimente: "Quais colaboradores tiveram mais de 3 faltas em junho?"',
+    '📅 Experimente: "Qual foi a semana com mais faltas em junho?"',
+    '👥 Experimente: "Quantos colaboradores não registraram ponto nos últimos 7 dias?"',
+    '⏰ Experimente: "Qual turno tem mais atrasos na última semana?"',
+    '📋 Experimente: "Quais abonos estão pendentes de aprovação?"',
+    '📈 Experimente: "O ABS melhorou ou piorou em relação ao mês anterior?"',
+    '🏆 Experimente: "Qual supervisor tem a equipe com menor índice de faltas?"',
+    '⚠️ Experimente: "Quem acumulou mais horas de ausência no mês?"',
+    '📞 Experimente: "Qual fila teve mais ligações abandonadas essa semana?"',
+    '⏱️ Experimente: "Qual o TME médio da equipe TENDA no último mês?"',
+    '😊 Experimente: "Qual equipe tem o melhor CSAT?"',
+  ];
+
+  window.chatToggle = function(){
+    chatOpen = !chatOpen;
+    document.getElementById('chat-panel').classList.toggle('open', chatOpen);
+    if(chatOpen) document.getElementById('chat-input').focus();
+  };
+
+  window.chatSuggest = function(btn){
+    document.getElementById('chat-input').value = btn.textContent;
+    chatAutoResize(document.getElementById('chat-input'));
+    chatSend();
+  };
+
+  window.chatKeydown = function(e){
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSend(); }
+  };
+
+  window.chatAutoResize = function(el){
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+  };
+
+  window.chatSend = async function(){
+    if(chatBusy) return;
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if(!text) return;
+
+    chatBusy = true;
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('chat-send').disabled = true;
+    document.getElementById('chat-suggestions').style.display = 'none';
+
+    chatAddMsg('user', text);
+
+    const typing = document.createElement('div');
+    typing.className = 'chat-typing';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    document.getElementById('chat-messages').appendChild(typing);
+    chatScrollBottom();
+
+    try {
+      const res = await fetch(WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          texto: 'bot-dash ' + text,
+          autor: 'Dashboard',
+          channelId: chatSession,
+          messageId: 'msg-' + Date.now()
+        })
+      });
+      const data = await res.json();
+      const resposta = data.resposta || data.output || 'Não consegui obter uma resposta. Tente novamente.';
+      typing.remove();
+      chatAddMsg('bot', resposta);
+    } catch(err) {
+      typing.remove();
+      chatAddMsg('bot', '⚠️ Erro ao conectar com o agente. Verifique se o workflow está ativo no n8n.');
+    }
+
+    chatBusy = false;
+    document.getElementById('chat-send').disabled = false;
+    input.focus();
+  };
+
+  function chatAddMsg(role, text){
+    const msgs = document.getElementById('chat-messages');
+    const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + role;
+    div.innerHTML = '<div class="chat-bubble">' + escHtml(text) + '</div><span class="chat-time">' + now + '</span>';
+    msgs.appendChild(div);
+
+    if(role === 'bot'){
+      const tip = document.createElement('div');
+      tip.className = 'chat-tip';
+      const tipText = CHAT_TIPS[chatTipIndex % CHAT_TIPS.length];
+      chatTipIndex++;
+      tip.textContent = tipText;
+      tip.onclick = function(){
+        const clean = tipText.replace(/^[^\s]+\s/, '').replace(/^"/, '').replace(/"$/, '');
+        document.getElementById('chat-input').value = clean;
+        chatAutoResize(document.getElementById('chat-input'));
+        document.getElementById('chat-input').focus();
+      };
+      msgs.appendChild(tip);
+    }
+
+    chatScrollBottom();
+  }
+
+  function chatScrollBottom(){
+    const msgs = document.getElementById('chat-messages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function escHtml(t){
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+</script>
+
+</body>
+</html>
