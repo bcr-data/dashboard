@@ -2231,15 +2231,14 @@ function showError(msg){
 <style>
 #chat-fab{position:fixed;bottom:28px;right:28px;z-index:9999;width:52px;height:52px;border-radius:50%;background:#2151E5;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(33,81,229,.35);display:flex;align-items:center;justify-content:center;transition:transform .2s ease,box-shadow .2s ease}
 #chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(33,81,229,.45)}
-#chat-fab svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#chat-panel{position:fixed;bottom:92px;right:28px;z-index:9999;width:380px;max-height:560px;background:#fff;border-radius:16px;border:1px solid #e4e4e7;box-shadow:0 8px 40px rgba(0,0,0,.12);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}
+#chat-fab svg{width:26px;height:26px}
+#chat-panel{position:fixed;bottom:92px;right:28px;z-index:9999;width:430px;max-height:560px;background:#fff;border-radius:16px;border:1px solid #e4e4e7;box-shadow:0 8px 40px rgba(0,0,0,.12);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif}
 #chat-panel.open{display:flex}
 #chat-header{background:#2151E5;padding:14px 16px;display:flex;align-items:center;gap:10px}
 #chat-header-icon{width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-#chat-header-icon svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#chat-header-icon svg{width:18px;height:18px}
 #chat-header-info{flex:1}
-#chat-header-info strong{display:block;font-size:13px;font-weight:600;color:#fff}
-#chat-header-info span{font-size:11px;color:rgba(255,255,255,.75)}
+#chat-header-info strong{display:block;font-size:14px;font-weight:600;color:#fff}
 #chat-close{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.75);font-size:18px;line-height:1;padding:0;transition:color .15s ease}
 #chat-close:hover{color:#fff}
 #chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:380px}
@@ -2273,25 +2272,32 @@ function showError(msg){
 #chat-send svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 </style>
 
-<button id="chat-fab" onclick="chatToggle()" title="ABS Agent — Análise de Absenteísmo">
-  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+<button id="chat-fab" onclick="chatToggle()" title="BCR.CX Agent">
+  <svg viewBox="0 0 100 100" fill="none">
+    <path d="M38 16H26a10 10 0 0 0-10 10v48a10 10 0 0 0 10 10h48a10 10 0 0 0 10-10V62" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M60 10 L64 20 L74 24 L64 28 L60 38 L56 28 L46 24 L56 20 Z" fill="#fff"/>
+    <path d="M78 30 L80.5 36 L86.5 38.5 L80.5 41 L78 47 L75.5 41 L69.5 38.5 L75.5 36 Z" fill="#fff"/>
+  </svg>
 </button>
 
 <div id="chat-panel">
   <div id="chat-header">
     <div id="chat-header-icon">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <svg viewBox="0 0 100 100" fill="none">
+        <path d="M38 16H26a10 10 0 0 0-10 10v48a10 10 0 0 0 10 10h48a10 10 0 0 0 10-10V62" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M60 10 L64 20 L74 24 L64 28 L60 38 L56 28 L46 24 L56 20 Z" fill="#fff"/>
+        <path d="M78 30 L80.5 36 L86.5 38.5 L80.5 41 L78 47 L75.5 41 L69.5 38.5 L75.5 36 Z" fill="#fff"/>
+      </svg>
     </div>
     <div id="chat-header-info">
-      <strong>ABS Agent</strong>
-      <span>Agente de IA — Absenteísmo BCR.CX</span>
+      <strong>BCR.CX Agent</strong>
     </div>
     <button id="chat-close" onclick="chatToggle()">✕</button>
   </div>
 
   <div id="chat-messages">
     <div class="chat-msg bot">
-      <div class="chat-bubble">Olá! Sou o ABS Agent, agente de IA de absenteísmo da BCR.CX. Posso analisar faltas, abonos, atrasos e indicadores das equipes. Qual período deseja analisar?</div>
+      <div class="chat-bubble">Olá! Sou o BCR.CX Agent. Posso analisar dados de absenteísmo e de ligações/atendimento. Qual período deseja analisar?</div>
       <span class="chat-time">agora</span>
     </div>
   </div>
@@ -2299,12 +2305,10 @@ function showError(msg){
   <div id="chat-suggestions">
     <button class="chat-suggestion" onclick="chatSuggest(this)">Qual equipe tem mais faltas?</button>
     <button class="chat-suggestion" onclick="chatSuggest(this)">ABS global do último mês</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Top 5 colaboradores com mais ausências</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">Nível de serviço da última semana</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">TMA médio por fila</button>
+    <button class="chat-suggestion" onclick="chatSuggest(this)">CSAT do último mês</button>
     <button class="chat-suggestion" onclick="chatSuggest(this)">Abonos pendentes</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Qual dia da semana tem mais faltas?</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Colaboradores com mais atrasos</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">ABS por cargo no último mês</button>
-    <button class="chat-suggestion" onclick="chatSuggest(this)">Evolução semanal de faltas</button>
   </div>
 
   <div id="chat-footer">
@@ -2334,6 +2338,9 @@ function showError(msg){
     '📈 Experimente: "O ABS melhorou ou piorou em relação ao mês anterior?"',
     '🏆 Experimente: "Qual supervisor tem a equipe com menor índice de faltas?"',
     '⚠️ Experimente: "Quem acumulou mais horas de ausência no mês?"',
+    '📞 Experimente: "Qual fila teve mais ligações abandonadas essa semana?"',
+    '⏱️ Experimente: "Qual o TME médio da equipe TENDA no último mês?"',
+    '😊 Experimente: "Qual equipe tem o melhor CSAT?"',
   ];
 
   window.chatToggle = function(){
