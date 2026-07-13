@@ -475,6 +475,15 @@ function fmtMmSs(seg) {
   const ss = String(s % 60).padStart(2, '0');
   return `${m}:${ss}`;
 }
+// Mesma duracao, em hh:mm:ss zero-padded - usado apenas na exportacao de CSV
+function fmtHms(seg) {
+  if (!seg && seg !== 0) return '--';
+  const s = Math.round(seg);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${ss}`;
+}
 function fmtPct(v, total) {
   if (!total) return '0,0%';
   return (v / total * 100).toFixed(1).replace('.', ',') + '%';
@@ -1961,10 +1970,10 @@ if (el) {
             aband,
             (tot>0?(aband/tot*100):0).toFixed(1).replace('.',',')+'%',
             ns.toFixed(1).replace('.',',')+'%',
-            fmtMmSs(r.tma_atend),
-            fmtMmSs(r.tme_atend),
-            fmtMmSs(r.tme_aband),
-            fmtMmSs(r.tme_total),
+            fmtHms(r.tma_atend),
+            fmtHms(r.tme_atend),
+            fmtHms(r.tme_aband),
+            fmtHms(r.tme_total),
             enc, resp,
             ader.toFixed(1).replace('.',',')+'%',
             csat.toFixed(1).replace('.',',')+'%'
