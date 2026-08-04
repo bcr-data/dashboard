@@ -85,7 +85,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:14px;max-width:1600px;margin:0 auto;width:100%}
 
 /* ── KPI CARDS ── */
-.kpi-row{display:grid;grid-template-columns:repeat(8,1fr);gap:12px}
+.kpi-row{display:grid;grid-template-columns:repeat(9,1fr);gap:12px}
 @media(max-width:1200px){.kpi-row{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border);transition:border-color .15s ease}
@@ -407,6 +407,48 @@ window.msRemoveChip = msRemoveChip;
 function sqlIn(field, vals) {
   if (!vals || !vals.length) return '';
   return ' AND ' + field + " IN ('" + vals.map(v => v.replace(/'/g, "''")).join("','") + "')";
+}
+
+// ── RECHAMADAS (ligações repetidas do mesmo número de telefone) ──
+// A tabela agregada bcrcx-wfm.BCRCX.__pbx_calls não guarda o número do telefone (já vem somada
+// por Data/Hora/fila/colaborador). O número de telefone existe apenas nas tabelas cruas de cada
+// conta (pbx55_calls), uma por cliente. Aqui unificamos essas tabelas para calcular rechamadas.
+// Definição adotada: rechamada = qualquer ligação de um número que já ligou antes dentro do
+// período/filtro selecionado (2ª, 3ª... ligação do mesmo número). Ajuste RECHAMADAS_SOURCES caso
+// uma nova conta seja adicionada.
+const RECHAMADAS_SOURCES = [
+  { dataset:'TENDA_BCRCX',    table:'pbx55_calls',     origem:'TENDA' },
+  { dataset:'BAUDUCCO_BCRCX', table:'pbx55_calls',     origem:'BAUDUCCO' },
+  { dataset:'CHOPP_BCRCX',    table:'pbx55_calls',     origem:'CHOPP' },
+  { dataset:'FEBRABAN_BCRCX', table:'pbx55_calls',     origem:'FEBRABAN' },
+  { dataset:'LACOSTE_BCRCX',  table:'pbx55_calls',     origem:'LACOSTE' },
+  { dataset:'LACOSTE_BCRCX',  table:'pbx55_calls_arg', origem:'LACOSTE_ARG' },
+  { dataset:'NIKY_BCRCX',     table:'pbx55_calls',     origem:'NIKY' },
+  { dataset:'PANDORA_BCRCX',  table:'pbx55_calls',     origem:'PANDORA' },
+  { dataset:'VITACON_BCRCX',  table:'pbx55_calls',     origem:'VITACON' },
+  { dataset:'VOLVO_BCRCX',    table:'pbx55_calls',     origem:'VOLVO' },
+];
+
+function rawCallsCTE() {
+  return RECHAMADAS_SOURCES.map(s => `
+    SELECT
+      DATE(call_date, 'America/Sao_Paulo') AS call_day,
+      SAFE_CAST(SUBSTR(wb_call_hour,1,2) AS INT64) AS call_hour,
+      '${s.origem}' AS origem,
+      queue_name, name,
+      REGEXP_REPLACE(call_number, r'[^0-9]', '') AS phone
+    FROM \`bcrcx-wfm.${s.dataset}.${s.table}\`
+    WHERE type_call != 'call_retained_ura' AND call_number IS NOT NULL AND call_number != ''`
+  ).join('\nUNION ALL\n');
+}
+
+function rechamadasWhere(dayFrom, dayTo, equipe, fila, colab, filaExact) {
+  let w = `WHERE call_day BETWEEN DATE('${dayFrom}') AND DATE('${dayTo}')`;
+  w += sqlIn('origem', equipe);
+  w += sqlIn('queue_name', fila);
+  w += sqlIn('name', colab);
+  if (filaExact) w += ` AND queue_name = '${filaExact.replace(/'/g,"''")}'`;
+  return w;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -760,6 +802,11 @@ function buildDashboard(data, sla) {
         <div class="kpi-val" id="kpi-aderencia-val">—</div>
         <div class="kpi-label">Participação CSAT</div>
         <div class="kpi-sub" id="kpi-aderencia-sub">Carregando...</div>
+      </div>
+      <div class="kpi" id="kpi-rechamadas">
+        <div class="kpi-val" id="kpi-rechamadas-val">—</div>
+        <div class="kpi-label">Rechamadas</div>
+        <div class="kpi-sub" id="kpi-rechamadas-sub">Carregando...</div>
       </div>
     </div>
 
@@ -1122,6 +1169,30 @@ function buildDashboard(data, sla) {
   }
 
   loadCsat();
+
+  // ── RECHAMADAS KPI ──
+  async function loadRechamadasKpi() {
+    const kpiVal = document.getElementById('kpi-rechamadas-val');
+    const kpiSub = document.getElementById('kpi-rechamadas-sub');
+    try {
+      const rows = await queryBQ(`
+        WITH raw_calls AS (${rawCallsCTE()})
+        SELECT COUNT(*) AS total, COUNT(*) - COUNT(DISTINCT phone) AS rechamadas
+        FROM raw_calls
+        ${rechamadasWhere(ds, de, equipe, fila, colab)}
+      `);
+      const r = rows[0] || { total:0, rechamadas:0 };
+      const tot = r.total||0;
+      const rech = r.rechamadas||0;
+      const pct = tot>0 ? (rech/tot*100) : 0;
+      if (kpiVal) kpiVal.textContent = fmtN(rech);
+      if (kpiSub) kpiSub.textContent = fmtPct(rech, tot) + ' das ligações (base: nº de telefone)';
+    } catch(e) {
+      console.warn('Rechamadas KPI error', e);
+      if (kpiSub) kpiSub.textContent = 'Erro ao carregar';
+    }
+  }
+  loadRechamadasKpi();
 
   async function loadDrillBar(mode) {
     drillMode = mode;
@@ -1872,6 +1943,21 @@ if (el) {
         }
       })();
 
+      // Expressão equivalente para agrupar as chamadas cruas (raw_calls) na mesma dimensão
+      const rechGF = (() => {
+        if (filaFilter) return 'name';
+        switch(matrixDim) {
+          case 'data':        return "FORMAT_DATE('%d-%m-%y', call_day)";
+          case 'mes':         return "FORMAT_DATE('%m/%y', call_day)";
+          case 'dow':         return "FORMAT_DATE('%A', call_day)";
+          case 'hora':        return 'CAST(call_hour AS STRING)';
+          case 'equipe':      return 'origem';
+          case 'fila':        return 'queue_name';
+          case 'colaborador': return 'name';
+          default:            return 'queue_name';
+        }
+      })();
+
       const rows = await queryBQ(`
         WITH calls AS (
           SELECT ${groupField} as label,
@@ -1898,14 +1984,26 @@ if (el) {
           ${sqlIn('queue_name', filav)}
           ${sqlIn('name', colabv)}
           GROUP BY ${csatGF}
+        ),
+        raw_calls AS (${rawCallsCTE()}),
+        rech_agg AS (
+          SELECT ${rechGF} as label,
+            COUNT(*) as rech_total,
+            COUNT(*) - COUNT(DISTINCT phone) as rechamadas
+          FROM raw_calls
+          ${rechamadasWhere(dsv, dev, equipev, filav, colabv, filaFilter)}
+          GROUP BY ${rechGF}
         )
-        SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat
-        FROM calls c LEFT JOIN csat_agg s ON c.label = s.label
+        SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat,
+          COALESCE(rc.rech_total,0) as rech_total, COALESCE(rc.rechamadas,0) as rechamadas
+        FROM calls c
+        LEFT JOIN csat_agg s ON c.label = s.label
+        LEFT JOIN rech_agg rc ON c.label = rc.label
         ORDER BY ${filaFilter ? 'c.total DESC' : orderBy.replace('label','c.label').replace('SUM(Total_Ligacoes) DESC','c.total DESC')}
         LIMIT 100
       `);
 
-      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%'];
+      const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%','Rechamadas','%Rechamadas'];
       const colHeaders = cols.map(c=>'<th>'+c+'</th>').join('');
       let html = `<div style="display:flex;justify-content:flex-end;padding:4px 8px"><button onclick="window.exportMatrixCSV()" class="btn-reset" style="padding:4px 10px;font-size:11px">⬇ Exportar CSV</button></div>`;
       html += '<table class="matrix-table"><thead><tr><th>'+labelCol+'</th>'+colHeaders+'</tr></thead><tbody>';
@@ -1941,6 +2039,11 @@ if (el) {
         html += `<td>${fmtN(resp)}</td>`;
         html += `<td>${ader}</td>`;
         html += `<td>${csat}</td>`;
+        const rechTotal = r.rech_total||0;
+        const rechamadas = r.rechamadas||0;
+        const rechPct = rechTotal>0 ? (rechamadas/rechTotal*100).toFixed(1).replace('.',',')+'%' : '—';
+        html += `<td>${fmtN(rechamadas)}</td>`;
+        html += `<td>${rechPct}</td>`;
         html += '</tr>';
       });
 
@@ -1951,7 +2054,7 @@ if (el) {
       window._matrixRows = rows;
       window._matrixLabelCol = labelCol;
       window.exportMatrixCSV = function() {
-        const header = [window._matrixLabelCol,'Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%'];
+        const header = [window._matrixLabelCol,'Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%','Rechamadas','%Rechamadas'];
         const lines = [header.join(';')];
         (window._matrixRows||[]).forEach(r => {
           const tot   = r.total||0;
@@ -1963,6 +2066,9 @@ if (el) {
           const sat   = r.sat||0;
           const ader  = enc>0?(resp/enc*100):0;
           const csat  = resp>0?(sat/resp*100):0;
+          const rechTotal = r.rech_total||0;
+          const rechamadas = r.rechamadas||0;
+          const rechPct = rechTotal>0?(rechamadas/rechTotal*100):0;
           lines.push([
             r.label||'—',
             tot, atend,
@@ -1976,7 +2082,9 @@ if (el) {
             fmtHms(r.tme_total),
             enc, resp,
             ader.toFixed(1).replace('.',',')+'%',
-            csat.toFixed(1).replace('.',',')+'%'
+            csat.toFixed(1).replace('.',',')+'%',
+            rechamadas,
+            rechPct.toFixed(1).replace('.',',')+'%'
           ].join(';'));
         });
         const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
