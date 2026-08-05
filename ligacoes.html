@@ -863,13 +863,13 @@ async function loadManageUsers() {
     if (!resp.ok) throw new Error(out.error || 'Falha ao listar usuários');
     if (!out.users.length) { wrap.innerHTML = '<div class="manage-empty">Nenhum usuário com permissão cadastrada ainda.</div>'; return; }
     wrap.innerHTML = out.users.map(u => `
-      <div class="manage-user-row" data-uid="${u.id}">
+      <div class="manage-user-row collapsed" data-uid="${u.id}">
         <div class="manage-user-header" onclick="toggleManageUser(this)">
           <div>
             <div class="manage-user-email">${u.email}</div>
             <div class="manage-user-status">${u.confirmed ? 'Ativo' : 'Convite pendente'}${u.isAdmin ? ' · Administrador' : ''}</div>
           </div>
-          <button type="button" class="manage-toggle-btn" title="Mostrar/ocultar equipes">▾</button>
+          <button type="button" class="manage-toggle-btn" title="Mostrar/ocultar equipes">▸</button>
         </div>
         <div class="manage-user-body">
           <div class="team-check-list">
