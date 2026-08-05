@@ -133,6 +133,11 @@ tbody td:first-child{text-align:left;font-weight:400;color:#18181b;white-space:n
 .btn-login:hover{opacity:.9}
 .btn-login:disabled{opacity:.5;cursor:not-allowed}
 .login-error{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#b91c1c;font-size:13px;margin-top:12px;display:none}
+.login-success{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;color:#15803d;font-size:13px;margin-top:12px;display:none}
+.login-sub{font-size:12px;color:var(--text-2);margin-bottom:16px;text-align:center}
+.login-hint{text-align:center;font-size:12px;margin-top:14px}
+.login-hint a{color:var(--brand);cursor:pointer;text-decoration:none}
+.login-hint a:hover{text-decoration:underline}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10000;display:none;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
 .modal-box{background:var(--surface);border-radius:14px;padding:28px 26px;width:100%;max-width:380px;border:1px solid var(--border);max-height:90vh;overflow-y:auto}
@@ -192,19 +197,56 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
       <img src="./logo.png" alt="BCR.CX">
     </div>
     <div class="login-title">Dashboard Gerencial</div>
-    <div class="login-field">
-      <label>E-mail</label>
-      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+
+    <div id="login-panel-signin">
+      <div class="login-field">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="login-field">
+        <label>Senha</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-login" id="btn-login">
+        <span id="login-label">Entrar</span>
+        <div class="login-spinner" id="login-spinner"></div>
+      </button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-hint"><a onclick="showForgotPanel()">Esqueci minha senha</a></div>
     </div>
-    <div class="login-field">
-      <label>Senha</label>
-      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+
+    <div id="login-panel-setpw" style="display:none">
+      <p class="login-sub">Defina sua senha de acesso.</p>
+      <div class="login-field">
+        <label>Nova senha</label>
+        <input type="password" id="setpw-password" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="login-field">
+        <label>Confirmar senha</label>
+        <input type="password" id="setpw-confirm" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <button class="btn-login" id="btn-setpw" onclick="submitSetPassword()">
+        <span id="setpw-label">Definir senha e entrar</span>
+        <div class="login-spinner" id="setpw-spinner"></div>
+      </button>
+      <div class="login-error" id="setpw-error"></div>
     </div>
-    <button class="btn-login" id="btn-login">
-      <span id="login-label">Entrar</span>
-      <div class="login-spinner" id="login-spinner"></div>
-    </button>
-    <div class="login-error" id="login-error"></div>
+
+    <div id="login-panel-forgot" style="display:none">
+      <p class="login-sub">Informe seu e-mail pra receber o link de redefinição.</p>
+      <div class="login-field">
+        <label>E-mail</label>
+        <input type="email" id="forgot-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <button class="btn-login" id="btn-forgot" onclick="submitForgotPassword()">
+        <span id="forgot-label">Enviar link</span>
+        <div class="login-spinner" id="forgot-spinner"></div>
+      </button>
+      <div class="login-error" id="forgot-error"></div>
+      <div class="login-success" id="forgot-success"></div>
+      <div class="login-hint"><a onclick="showSigninPanel()">Voltar ao login</a></div>
+    </div>
+
   </div>
 </div>
 
@@ -357,6 +399,95 @@ const PAGE   = 5000;
 
 // Supabase client
 const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+// ── CONVITE / REDEFINIÇÃO DE SENHA ──────────────────────────────────────────
+(function handleAuthRedirect() {
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const type = hashParams.get('type');
+  const hasToken = hashParams.get('access_token');
+  const hashError = hashParams.get('error_description') || hashParams.get('error');
+
+  if ((type === 'invite' || type === 'recovery') && hasToken) {
+    document.getElementById('login-panel-signin').style.display = 'none';
+    document.getElementById('login-panel-setpw').style.display = 'block';
+  } else if (hashError) {
+    const msg = decodeURIComponent(hashError.replace(/\+/g, ' '));
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = /expired/i.test(msg) ? 'Link expirado. Peça um novo convite ou use "Esqueci minha senha".' : msg;
+    errEl.style.display = 'block';
+  }
+})();
+
+function showForgotPanel() {
+  document.getElementById('login-panel-signin').style.display = 'none';
+  document.getElementById('login-panel-setpw').style.display = 'none';
+  document.getElementById('login-panel-forgot').style.display = 'block';
+}
+function showSigninPanel() {
+  document.getElementById('login-panel-forgot').style.display = 'none';
+  document.getElementById('login-panel-setpw').style.display = 'none';
+  document.getElementById('login-panel-signin').style.display = 'block';
+}
+
+async function submitSetPassword() {
+  const pw1 = document.getElementById('setpw-password').value;
+  const pw2 = document.getElementById('setpw-confirm').value;
+  const errEl = document.getElementById('setpw-error');
+  const btn = document.getElementById('btn-setpw');
+  const label = document.getElementById('setpw-label');
+  const spinner = document.getElementById('setpw-spinner');
+  errEl.style.display = 'none';
+
+  if (!pw1 || pw1.length < 6) { errEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+  if (pw1 !== pw2) { errEl.textContent = 'As senhas não coincidem.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; label.style.display = 'none'; spinner.style.display = 'block';
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    btn.disabled = false; label.style.display = 'block'; spinner.style.display = 'none';
+    errEl.textContent = 'Link inválido ou expirado. Peça um novo convite ou use "Esqueci minha senha".';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const { data, error } = await supabase.auth.updateUser({ password: pw1 });
+
+  btn.disabled = false; label.style.display = 'block'; spinner.style.display = 'none';
+
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+
+  history.replaceState(null, '', window.location.pathname);
+  showDashboard(data.user);
+}
+
+async function submitForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-error');
+  const okEl  = document.getElementById('forgot-success');
+  const btn = document.getElementById('btn-forgot');
+  const label = document.getElementById('forgot-label');
+  const spinner = document.getElementById('forgot-spinner');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+
+  if (!email) { errEl.textContent = 'Informe o e-mail.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; label.style.display = 'none'; spinner.style.display = 'block';
+
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+  btn.disabled = false; label.style.display = 'block'; spinner.style.display = 'none';
+
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+  okEl.textContent = 'Se esse e-mail estiver cadastrado, você vai receber um link de redefinição.';
+  okEl.style.display = 'block';
+}
+
+window.showForgotPanel = showForgotPanel;
+window.showSigninPanel = showSigninPanel;
+window.submitSetPassword = submitSetPassword;
+window.submitForgotPassword = submitForgotPassword;
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 async function doLogin() {
