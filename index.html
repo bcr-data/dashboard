@@ -140,9 +140,14 @@ tbody td:first-child{text-align:left;font-weight:400;color:#18181b;white-space:n
 .login-hint a:hover{text-decoration:underline}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10000;display:none;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
-.modal-box{background:var(--surface);border-radius:14px;padding:28px 26px;width:100%;max-width:380px;border:1px solid var(--border);max-height:90vh;overflow-y:auto}
+.modal-box{position:relative;background:var(--surface);border-radius:14px;padding:28px 26px;width:100%;max-width:420px;border:1px solid var(--border);max-height:90vh;overflow-y:auto}
 .modal-box h2{font-size:16px;font-weight:600;margin-bottom:4px}
 .modal-box p.modal-sub{font-size:12px;color:var(--text-2);margin-bottom:18px}
+.modal-close{position:absolute;top:14px;right:14px;background:transparent;border:none;font-size:20px;line-height:1;color:var(--text-2);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--border-subtle);color:var(--text)}
+.modal-tabs{display:flex;gap:4px;background:var(--border-subtle);border-radius:8px;padding:3px;margin-bottom:18px}
+.modal-tab{flex:1;border:none;background:transparent;padding:7px;border-radius:6px;font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer}
+.modal-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .team-check-list{display:flex;flex-direction:column;gap:2px;border:1px solid var(--border);border-radius:8px;padding:8px;max-height:220px;overflow-y:auto;margin-top:4px}
 .team-check-item{display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:13px;border-radius:6px;cursor:pointer}
 .team-check-item:hover{background:var(--border-subtle)}
@@ -156,6 +161,15 @@ tbody td:first-child{text-align:left;font-weight:400;color:#18181b;white-space:n
 .modal-feedback{font-size:12px;border-radius:8px;padding:9px 12px;margin-top:12px;display:none}
 .modal-feedback.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
 .modal-feedback.err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}
+.manage-user-row{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.manage-user-email{font-size:13px;font-weight:600}
+.manage-user-status{font-size:11px;color:var(--text-2);margin-bottom:8px}
+.manage-user-actions{display:flex;gap:8px;margin-top:10px}
+.btn-manage-save{background:var(--brand);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:500;flex:1}
+.btn-manage-save:disabled{opacity:.6;cursor:not-allowed}
+.btn-manage-remove{background:transparent;color:var(--danger);border:1px solid #fecaca;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1}
+.btn-manage-remove:disabled{opacity:.6;cursor:not-allowed}
+.manage-empty{font-size:12px;color:var(--text-2);text-align:center;padding:20px 0}
 .login-spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
 /* USER CHIP */
 .user-chip{display:flex;align-items:center;gap:8px;font-size:12px}
@@ -369,21 +383,34 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
 
 <div class="modal-overlay" id="users-modal-overlay">
   <div class="modal-box">
-    <h2>Adicionar usuário</h2>
-    <p class="modal-sub">Ele recebe um e-mail de convite e define a própria senha.</p>
-    <div class="login-field">
-      <label>E-mail</label>
-      <input type="email" id="inv-email" placeholder="nome@empresa.com" autocomplete="off">
+    <button class="modal-close" onclick="closeUsersModal()">&times;</button>
+    <h2>Usuários</h2>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tab-btn-invite" onclick="switchUsersTab('invite')">Convidar</button>
+      <button class="modal-tab" id="tab-btn-manage" onclick="switchUsersTab('manage')">Gerenciar</button>
     </div>
-    <div class="login-field">
-      <label>Equipes liberadas</label>
-      <div class="team-check-list" id="inv-teams"></div>
+
+    <div id="tab-invite">
+      <p class="modal-sub">Ele recebe um e-mail de convite e define a própria senha.</p>
+      <div class="login-field">
+        <label>E-mail</label>
+        <input type="email" id="inv-email" placeholder="nome@empresa.com" autocomplete="off">
+      </div>
+      <div class="login-field">
+        <label>Equipes liberadas</label>
+        <div class="team-check-list" id="inv-teams"></div>
+      </div>
+      <div class="modal-feedback" id="inv-feedback"></div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeUsersModal()">Cancelar</button>
+        <button class="btn-modal-submit" id="inv-submit-btn" onclick="submitInviteUser()">Convidar</button>
+      </div>
     </div>
-    <div class="modal-feedback" id="inv-feedback"></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeUsersModal()">Cancelar</button>
-      <button class="btn-modal-submit" id="inv-submit-btn" onclick="submitInviteUser()">Convidar</button>
+
+    <div id="tab-manage" style="display:none">
+      <div id="manage-list"><div class="manage-empty">Carregando...</div></div>
     </div>
+
   </div>
 </div>
 
@@ -562,11 +589,20 @@ function openUsersModal() {
   document.querySelectorAll('#inv-teams input[type=checkbox]').forEach(cb => cb.checked = false);
   const fb = document.getElementById('inv-feedback');
   fb.style.display = 'none'; fb.className = 'modal-feedback';
+  switchUsersTab('invite');
   document.getElementById('users-modal-overlay').classList.add('open');
   document.getElementById('nav-dropdown')?.classList.remove('open');
 }
 function closeUsersModal() {
   document.getElementById('users-modal-overlay').classList.remove('open');
+}
+
+function switchUsersTab(tab) {
+  document.getElementById('tab-invite').style.display = tab === 'invite' ? 'block' : 'none';
+  document.getElementById('tab-manage').style.display = tab === 'manage' ? 'block' : 'none';
+  document.getElementById('tab-btn-invite').classList.toggle('active', tab === 'invite');
+  document.getElementById('tab-btn-manage').classList.toggle('active', tab === 'manage');
+  if (tab === 'manage') loadManageUsers();
 }
 
 async function submitInviteUser() {
@@ -585,7 +621,7 @@ async function submitInviteUser() {
     const resp = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ email, teams })
+      body: JSON.stringify({ action: 'invite', email, teams })
     });
     const out = await resp.json();
     if (!resp.ok) throw new Error(out.error || 'Falha ao convidar usuário');
@@ -600,11 +636,92 @@ async function submitInviteUser() {
   }
 }
 
-window.openUsersModal   = openUsersModal;
-window.closeUsersModal  = closeUsersModal;
-window.submitInviteUser = submitInviteUser;
+async function loadManageUsers() {
+  const wrap = document.getElementById('manage-list');
+  wrap.innerHTML = '<div class="manage-empty">Carregando...</div>';
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const resp = await fetch(EDGE_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ action: 'list' })
+    });
+    const out = await resp.json();
+    if (!resp.ok) throw new Error(out.error || 'Falha ao listar usuários');
+    if (!out.users.length) { wrap.innerHTML = '<div class="manage-empty">Nenhum usuário com permissão cadastrada ainda.</div>'; return; }
+    wrap.innerHTML = out.users.map(u => `
+      <div class="manage-user-row" data-uid="${u.id}">
+        <div class="manage-user-email">${u.email}</div>
+        <div class="manage-user-status">${u.confirmed ? 'Ativo' : 'Convite pendente'}</div>
+        <div class="team-check-list">
+          ${TEAM_OPTIONS.map(t => `
+            <label class="team-check-item">
+              <input type="checkbox" value="${t}" ${u.teams.includes(t) ? 'checked' : ''}> ${t}
+            </label>`).join('')}
+        </div>
+        <div class="manage-user-actions">
+          <button class="btn-manage-save" onclick="saveManageUser('${u.id}', this)">Salvar equipes</button>
+          <button class="btn-manage-remove" onclick="removeManageUser('${u.id}', '${u.email.replace(/'/g, "\\'")}', this)">Remover usuário</button>
+        </div>
+        <div class="modal-feedback" data-fb></div>
+      </div>`).join('');
+  } catch (e) {
+    wrap.innerHTML = `<div class="manage-empty" style="color:#b91c1c">${e.message}</div>`;
+  }
+}
+
+async function saveManageUser(userId, btn) {
+  const row = btn.closest('.manage-user-row');
+  const teams = [...row.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
+  const fb = row.querySelector('[data-fb]');
+  fb.className = 'modal-feedback'; fb.style.display = 'none';
+  btn.disabled = true;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const resp = await fetch(EDGE_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ action: 'update_teams', user_id: userId, teams })
+    });
+    const out = await resp.json();
+    if (!resp.ok) throw new Error(out.error || 'Falha ao salvar');
+    fb.textContent = 'Equipes atualizadas.'; fb.classList.add('ok'); fb.style.display = 'block';
+  } catch (e) {
+    fb.textContent = e.message; fb.classList.add('err'); fb.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function removeManageUser(userId, email, btn) {
+  if (!confirm(`Remover o acesso de ${email}? Isso apaga a conta dele.`)) return;
+  const row = btn.closest('.manage-user-row');
+  btn.disabled = true;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const resp = await fetch(EDGE_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ action: 'remove_user', user_id: userId })
+    });
+    const out = await resp.json();
+    if (!resp.ok) throw new Error(out.error || 'Falha ao remover');
+    row.remove();
+  } catch (e) {
+    alert(e.message);
+    btn.disabled = false;
+  }
+}
+
+window.openUsersModal    = openUsersModal;
+window.closeUsersModal   = closeUsersModal;
+window.switchUsersTab    = switchUsersTab;
+window.submitInviteUser  = submitInviteUser;
+window.saveManageUser    = saveManageUser;
+window.removeManageUser  = removeManageUser;
 
 // Expõe funções usadas em onclick inline para o escopo global
+window.doLogout = doLogout;
 window.applyFilters = applyFilters;
 window.resetFilters = resetFilters;
 window.msToggle     = msToggle;
