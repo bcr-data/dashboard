@@ -213,8 +213,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .modal-feedback.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
 .modal-feedback.err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}
 .manage-user-row{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.manage-user-header{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
 .manage-user-email{font-size:13px;font-weight:600}
-.manage-user-status{font-size:11px;color:var(--text-2);margin-bottom:8px}
+.manage-user-status{font-size:11px;color:var(--text-2)}
+.manage-toggle-btn{background:transparent;border:1px solid var(--border);border-radius:6px;width:26px;height:26px;font-size:12px;line-height:1;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.manage-toggle-btn:hover{background:var(--border-subtle);color:var(--text)}
+.manage-user-body{margin-top:10px}
+.manage-user-row.collapsed .manage-user-body{display:none}
 .manage-user-actions{display:flex;gap:8px;margin-top:10px}
 .btn-manage-save{background:var(--brand);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:500;flex:1}
 .btn-manage-save:disabled{opacity:.6;cursor:not-allowed}
@@ -836,6 +841,14 @@ async function submitInviteUser() {
   }
 }
 
+function toggleManageUser(el) {
+  const row = el.closest('.manage-user-row');
+  row.classList.toggle('collapsed');
+  const btn = row.querySelector('.manage-toggle-btn');
+  btn.textContent = row.classList.contains('collapsed') ? '▸' : '▾';
+}
+window.toggleManageUser = toggleManageUser;
+
 async function loadManageUsers() {
   const wrap = document.getElementById('manage-list');
   wrap.innerHTML = '<div class="manage-empty">Carregando...</div>';
@@ -851,19 +864,26 @@ async function loadManageUsers() {
     if (!out.users.length) { wrap.innerHTML = '<div class="manage-empty">Nenhum usuário com permissão cadastrada ainda.</div>'; return; }
     wrap.innerHTML = out.users.map(u => `
       <div class="manage-user-row" data-uid="${u.id}">
-        <div class="manage-user-email">${u.email}</div>
-        <div class="manage-user-status">${u.confirmed ? 'Ativo' : 'Convite pendente'}${u.isAdmin ? ' · Administrador' : ''}</div>
-        <div class="team-check-list">
-          ${teamChecklistHtml(u.teams)}
+        <div class="manage-user-header" onclick="toggleManageUser(this)">
+          <div>
+            <div class="manage-user-email">${u.email}</div>
+            <div class="manage-user-status">${u.confirmed ? 'Ativo' : 'Convite pendente'}${u.isAdmin ? ' · Administrador' : ''}</div>
+          </div>
+          <button type="button" class="manage-toggle-btn" title="Mostrar/ocultar equipes">▾</button>
         </div>
-        <label class="team-check-admin">
-          <input type="checkbox" class="manage-admin-cb" ${u.isAdmin ? 'checked' : ''}> Administrador (acesso total)
-        </label>
-        <div class="manage-user-actions">
-          <button class="btn-manage-save" onclick="saveManageUser('${u.id}', this)">Salvar</button>
-          <button class="btn-manage-remove" onclick="removeManageUser('${u.id}', '${u.email.replace(/'/g, "\\'")}', this)">Remover usuário</button>
+        <div class="manage-user-body">
+          <div class="team-check-list">
+            ${teamChecklistHtml(u.teams)}
+          </div>
+          <label class="team-check-admin">
+            <input type="checkbox" class="manage-admin-cb" ${u.isAdmin ? 'checked' : ''}> Administrador (acesso total)
+          </label>
+          <div class="manage-user-actions">
+            <button class="btn-manage-save" onclick="saveManageUser('${u.id}', this)">Salvar</button>
+            <button class="btn-manage-remove" onclick="removeManageUser('${u.id}', '${u.email.replace(/'/g, "\\'")}', this)">Remover usuário</button>
+          </div>
+          <div class="modal-feedback" data-fb></div>
         </div>
-        <div class="modal-feedback" data-fb></div>
       </div>`).join('');
   } catch (e) {
     wrap.innerHTML = `<div class="manage-empty" style="color:#b91c1c">${e.message}</div>`;
