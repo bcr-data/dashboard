@@ -401,22 +401,25 @@ const PAGE   = 5000;
 const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
 // ── CONVITE / REDEFINIÇÃO DE SENHA ──────────────────────────────────────────
-(function handleAuthRedirect() {
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const type = hashParams.get('type');
-  const hasToken = hashParams.get('access_token');
-  const hashError = hashParams.get('error_description') || hashParams.get('error');
+// isPasswordFlow precisa ser checado ANTES do "check existing session on load"
+// mais abaixo, porque o link de convite/recovery já vem com um token válido —
+// sem essa flag, o auto-login entra na frente e pula direto pro dashboard.
+const authHashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+const authHashType = authHashParams.get('type');
+const isPasswordFlow = (authHashType === 'invite' || authHashType === 'recovery') && !!authHashParams.get('access_token');
 
-  if ((type === 'invite' || type === 'recovery') && hasToken) {
-    document.getElementById('login-panel-signin').style.display = 'none';
-    document.getElementById('login-panel-setpw').style.display = 'block';
-  } else if (hashError) {
+if (isPasswordFlow) {
+  document.getElementById('login-panel-signin').style.display = 'none';
+  document.getElementById('login-panel-setpw').style.display = 'block';
+} else {
+  const hashError = authHashParams.get('error_description') || authHashParams.get('error');
+  if (hashError) {
     const msg = decodeURIComponent(hashError.replace(/\+/g, ' '));
     const errEl = document.getElementById('login-error');
     errEl.textContent = /expired/i.test(msg) ? 'Link expirado. Peça um novo convite ou use "Esqueci minha senha".' : msg;
     errEl.style.display = 'block';
   }
-})();
+}
 
 function showForgotPanel() {
   document.getElementById('login-panel-signin').style.display = 'none';
@@ -706,8 +709,9 @@ document.getElementById('btn-login').addEventListener('click', doLogin);
   document.getElementById(id).addEventListener('change', () => reloadFiltersForDate());
 });
 
-// Check existing session on load
+// Check existing session on load (pulado se for fluxo de convite/redefinição de senha)
 (async () => {
+  if (isPasswordFlow) return;
   const { data: { session } } = await supabase.auth.getSession();
   if(session) {
     showDashboard(session.user);
