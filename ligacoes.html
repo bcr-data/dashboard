@@ -221,6 +221,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .btn-manage-remove{background:transparent;color:var(--danger);border:1px solid #fecaca;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1}
 .btn-manage-remove:disabled{opacity:.6;cursor:not-allowed}
 .manage-empty{font-size:12px;color:var(--text-2);text-align:center;padding:20px 0}
+.team-check-all{font-weight:600;border-bottom:1px solid var(--border-subtle);padding-bottom:7px;margin-bottom:3px}
+.team-check-admin{display:flex;align-items:center;gap:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 10px;margin-top:10px;font-size:12px;color:#92400e;cursor:pointer}
 </style>
 </head>
 <body>
@@ -397,6 +399,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <label>Equipes liberadas</label>
         <div class="team-check-list" id="inv-teams"></div>
       </div>
+      <label class="team-check-admin">
+        <input type="checkbox" id="inv-is-admin"> Administrador (acesso total — ignora as equipes acima)
+      </label>
       <div class="modal-feedback" id="inv-feedback"></div>
       <div class="modal-actions">
         <button class="btn-modal-cancel" onclick="closeUsersModal()">Cancelar</button>
@@ -752,19 +757,33 @@ async function checkAdminAndSetupUsersMenu() {
   } catch (e) { /* item só aparece se a checagem confirmar admin */ }
 }
 
+function teamChecklistHtml(checkedTeams) {
+  checkedTeams = checkedTeams || [];
+  const allItem = `<label class="team-check-item team-check-all">
+    <input type="checkbox" onchange="toggleAllTeams(this.closest('.team-check-list'), this.checked)"> Selecionar todas
+  </label>`;
+  const items = TEAM_OPTIONS.map(t => `
+    <label class="team-check-item">
+      <input type="checkbox" value="${t}" ${checkedTeams.includes(t) ? 'checked' : ''}> ${t}
+    </label>`).join('');
+  return allItem + items;
+}
+
+function toggleAllTeams(container, checked) {
+  container.querySelectorAll('input[type=checkbox][value]').forEach(cb => cb.checked = checked);
+}
+
 function renderTeamChecklist() {
   const wrap = document.getElementById('inv-teams');
   if (!wrap || wrap.dataset.rendered) return;
   wrap.dataset.rendered = '1';
-  wrap.innerHTML = TEAM_OPTIONS.map(t => `
-    <label class="team-check-item">
-      <input type="checkbox" value="${t}"> ${t}
-    </label>`).join('');
+  wrap.innerHTML = teamChecklistHtml();
 }
 
 function openUsersModal() {
   renderTeamChecklist();
   document.getElementById('inv-email').value = '';
+  document.getElementById('inv-is-admin').checked = false;
   document.querySelectorAll('#inv-teams input[type=checkbox]').forEach(cb => cb.checked = false);
   const fb = document.getElementById('inv-feedback');
   fb.style.display = 'none'; fb.className = 'modal-feedback';
@@ -786,13 +805,14 @@ function switchUsersTab(tab) {
 
 async function submitInviteUser() {
   const email = document.getElementById('inv-email').value.trim();
-  const teams = [...document.querySelectorAll('#inv-teams input[type=checkbox]:checked')].map(cb => cb.value);
+  const teams = [...document.querySelectorAll('#inv-teams input[type=checkbox][value]:checked')].map(cb => cb.value);
+  const isAdmin = document.getElementById('inv-is-admin').checked;
   const fb  = document.getElementById('inv-feedback');
   const btn = document.getElementById('inv-submit-btn');
 
   fb.style.display = 'none'; fb.className = 'modal-feedback';
   if (!email) { fb.textContent = 'Informe o e-mail.'; fb.classList.add('err'); fb.style.display = 'block'; return; }
-  if (!teams.length) { fb.textContent = 'Selecione ao menos uma equipe.'; fb.classList.add('err'); fb.style.display = 'block'; return; }
+  if (!teams.length && !isAdmin) { fb.textContent = 'Selecione ao menos uma equipe ou marque como administrador.'; fb.classList.add('err'); fb.style.display = 'block'; return; }
 
   btn.disabled = true; btn.textContent = 'Enviando...';
   try {
@@ -800,13 +820,14 @@ async function submitInviteUser() {
     const resp = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ action: 'invite', email, teams })
+      body: JSON.stringify({ action: 'invite', email, teams, is_admin: isAdmin })
     });
     const out = await resp.json();
     if (!resp.ok) throw new Error(out.error || 'Falha ao convidar usuário');
-    fb.textContent = `Convite enviado para ${email} (${teams.join(', ')}).`;
+    fb.textContent = isAdmin ? `Convite enviado para ${email} (administrador).` : `Convite enviado para ${email} (${teams.join(', ')}).`;
     fb.classList.add('ok'); fb.style.display = 'block';
     document.getElementById('inv-email').value = '';
+    document.getElementById('inv-is-admin').checked = false;
     document.querySelectorAll('#inv-teams input[type=checkbox]').forEach(cb => cb.checked = false);
   } catch (e) {
     fb.textContent = e.message; fb.classList.add('err'); fb.style.display = 'block';
@@ -831,15 +852,15 @@ async function loadManageUsers() {
     wrap.innerHTML = out.users.map(u => `
       <div class="manage-user-row" data-uid="${u.id}">
         <div class="manage-user-email">${u.email}</div>
-        <div class="manage-user-status">${u.confirmed ? 'Ativo' : 'Convite pendente'}</div>
+        <div class="manage-user-status">${u.confirmed ? 'Ativo' : 'Convite pendente'}${u.isAdmin ? ' · Administrador' : ''}</div>
         <div class="team-check-list">
-          ${TEAM_OPTIONS.map(t => `
-            <label class="team-check-item">
-              <input type="checkbox" value="${t}" ${u.teams.includes(t) ? 'checked' : ''}> ${t}
-            </label>`).join('')}
+          ${teamChecklistHtml(u.teams)}
         </div>
+        <label class="team-check-admin">
+          <input type="checkbox" class="manage-admin-cb" ${u.isAdmin ? 'checked' : ''}> Administrador (acesso total)
+        </label>
         <div class="manage-user-actions">
-          <button class="btn-manage-save" onclick="saveManageUser('${u.id}', this)">Salvar equipes</button>
+          <button class="btn-manage-save" onclick="saveManageUser('${u.id}', this)">Salvar</button>
           <button class="btn-manage-remove" onclick="removeManageUser('${u.id}', '${u.email.replace(/'/g, "\\'")}', this)">Remover usuário</button>
         </div>
         <div class="modal-feedback" data-fb></div>
@@ -851,7 +872,8 @@ async function loadManageUsers() {
 
 async function saveManageUser(userId, btn) {
   const row = btn.closest('.manage-user-row');
-  const teams = [...row.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
+  const teams = [...row.querySelectorAll('.team-check-list input[type=checkbox][value]:checked')].map(cb => cb.value);
+  const isAdmin = row.querySelector('.manage-admin-cb').checked;
   const fb = row.querySelector('[data-fb]');
   fb.className = 'modal-feedback'; fb.style.display = 'none';
   btn.disabled = true;
@@ -860,11 +882,13 @@ async function saveManageUser(userId, btn) {
     const resp = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ action: 'update_teams', user_id: userId, teams })
+      body: JSON.stringify({ action: 'update_teams', user_id: userId, teams, is_admin: isAdmin })
     });
     const out = await resp.json();
     if (!resp.ok) throw new Error(out.error || 'Falha ao salvar');
-    fb.textContent = 'Equipes atualizadas.'; fb.classList.add('ok'); fb.style.display = 'block';
+    fb.textContent = 'Atualizado.'; fb.classList.add('ok'); fb.style.display = 'block';
+    row.querySelector('.manage-user-status').textContent =
+      (row.querySelector('.manage-user-status').textContent.includes('pendente') ? 'Convite pendente' : 'Ativo') + (isAdmin ? ' · Administrador' : '');
   } catch (e) {
     fb.textContent = e.message; fb.classList.add('err'); fb.style.display = 'block';
   } finally {
@@ -2323,7 +2347,7 @@ if (el) {
 
 <script>
 (function(){
-  const WEBHOOK = 'https://eventos.55telecom.com/webhook/bot-dash';
+  const WEBHOOK = 'https://webhook.automacao.bcrcx-agent.com/webhook/bot-dash';
   let chatOpen = false;
   let chatBusy = false;
   let chatSession = 'session-' + Date.now();
