@@ -409,47 +409,10 @@ function sqlIn(field, vals) {
   return ' AND ' + field + " IN ('" + vals.map(v => v.replace(/'/g, "''")).join("','") + "')";
 }
 
-// ── RECHAMADAS (ligações repetidas do mesmo número de telefone) ──
-// A tabela agregada bcrcx-wfm.BCRCX.__pbx_calls não guarda o número do telefone (já vem somada
-// por Data/Hora/fila/colaborador). O número de telefone existe apenas nas tabelas cruas de cada
-// conta (pbx55_calls), uma por cliente. Aqui unificamos essas tabelas para calcular rechamadas.
-// Definição adotada: rechamada = qualquer ligação de um número que já ligou antes dentro do
-// período/filtro selecionado (2ª, 3ª... ligação do mesmo número). Ajuste RECHAMADAS_SOURCES caso
-// uma nova conta seja adicionada.
-const RECHAMADAS_SOURCES = [
-  { dataset:'TENDA_BCRCX',    table:'pbx55_calls',     origem:'TENDA' },
-  { dataset:'BAUDUCCO_BCRCX', table:'pbx55_calls',     origem:'BAUDUCCO' },
-  { dataset:'CHOPP_BCRCX',    table:'pbx55_calls',     origem:'CHOPP' },
-  { dataset:'FEBRABAN_BCRCX', table:'pbx55_calls',     origem:'FEBRABAN' },
-  { dataset:'LACOSTE_BCRCX',  table:'pbx55_calls',     origem:'LACOSTE' },
-  { dataset:'LACOSTE_BCRCX',  table:'pbx55_calls_arg', origem:'LACOSTE_ARG' },
-  { dataset:'NIKY_BCRCX',     table:'pbx55_calls',     origem:'NIKY' },
-  { dataset:'PANDORA_BCRCX',  table:'pbx55_calls',     origem:'PANDORA' },
-  { dataset:'VITACON_BCRCX',  table:'pbx55_calls',     origem:'VITACON' },
-  { dataset:'VOLVO_BCRCX',    table:'pbx55_calls',     origem:'VOLVO' },
-];
-
-function rawCallsCTE() {
-  return RECHAMADAS_SOURCES.map(s => `
-    SELECT
-      DATE(call_date, 'America/Sao_Paulo') AS call_day,
-      SAFE_CAST(SUBSTR(wb_call_hour,1,2) AS INT64) AS call_hour,
-      '${s.origem}' AS origem,
-      queue_name, name,
-      REGEXP_REPLACE(call_number, r'[^0-9]', '') AS phone
-    FROM \`bcrcx-wfm.${s.dataset}.${s.table}\`
-    WHERE type_call != 'call_retained_ura' AND call_number IS NOT NULL AND call_number != ''`
-  ).join('\nUNION ALL\n');
-}
-
-function rechamadasWhere(dayFrom, dayTo, equipe, fila, colab, filaExact) {
-  let w = `WHERE call_day BETWEEN DATE('${dayFrom}') AND DATE('${dayTo}')`;
-  w += sqlIn('origem', equipe);
-  w += sqlIn('queue_name', fila);
-  w += sqlIn('name', colab);
-  if (filaExact) w += ` AND queue_name = '${filaExact.replace(/'/g,"''")}'`;
-  return w;
-}
+// Observação: a lógica de rechamadas (união das tabelas pbx55_calls por cliente) agora
+// vive só no Worker (server-side) — o front só pede a action 'rechamadas_kpi' /
+// 'main_matrix'. Isso evita expor no bundle do cliente a lista de datasets internos
+// do BigQuery, e garante que o cálculo sempre passa pelo filtro de permissão.
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -479,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 const SB_URL = 'https://toeelbrxxnlkvxkhewnw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvZWVsYnJ4eG5sa3Z4a2hld253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDI0NjUsImV4cCI6MjA5NTM3ODQ2NX0.7wYOQzcEOGlYlSG0cmSZDcwaH-dV5XjtVvBr_k4WdJE';
-const WORKER = 'https://damp-pond-8b06.55pbxanalitycs.workers.dev';
+const WORKER = 'https://dashboard-ligacoes-bcrcx.monitorbcrcx.workers.dev';
 Chart.register(ChartDataLabels);
 const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
@@ -614,57 +577,47 @@ document.getElementById('btn-login').addEventListener('click', doLogin);
 })();
 
 // ── WORKER QUERY ──
-async function queryBQ(sql) {
-  const res = await fetch(WORKER, {
+// Contrato novo: o front NÃO manda SQL. Manda { action, params } estruturado; o Worker
+// monta a query no servidor e aplica o filtro de permissão do usuário por cima do que
+// foi pedido aqui (então mandar filtros "a mais" não adianta nada — o Worker corta).
+async function callWorker(action, params) {
+  const res = await fetch(WORKER + '/api/query', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-    body: JSON.stringify({ query: sql })
+    body: JSON.stringify({ action, params })
   });
-  if (!res.ok) throw new Error(`Worker error ${res.status}`);
-  const json = await res.json();
-  if (!json.rows) return [];
-  return json.rows.map(row => {
-    const obj = {};
-    json.schema.fields.forEach((f, i) => {
-      const v = row.f[i].v;
-      obj[f.name] = (f.type === 'INTEGER' || f.type === 'FLOAT') ? (v === null ? null : Number(v)) : v;
-    });
-    return obj;
-  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `Worker error ${res.status}`);
+  return json.data;
 }
 
 // ── INIT ──
 async function init() {
   window.reloadDependentFilters = async function() {
-    const equipes = [...msSel.equipe];
-    const whereEq = equipes.length
-      ? `WHERE origem IN ('${equipes.map(v=>v.replace(/'/g,"''")).join("','")}') AND`
-      : 'WHERE';
     try {
-      const [filas, names] = await Promise.all([
-        queryBQ(`SELECT DISTINCT queue_name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${whereEq} queue_name IS NOT NULL ORDER BY queue_name`),
-        queryBQ(`SELECT DISTINCT name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${whereEq} name IS NOT NULL ORDER BY name`)
-      ]);
-      const filaVals = new Set(filas.map(r=>r.v));
-      const nameVals = new Set(names.map(r=>r.v));
+      const ds = document.getElementById('f-date-start').value;
+      const de = document.getElementById('f-date-end').value;
+      const r = await callWorker('filters_cascade', { dateStart: ds, dateEnd: de, origem: [...msSel.equipe] });
+      const filaVals = new Set(r.fila);
+      const nameVals = new Set(r.colab);
       [...msSel.fila].forEach(v => { if(!filaVals.has(v)) msSel.fila.delete(v); });
       [...msSel.colab].forEach(v => { if(!nameVals.has(v)) msSel.colab.delete(v); });
-      msFill('fila', filas.map(r=>r.v));
-      msFill('colab', names.map(r=>r.v));
+      msFill('fila', r.fila);
+      msFill('colab', r.colab);
     } catch(e) { console.warn('Cascade filter error', e); }
   };
   document.getElementById('f-date-start').value = daysAgo(30);
   document.getElementById('f-date-end').value = todayStr();
 
   try {
-    const [origens, filas, names] = await Promise.all([
-      queryBQ(`SELECT DISTINCT origem as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` WHERE origem IS NOT NULL ORDER BY origem`),
-      queryBQ(`SELECT DISTINCT queue_name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` WHERE queue_name IS NOT NULL ORDER BY queue_name`),
-      queryBQ(`SELECT DISTINCT name as v FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` WHERE name IS NOT NULL ORDER BY name`)
-    ]);
-    msFill('equipe', origens.map(r=>r.v));
-    msFill('fila', filas.map(r=>r.v));
-    msFill('colab', names.map(r=>r.v));
+    const ds = document.getElementById('f-date-start').value;
+    const de = document.getElementById('f-date-end').value;
+    // filters_init já vem filtrado pela permissão do usuário no Worker — um supervisor
+    // nunca vê, nem nos dropdowns, equipe/fila fora do que foi liberado pra ele.
+    const r = await callWorker('filters_init', { dateStart: ds, dateEnd: de });
+    msFill('equipe', r.origem);
+    msFill('fila', r.fila);
+    msFill('colab', r.colab);
   } catch(e) { console.warn('Filter load error', e); }
 
   document.getElementById('filters-bar').style.display = 'flex';
@@ -691,26 +644,11 @@ async function loadData() {
   const de = document.getElementById('f-date-end').value;
   const sla = 20;
 
-  let where = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(ds)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(de)}')`;
-  where += sqlIn('origem', [...msSel.equipe]);
-  where += sqlIn('queue_name', [...msSel.fila]);
-  where += sqlIn('name', [...msSel.colab]);
-
   try {
-    const data = await queryBQ(`
-      SELECT
-        Data, Hora,
-        SUM(Total_Ligacoes) as Total_Ligacoes,
-        SUM(Atendidas) as Atendidas,
-        SUM(Abandonadas) as Abandonadas,
-        SUM(CASE WHEN TME_seg <= ${sla} THEN Atendidas ELSE 0 END) as Atend_no_SLA,
-        SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as TMA_medio,
-        SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as TME_medio
-      FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
-      ${where}
-      GROUP BY Data, Hora
-      ORDER BY Data, Hora
-    `);
+    const data = await callWorker('main_data', {
+      dateStart: ds, dateEnd: de, slaSeconds: sla,
+      origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+    });
     buildDashboard(data, sla);
   } catch(e) {
     document.getElementById('app').innerHTML = `<div class="error-box">⚠️ Erro ao buscar dados: ${e.message}</div>`;
@@ -1035,27 +973,8 @@ function buildDashboard(data, sla) {
 
   // ── CSAT ──
   async function loadCsat() {
-    let whereCsat = `WHERE Data BETWEEN DATE('${ds}') AND DATE('${de}')`;
-        whereCsat += sqlIn('origem', equipe);
-    if (fila.length)   whereCsat += ` AND queue_name IN (${fila.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
-    if (colab.length)  whereCsat += ` AND name IN (${colab.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})`;
-
     try {
-      const rows = await queryBQ(`
-        SELECT
-          FORMAT_DATE('%d-%m-%y', Data) AS Data,
-          EXTRACT(HOUR FROM DATETIME(Data, TIME(Hora,0,0))) AS Hora,
-          origem,
-          queue_name,
-          name,
-          SUM(Total_Encaminhadas_Pesquisa) AS encaminhadas,
-          SUM(Total_Pesquisas) AS respondidas,
-          SUM(Total_Satisfeito) AS satisfeito
-        FROM \`bcrcx-wfm.BCRCX.csat\`
-        ${whereCsat}
-        GROUP BY Data, Hora, origem, queue_name, name
-        ORDER BY Data
-      `);
+      const rows = await callWorker('csat_data', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab });
 
       csatRawRows = rows;
       csatByDate = {};
@@ -1175,13 +1094,7 @@ function buildDashboard(data, sla) {
     const kpiVal = document.getElementById('kpi-rechamadas-val');
     const kpiSub = document.getElementById('kpi-rechamadas-sub');
     try {
-      const rows = await queryBQ(`
-        WITH raw_calls AS (${rawCallsCTE()})
-        SELECT COUNT(*) AS total, COUNT(*) - COUNT(DISTINCT phone) AS rechamadas
-        FROM raw_calls
-        ${rechamadasWhere(ds, de, equipe, fila, colab)}
-      `);
-      const r = rows[0] || { total:0, rechamadas:0 };
+      const r = await callWorker('rechamadas_kpi', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab });
       const tot = r.total||0;
       const rech = r.rechamadas||0;
       const pct = tot>0 ? (rech/tot*100) : 0;
@@ -1210,24 +1123,8 @@ function buildDashboard(data, sla) {
       btn.style.boxShadow   = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
     });
 
-    let where2 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(ds)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(de)}')`;
-    where2 += sqlIn('origem', equipe);
-    where2 += sqlIn('queue_name', fila);
-    where2 += sqlIn('name', colab);
-
     try {
-      const limit = mode === 'fila' ? 50 : 50;
-      const drillData = await queryBQ(`
-        SELECT ${groupField} as label,
-          SUM(Atendidas) as atend,
-          SUM(Abandonadas) as aband,
-          SUM(Total_Ligacoes) as total
-        FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
-        ${where2}
-        GROUP BY ${groupField}
-        ORDER BY SUM(Total_Ligacoes) DESC
-        LIMIT ${limit}
-      `);
+      const drillData = await callWorker('drill_bar', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab, mode });
 
       // Filter noise entries
       const noisePatterns = mode === 'fila'
@@ -1450,23 +1347,12 @@ function buildDashboard(data, sla) {
       ]);
     } else if (chart === 'tma' && charts.tmatme) {
       if (['equipe','fila'].includes(dim)) {
-        const field = dim === 'equipe' ? 'origem' : 'queue_name';
         const dsv2 = document.getElementById('f-date-start').value;
         const dev2 = document.getElementById('f-date-end').value;
-        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
-        wh += sqlIn('origem',     [...msSel.equipe]);
-        wh += sqlIn('queue_name', [...msSel.fila]);
-        wh += sqlIn('name',       [...msSel.colab]);
-        queryBQ(`
-          SELECT ${field} as label,
-            SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma,
-            SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme
-          FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
-          ${wh}
-          GROUP BY ${field}
-          ORDER BY SUM(Total_Ligacoes) DESC
-          LIMIT 30
-        `).then(rows2 => {
+        callWorker('tma_tme_grouped', {
+          dateStart: dsv2, dateEnd: dev2, dim,
+          origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+        }).then(rows2 => {
           const lbls  = rows2.map(r => dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : translateDow(r.label||'—'));
           const tmaVs = rows2.map(r => +(r.tma||0).toFixed(1));
           const tmeVs = rows2.map(r => +(r.tme||0).toFixed(1));
@@ -1618,15 +1504,14 @@ if (el) {
           getVal: h => byFieldHour[key+'___'+h.padStart(2,'0')] || {}
         })));
       } else {
-        // vol — needs BQ query for field × hour breakdown
+        // vol — needs Worker query for field × hora breakdown
         const dsv2 = document.getElementById('f-date-start').value;
         const dev2 = document.getElementById('f-date-end').value;
-        let wh = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv2)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev2)}')`;
-        wh += sqlIn('origem',     [...msSel.equipe]);
-        wh += sqlIn('queue_name', [...msSel.fila]);
-        wh += sqlIn('name',       [...msSel.colab]);
         if (el) el.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
-        queryBQ(`SELECT ${field} as grp, Hora, SUM(Total_Ligacoes) as lig FROM \`bcrcx-wfm.BCRCX.__pbx_calls\` ${wh} GROUP BY ${field}, Hora ORDER BY SUM(Total_Ligacoes) DESC`)
+        callWorker('heatmap_field_hour', {
+          dateStart: dsv2, dateEnd: dev2, dim,
+          origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+        })
           .then(rows2 => {
             const byGrpHour = {};
             const grpTotals = {};
@@ -1721,36 +1606,20 @@ if (el) {
       if (active) btn.classList.add('active'); else btn.classList.remove('active');
     });
 
-    let groupExpr, labelCol, orderBy;
-    if (mode === 'data')       { groupExpr = `FORMAT_DATE('%d-%m-%y', Data)`; labelCol = 'Data';        orderBy = 'MAX(Data) DESC'; }
-    else if (mode === 'mes')   { groupExpr = `FORMAT_DATE('%m/%y', Data)`;    labelCol = 'Mês';         orderBy = 'label'; }
-    else if (mode === 'dow')   { groupExpr = `FORMAT_DATE('%A', Data)`;       labelCol = 'Dia Sem.';    orderBy = 'SUM(Total_Pesquisas) DESC'; }
-    else if (mode === 'hora')  { groupExpr = `CAST(Hora AS STRING)`;          labelCol = 'Hora';        orderBy = 'CAST(label AS INT64)'; }
-    else if (mode === 'fila')  { groupExpr = 'queue_name';                    labelCol = 'Fila';        orderBy = 'SUM(Total_Pesquisas) DESC'; }
-    else if (mode === 'colab') { groupExpr = 'name';                          labelCol = 'Colaborador'; orderBy = 'SUM(Total_Pesquisas) DESC'; }
-    else                       { groupExpr = 'origem';                        labelCol = 'Equipe';      orderBy = 'SUM(Total_Pesquisas) DESC'; }
+    const labelColMap = { data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora', fila:'Fila', colab:'Colaborador', equipe:'Equipe' };
+    const labelCol = labelColMap[mode] || 'Equipe';
+    // O Worker usa a chave 'colaborador' (não 'colab') no mapa de dimensões — normaliza aqui.
+    const dimKey = mode === 'colab' ? 'colaborador' : mode;
 
     const dsv = document.getElementById('f-date-start').value;
     const dev = document.getElementById('f-date-end').value;
-    let where = `WHERE Data BETWEEN DATE('${dsv}') AND DATE('${dev}')`;
-    where += sqlIn('origem',     [...msSel.equipe]);
-    where += sqlIn('queue_name', [...msSel.fila]);
-    where += sqlIn('name',       [...msSel.colab]);
 
     document.getElementById('csat-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
     try {
-      const rows = await queryBQ(`
-        SELECT ${groupExpr} as label,
-          SUM(Total_Pesquisas)             AS respondidas,
-          SUM(Total_Satisfeito)            AS satisfeito,
-          SUM(Total_Neutro)                AS neutro,
-          SUM(Total_Ruim)                  AS ruim,
-          SUM(Total_Encaminhadas_Pesquisa) AS encaminhadas
-        FROM \`bcrcx-wfm.BCRCX.csat\`
-        ${where}
-        GROUP BY label
-        ORDER BY ${orderBy}
-      `);
+      const rows = await callWorker('csat_matrix', {
+        dateStart: dsv, dateEnd: dev, dim: dimKey,
+        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+      });
 
       let html = `<table class="matrix-table"><thead><tr>
         <th style="text-align:left">${labelCol}</th>
@@ -1817,38 +1686,14 @@ if (el) {
 
     const dsv = document.getElementById('f-date-start').value;
     const dev = document.getElementById('f-date-end').value;
-    const equipev = [...msSel.equipe];
-    const filav = [...msSel.fila];
-    const colabv = [...msSel.colab];
-    let where3 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev)}')`;
-    where3 += sqlIn('origem', equipev);
-    where3 += sqlIn('queue_name', filav);
-    where3 += sqlIn('name', colabv);
-
-    // Determine group expression
-    let groupExpr, groupLabel;
-    if (mode === 'data')  { groupExpr = 'Data';  groupLabel = 'Data'; }
-    else if (mode === 'mes')  { groupExpr = `FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))`; groupLabel = 'Mês'; }
-    else if (mode === 'dow')  { groupExpr = `FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))`; groupLabel = 'Dia Sem.'; }
-    else if (mode === 'hora') { groupExpr = 'CAST(Hora AS STRING)'; groupLabel = 'Hora'; }
-    else { groupExpr = fieldMap[mode] || 'queue_name'; groupLabel = labelMap[mode] || 'Fila'; }
+    const groupLabel = labelMap[mode] || 'Fila';
 
     document.getElementById('tme-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
     try {
-      const rows = await queryBQ(`
-        SELECT ${groupExpr} as label,
-          SUM(CASE WHEN TME_seg BETWEEN 0 AND 10 THEN Total_Ligacoes ELSE 0 END) as b0,
-          SUM(CASE WHEN TME_seg BETWEEN 11 AND 20 THEN Total_Ligacoes ELSE 0 END) as b1,
-          SUM(CASE WHEN TME_seg BETWEEN 21 AND 30 THEN Total_Ligacoes ELSE 0 END) as b2,
-          SUM(CASE WHEN TME_seg BETWEEN 31 AND 60 THEN Total_Ligacoes ELSE 0 END) as b3,
-          SUM(CASE WHEN TME_seg BETWEEN 61 AND 120 THEN Total_Ligacoes ELSE 0 END) as b4,
-          SUM(CASE WHEN TME_seg > 120 THEN Total_Ligacoes ELSE 0 END) as b5,
-          SUM(Total_Ligacoes) as total
-        FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
-        ${where3}
-        GROUP BY label
-        ORDER BY ${mode==='data' ? 'PARSE_DATE(\'%d-%m-%y\', label) DESC' : mode==='mes'||mode==='dow'||mode==='hora' ? 'label' : 'SUM(Total_Ligacoes) DESC'}
-      `);
+      const rows = await callWorker('tme_matrix', {
+        dateStart: dsv, dateEnd: dev, dim: mode,
+        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+      });
 
       const cols = ['0–10s','11–20s','21–30s','31–60s','61–120s','>120s'];
       const bKeys = ['b0','b1','b2','b3','b4','b5'];
@@ -1900,108 +1745,23 @@ if (el) {
     const equipev = [...msSel.equipe];
     const filav = [...msSel.fila];
     const colabv = [...msSel.colab];
-    const slav = 20;
 
-    let where4 = `WHERE PARSE_DATE('%d-%m-%y', Data) BETWEEN PARSE_DATE('%d-%m-%y', '${isoToBq(dsv)}') AND PARSE_DATE('%d-%m-%y', '${isoToBq(dev)}')`;
-        where4 += sqlIn('origem', equipev);
-    where4 += sqlIn('queue_name', filav);
-    where4 += sqlIn('name', colabv);
-    if (filaFilter) where4 += ` AND queue_name = '${filaFilter.replace(/'/g,"''")}'`;
-
-    let groupField, labelCol, orderBy = 'SUM(Total_Ligacoes) DESC';
-    if (filaFilter) {
-      groupField = 'name'; labelCol = 'Operador';
-    } else {
-      const dimMap = {
-        equipe:'origem', fila:'queue_name', colaborador:'name',
-        data:'Data',
-        mes:`FORMAT_DATE('%m/%y', PARSE_DATE('%d-%m-%y', Data))`,
-        dow:`FORMAT_DATE('%A', PARSE_DATE('%d-%m-%y', Data))`,
-        hora:'CAST(Hora AS STRING)'
-      };
-      const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
-      groupField = dimMap[matrixDim] || 'queue_name';
-      labelCol   = labelMap[matrixDim] || 'Fila';
-      if (matrixDim === 'data' || matrixDim === 'mes') orderBy = 'label';
-      if (matrixDim === 'hora') orderBy = 'CAST(label AS INT64)';
-    }
+    const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
+    const labelCol = filaFilter ? 'Operador' : (labelMap[matrixDim] || 'Fila');
 
     document.getElementById('main-matrix').innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div></div>';
     document.getElementById('btn-matrix-back').style.display = filaFilter ? 'block' : 'none';
     document.getElementById('matrix-breadcrumb').textContent = filaFilter ? filaFilter.replace(/^[^-]+-/,'') : '';
 
     try {
-      // Para csat (Data é DATE): expressões específicas por dimensão
-      const csatGF = (() => {
-        if (filaFilter) return 'name';
-        switch(matrixDim) {
-          case 'data':        return "FORMAT_DATE('%d-%m-%y', Data)";
-          case 'mes':         return "FORMAT_DATE('%m/%y', Data)";
-          case 'dow':         return "FORMAT_DATE('%A', Data)";
-          case 'hora':        return 'CAST(Hora AS STRING)';
-          default:            return groupField;
-        }
-      })();
-
-      // Expressão equivalente para agrupar as chamadas cruas (raw_calls) na mesma dimensão
-      const rechGF = (() => {
-        if (filaFilter) return 'name';
-        switch(matrixDim) {
-          case 'data':        return "FORMAT_DATE('%d-%m-%y', call_day)";
-          case 'mes':         return "FORMAT_DATE('%m/%y', call_day)";
-          case 'dow':         return "FORMAT_DATE('%A', call_day)";
-          case 'hora':        return 'CAST(call_hour AS STRING)';
-          case 'equipe':      return 'origem';
-          case 'fila':        return 'queue_name';
-          case 'colaborador': return 'name';
-          default:            return 'queue_name';
-        }
-      })();
-
-      const rows = await queryBQ(`
-        WITH calls AS (
-          SELECT ${groupField} as label,
-            SUM(Total_Ligacoes) as total,
-            SUM(Atendidas) as atend,
-            SUM(Abandonadas) as aband,
-            SUM(CASE WHEN TME_seg <= ${slav} THEN Atendidas ELSE 0 END) as atend_sla,
-            SUM(TMA_seg) / NULLIF(SUM(Atendidas), 0) as tma_atend,
-            SUM(TME_seg_atendidas) / NULLIF(SUM(Atendidas), 0) as tme_atend,
-            SUM(TME_seg_abandonadas) / NULLIF(SUM(Abandonadas), 0) as tme_aband,
-            SUM(TME_seg) / NULLIF(SUM(Total_Ligacoes), 0) as tme_total
-          FROM \`bcrcx-wfm.BCRCX.__pbx_calls\`
-          ${where4}
-          GROUP BY ${groupField}
-        ),
-        csat_agg AS (
-          SELECT ${csatGF} as label,
-            SUM(Total_Encaminhadas_Pesquisa) as enc,
-            SUM(Total_Pesquisas) as resp,
-            SUM(Total_Satisfeito) as sat
-          FROM \`bcrcx-wfm.BCRCX.csat\`
-          WHERE Data BETWEEN DATE('${dsv}') AND DATE('${dev}')
-          ${sqlIn('origem', equipev).replace('AND','AND')}
-          ${sqlIn('queue_name', filav)}
-          ${sqlIn('name', colabv)}
-          GROUP BY ${csatGF}
-        ),
-        raw_calls AS (${rawCallsCTE()}),
-        rech_agg AS (
-          SELECT ${rechGF} as label,
-            COUNT(*) as rech_total,
-            COUNT(*) - COUNT(DISTINCT phone) as rechamadas
-          FROM raw_calls
-          ${rechamadasWhere(dsv, dev, equipev, filav, colabv, filaFilter)}
-          GROUP BY ${rechGF}
-        )
-        SELECT c.*, COALESCE(s.enc,0) as enc, COALESCE(s.resp,0) as resp, COALESCE(s.sat,0) as sat,
-          COALESCE(rc.rech_total,0) as rech_total, COALESCE(rc.rechamadas,0) as rechamadas
-        FROM calls c
-        LEFT JOIN csat_agg s ON c.label = s.label
-        LEFT JOIN rech_agg rc ON c.label = rc.label
-        ORDER BY ${filaFilter ? 'c.total DESC' : orderBy.replace('label','c.label').replace('SUM(Total_Ligacoes) DESC','c.total DESC')}
-        LIMIT 100
-      `);
+      // O Worker monta a query (calls + csat + rechamadas) e injeta a permissão do
+      // usuário automaticamente. filaFilter (drill-down por operador) também é validado
+      // lá contra a permissão — não dá pra "forçar" um drill-down numa fila fora do
+      // que o supervisor pode ver, mesmo editando essa chamada pelo DevTools.
+      const rows = await callWorker('main_matrix', {
+        dateStart: dsv, dateEnd: dev, dim: matrixDim, filaFilter: filaFilter || null,
+        origem: equipev, fila: filav, colab: colabv
+      });
 
       const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%','Rechamadas','%Rechamadas'];
       const colHeaders = cols.map(c=>'<th>'+c+'</th>').join('');
