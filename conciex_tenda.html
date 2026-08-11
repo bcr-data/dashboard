@@ -83,7 +83,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:14px;max-width:1600px;margin:0 auto;width:100%}
 
 /* ── KPI CARDS ── */
-.kpi-row{display:grid;grid-template-columns:repeat(10,1fr);gap:10px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 @media(max-width:1300px){.kpi-row{grid-template-columns:repeat(5,1fr)}}
 @media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border-radius:12px;padding:14px 14px;border:1px solid var(--border);transition:border-color .15s ease}
@@ -256,7 +256,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <div class="filters" id="filters-bar">
     <div class="filter-group">
       <label>Data início</label>
-      <input type="date" id="f-date-start">
+      <input type="date" id="f-date-start" min="2026-02-04">
     </div>
     <div class="filter-group">
       <label>Data fim</label>
@@ -702,8 +702,8 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
         <table class="matrix-table" id="tbl-colab">
           <thead><tr>
             <th>Nome</th><th>Avaliações</th>
-            <th>Saud. Com.</th><th>Com. Com.</th><th>Fech. Com.</th><th>Total Com.</th>
-            <th>Com. Voz</th><th>Fech. Voz</th><th>Saud. Voz</th><th>Total Voz</th>
+            <th>Saud. Com.</th><th>Com. Com.</th><th>Fech. Com.</th><th>Proc. Com.</th><th>Total Com.</th>
+            <th>Com. Voz</th><th>Fech. Voz</th><th>Saud. Voz</th><th>Proc. Voz</th><th>Total Voz</th>
             <th>Score Total</th>
           </tr></thead>
           <tbody></tbody>
@@ -716,7 +716,7 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
         <table class="matrix-table" id="tbl-detalhe">
           <thead><tr>
             <th>Data</th><th>Ticket</th><th>Nome</th><th>Canal</th><th>Tipo</th>
-            <th>Saudação</th><th>Comunicação</th><th>Fechamento</th><th>Total</th>
+            <th>Saudação</th><th>Comunicação</th><th>Fechamento</th><th>Processos</th><th>Total</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -736,10 +736,12 @@ function renderKpis(k) {
     { label: 'Saudação Comentários', val: pct(k.pct_saudacao_coment) },
     { label: 'Comunicação Comentários', val: pct(k.pct_comunicacao_coment) },
     { label: 'Fechamento Comentários', val: pct(k.pct_fechamento_coment) },
+    { label: 'Processos Comentários', val: pct(k.pct_processos_coment) },
     { label: '%Score Total Comentários', val: pct(k.pct_total_coment) },
     { label: 'Comunicação Voz', val: pct(k.pct_comunicacao_voz) },
     { label: 'Fechamento Voz', val: pct(k.pct_fechamento_voz) },
     { label: 'Saudação Voz', val: pct(k.pct_saudacao_voz) },
+    { label: 'Processos Voz', val: pct(k.pct_processos_voz) },
     { label: '%Score Total Voz', val: pct(k.pct_total_voz) },
     { label: '%Score Total', val: pct(k.pct_total_geral) }
   ];
@@ -759,6 +761,7 @@ function renderCharts(serie) {
         { type: 'bar', label: '%Score Saudação', data: serie.map(r => r.pct_saudacao_coment), backgroundColor: '#a78bfa', order: 2 },
         { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r.pct_comunicacao_coment), backgroundColor: '#a1a1aa', order: 2 },
         { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_coment), backgroundColor: '#93c5fd', order: 2 },
+        { type: 'bar', label: '%Score Processos', data: serie.map(r => r.pct_processos_coment), backgroundColor: '#fbbf24', order: 2 },
         { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_coment), backgroundColor: '#1e40af', order: 2 },
         { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
       ]
@@ -773,6 +776,7 @@ function renderCharts(serie) {
         { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r.pct_comunicacao_voz), backgroundColor: '#86efac', order: 2 },
         { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_voz), backgroundColor: '#a1a1aa', order: 2 },
         { type: 'bar', label: '%Score Saudação', data: serie.map(r => r.pct_saudacao_voz), backgroundColor: '#a78bfa', order: 2 },
+        { type: 'bar', label: '%Score Processos', data: serie.map(r => r.pct_processos_voz), backgroundColor: '#fbbf24', order: 2 },
         { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_voz), backgroundColor: '#1e40af', order: 2 },
         { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
       ]
@@ -802,7 +806,7 @@ function chartOptions() {
 
 function renderColaboradores(rows) {
   const tbody = document.querySelector('#tbl-colab tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-3)">Sem dados</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-3)">Sem dados</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td>${r.nome || '—'}</td>
@@ -810,10 +814,12 @@ function renderColaboradores(rows) {
       <td>${pct(r.pct_saudacao_coment)}</td>
       <td>${pct(r.pct_comunicacao_coment)}</td>
       <td>${pct(r.pct_fechamento_coment)}</td>
+      <td>${pct(r.pct_processos_coment)}</td>
       <td>${pct(r.pct_total_coment)}</td>
       <td>${pct(r.pct_comunicacao_voz)}</td>
       <td>${pct(r.pct_fechamento_voz)}</td>
       <td>${pct(r.pct_saudacao_voz)}</td>
+      <td>${pct(r.pct_processos_voz)}</td>
       <td>${pct(r.pct_total_voz)}</td>
       <td><strong>${pct(r.pct_total_geral)}</strong></td>
     </tr>
@@ -822,7 +828,7 @@ function renderColaboradores(rows) {
 
 function renderDetalhe(rows) {
   const tbody = document.querySelector('#tbl-detalhe tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-3)">Sem dados</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-3)">Sem dados</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
     const canalClass = r.canal_exibicao === 'voz' ? 'voz' : r.canal_exibicao === 'agente' ? 'agente' : r.canal_exibicao === 'mdias' ? 'mdias' : '';
     return `
@@ -835,6 +841,7 @@ function renderDetalhe(rows) {
       <td>${r.saudacao ?? '—'}</td>
       <td>${r.comunicacao ?? '—'}</td>
       <td>${r.fechamento ?? '—'}</td>
+      <td>${r.processos ?? '—'}</td>
       <td><strong>${r.total ?? '—'}</strong></td>
     </tr>
   `;
