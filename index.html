@@ -292,15 +292,15 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
           <i></i><i></i><i></i>
         </button>
         <div class="nav-dropdown" id="nav-dropdown">
-          <a class="nav-item active" href="./index.html">
+          <a class="nav-item active" href="./index.html" data-report="absenteismo">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Absenteísmo
           </a>
-          <a class="nav-item" href="./ligacoes.html">
+          <a class="nav-item" href="./ligacoes.html" data-report="ligacoes">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.96 1.18 2 2 0 012.93 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
             Ligações
           </a>
-          <a class="nav-item" href="./conciex_tenda.html">
+          <a class="nav-item" href="./conciex_tenda.html" data-report="conciex_tenda">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
             Conciex Tenda
           </a>
@@ -411,8 +411,12 @@ td.exempt-cell{background:#fffbeb;border-left:3px solid var(--warn)}
         <label>Equipes liberadas</label>
         <div class="team-check-list" id="inv-teams"></div>
       </div>
+      <div class="login-field">
+        <label>Relatórios liberados</label>
+        <div class="team-check-list" id="inv-reports"></div>
+      </div>
       <label class="team-check-admin">
-        <input type="checkbox" id="inv-is-admin"> Administrador (acesso total — ignora as equipes acima)
+        <input type="checkbox" id="inv-is-admin"> Administrador (acesso total — ignora as equipes e relatórios acima)
       </label>
       <div class="modal-feedback" id="inv-feedback"></div>
       <div class="modal-actions">
@@ -567,17 +571,53 @@ async function doLogout() {
   document.getElementById('app').innerHTML = '<div class="loading"><div class="spinner"></div>Buscando dados do Supabase...</div>';
 }
 
-function showDashboard(user) {
+// Chave do relatório/aba desta página — usada pelo gate de acesso (report_access no Supabase).
+const REPORT_KEY = 'absenteismo';
+
+async function showDashboard(user) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
   document.getElementById('user-email-display').textContent = user.email;
   checkAdminAndSetupUsersMenu();
+  const allowed = await applyReportAccessGate();
+  if (!allowed) return;
   init();
+}
+
+// ── Controle de acesso por relatório (report_access) ───────────────────────
+async function applyReportAccessGate() {
+  let allowedReports = [];
+  try {
+    const { data, error } = await supabase.rpc('my_report_access');
+    if (!error && Array.isArray(data)) allowedReports = data;
+  } catch (e) { /* falha na checagem = trata como sem acesso (fail-closed) */ }
+
+  document.querySelectorAll('.nav-item[data-report]').forEach(el => {
+    el.style.display = allowedReports.includes(el.dataset.report) ? 'flex' : 'none';
+  });
+
+  if (!allowedReports.includes(REPORT_KEY)) {
+    document.getElementById('filters-bar').style.display = 'none';
+    document.getElementById('app').innerHTML = `
+      <div class="loading" style="flex-direction:column;gap:6px">
+        <div style="font-size:15px;font-weight:600;color:var(--text)">Sem acesso a este relatório</div>
+        <div style="font-size:13px;color:var(--text-2)">Fale com um administrador para liberar o acesso a esta aba.</div>
+      </div>`;
+    return false;
+  }
+  return true;
 }
 
 // ── ADMIN: cadastro de usuários ────────────────────────────────────────────
 const EDGE_FN_URL = `${SB_URL}/functions/v1/admin-invite-user`;
 const TEAM_OPTIONS = ['BAUDUCCO','CHOPP','FEBRABAN','LACOSTE','LACOSTE_ARG','NIKY','PANDORA','TENDA','VITACON','VOLVO'];
+// Os 3 relatórios/abas existentes hoje no Dashboard Gerencial — mesmas chaves
+// gravadas na tabela report_access no Supabase (ver my_report_access()/RPC).
+const REPORT_OPTIONS = [
+  { key: 'absenteismo', label: 'Absenteísmo' },
+  { key: 'ligacoes', label: 'Ligações' },
+  { key: 'conciex_tenda', label: 'Conciex Tenda' }
+];
 
 async function checkAdminAndSetupUsersMenu() {
   try {
@@ -599,6 +639,18 @@ function teamChecklistHtml(checkedTeams) {
   return allItem + items;
 }
 
+function reportChecklistHtml(checkedReports) {
+  checkedReports = checkedReports || [];
+  const allItem = `<label class="team-check-item team-check-all">
+    <input type="checkbox" onchange="toggleAllTeams(this.closest('.team-check-list'), this.checked)"> Selecionar todos
+  </label>`;
+  const items = REPORT_OPTIONS.map(r => `
+    <label class="team-check-item">
+      <input type="checkbox" value="${r.key}" ${checkedReports.includes(r.key) ? 'checked' : ''}> ${r.label}
+    </label>`).join('');
+  return allItem + items;
+}
+
 function toggleAllTeams(container, checked) {
   container.querySelectorAll('input[type=checkbox][value]').forEach(cb => cb.checked = checked);
 }
@@ -610,11 +662,20 @@ function renderTeamChecklist() {
   wrap.innerHTML = teamChecklistHtml();
 }
 
+function renderReportChecklist() {
+  const wrap = document.getElementById('inv-reports');
+  if (!wrap || wrap.dataset.rendered) return;
+  wrap.dataset.rendered = '1';
+  wrap.innerHTML = reportChecklistHtml();
+}
+
 function openUsersModal() {
   renderTeamChecklist();
+  renderReportChecklist();
   document.getElementById('inv-email').value = '';
   document.getElementById('inv-is-admin').checked = false;
   document.querySelectorAll('#inv-teams input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#inv-reports input[type=checkbox]').forEach(cb => cb.checked = false);
   const fb = document.getElementById('inv-feedback');
   fb.style.display = 'none'; fb.className = 'modal-feedback';
   switchUsersTab('invite');
@@ -636,6 +697,7 @@ function switchUsersTab(tab) {
 async function submitInviteUser() {
   const email = document.getElementById('inv-email').value.trim();
   const teams = [...document.querySelectorAll('#inv-teams input[type=checkbox][value]:checked')].map(cb => cb.value);
+  const reports = [...document.querySelectorAll('#inv-reports input[type=checkbox][value]:checked')].map(cb => cb.value);
   const isAdmin = document.getElementById('inv-is-admin').checked;
   const fb  = document.getElementById('inv-feedback');
   const btn = document.getElementById('inv-submit-btn');
@@ -643,6 +705,7 @@ async function submitInviteUser() {
   fb.style.display = 'none'; fb.className = 'modal-feedback';
   if (!email) { fb.textContent = 'Informe o e-mail.'; fb.classList.add('err'); fb.style.display = 'block'; return; }
   if (!teams.length && !isAdmin) { fb.textContent = 'Selecione ao menos uma equipe ou marque como administrador.'; fb.classList.add('err'); fb.style.display = 'block'; return; }
+  if (!reports.length && !isAdmin) { fb.textContent = 'Selecione ao menos um relatório ou marque como administrador.'; fb.classList.add('err'); fb.style.display = 'block'; return; }
 
   btn.disabled = true; btn.textContent = 'Enviando...';
   try {
@@ -650,7 +713,7 @@ async function submitInviteUser() {
     const resp = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ action: 'invite', email, teams, is_admin: isAdmin })
+      body: JSON.stringify({ action: 'invite', email, teams, reports, is_admin: isAdmin })
     });
     const out = await resp.json();
     if (!resp.ok) throw new Error(out.error || 'Falha ao convidar usuário');
@@ -659,6 +722,7 @@ async function submitInviteUser() {
     document.getElementById('inv-email').value = '';
     document.getElementById('inv-is-admin').checked = false;
     document.querySelectorAll('#inv-teams input[type=checkbox]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('#inv-reports input[type=checkbox]').forEach(cb => cb.checked = false);
   } catch (e) {
     fb.textContent = e.message; fb.classList.add('err'); fb.style.display = 'block';
   } finally {
@@ -697,8 +761,13 @@ async function loadManageUsers() {
           <button type="button" class="manage-toggle-btn" title="Mostrar/ocultar equipes">▸</button>
         </div>
         <div class="manage-user-body">
-          <div class="team-check-list">
+          <div style="font-size:11px;font-weight:500;color:var(--text-2);margin:2px 0 4px">Equipes liberadas</div>
+          <div class="team-check-list manage-teams-list">
             ${teamChecklistHtml(u.teams)}
+          </div>
+          <div style="font-size:11px;font-weight:500;color:var(--text-2);margin:10px 0 4px">Relatórios liberados</div>
+          <div class="team-check-list manage-reports-list">
+            ${reportChecklistHtml(u.reports)}
           </div>
           <label class="team-check-admin">
             <input type="checkbox" class="manage-admin-cb" ${u.isAdmin ? 'checked' : ''}> Administrador (acesso total)
@@ -717,7 +786,8 @@ async function loadManageUsers() {
 
 async function saveManageUser(userId, btn) {
   const row = btn.closest('.manage-user-row');
-  const teams = [...row.querySelectorAll('.team-check-list input[type=checkbox][value]:checked')].map(cb => cb.value);
+  const teams = [...row.querySelectorAll('.manage-teams-list input[type=checkbox][value]:checked')].map(cb => cb.value);
+  const reports = [...row.querySelectorAll('.manage-reports-list input[type=checkbox][value]:checked')].map(cb => cb.value);
   const isAdmin = row.querySelector('.manage-admin-cb').checked;
   const fb = row.querySelector('[data-fb]');
   fb.className = 'modal-feedback'; fb.style.display = 'none';
@@ -727,7 +797,7 @@ async function saveManageUser(userId, btn) {
     const resp = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ action: 'update_teams', user_id: userId, teams, is_admin: isAdmin })
+      body: JSON.stringify({ action: 'update_teams', user_id: userId, teams, reports, is_admin: isAdmin })
     });
     const out = await resp.json();
     if (!resp.ok) throw new Error(out.error || 'Falha ao salvar');
