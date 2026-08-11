@@ -731,7 +731,7 @@ function renderCharts(serie) {
         { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r.pct_comunicacao_coment), backgroundColor: '#a1a1aa', order: 2 },
         { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_coment), backgroundColor: '#93c5fd', order: 2 },
         { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_coment), backgroundColor: '#1e40af', order: 2 },
-        { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', yAxisID: 'y1', order: 1, tension: .3 }
+        { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
       ]
     },
     options: chartOptions()
@@ -745,7 +745,7 @@ function renderCharts(serie) {
         { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_voz), backgroundColor: '#a1a1aa', order: 2 },
         { type: 'bar', label: '%Score Saudação', data: serie.map(r => r.pct_saudacao_voz), backgroundColor: '#a78bfa', order: 2 },
         { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_voz), backgroundColor: '#1e40af', order: 2 },
-        { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', yAxisID: 'y1', order: 1, tension: .3 }
+        { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
       ]
     },
     options: chartOptions()
@@ -757,12 +757,16 @@ function chartOptions() {
     responsive: true, maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     plugins: {
-      legend: { position: 'top' },
+      legend: {
+        position: 'bottom',
+        labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 6, boxHeight: 6, font: { size: 10 }, color: '#71717a', padding: 10 }
+      },
       datalabels: { display: false }
     },
     scales: {
-      y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, title: { display: true, text: 'Score (%)', font: { size: 10 } } },
-      y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Avaliações', font: { size: 10 } } }
+      y: { beginAtZero: true, max: 100, grid: { display: false }, border: { display: false }, ticks: { callback: v => v + '%' }, title: { display: true, text: 'Score (%)', font: { size: 10 } } },
+      y1: { beginAtZero: true, position: 'right', grid: { display: false, drawOnChartArea: false }, border: { display: false }, title: { display: true, text: 'Avaliações', font: { size: 10 } } },
+      x: { grid: { display: false }, border: { display: false } }
     }
   };
 }
