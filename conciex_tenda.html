@@ -455,6 +455,9 @@ const WORKER = 'https://dashboard-ligacoes-bcrcx.monitorbcrcx.workers.dev';
 const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 let accessToken = '';
 let charts = {};
+// O CDN só anexa o plugin ao objeto global — sem isso o Chart.js ignora as opções "datalabels"
+// silenciosamente (nenhum erro, os rótulos de % simplesmente não aparecem nas barras).
+if (window.Chart && window.ChartDataLabels) Chart.register(ChartDataLabels);
 
 const authHashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 const authHashType = authHashParams.get('type');
