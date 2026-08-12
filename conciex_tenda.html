@@ -903,10 +903,13 @@ function setChartDimension(dim) {
 window.setChartDimension = setChartDimension;
 
 // Mostra o valor da barra arredondado, só quando existe (evita "null%" nos trechos sem dado).
+// font é função (scriptable) em vez de objeto fixo pra poder ficar menor só na dimensão "Data",
+// que tem 5 barras coladas por rótulo — reavalia a cada render porque chartDimension muda.
 const barDatalabels = {
   display: (ctx) => { const v = ctx.dataset.data[ctx.dataIndex]; return v !== null && v !== undefined; },
   anchor: 'end', align: 'end', offset: -2, clamp: true,
-  color: '#52525b', font: { size: 8, weight: '600' },
+  color: '#52525b',
+  font: () => ({ size: chartDimension === 'data' ? 6 : 8, weight: '600' }),
   formatter: (v) => Math.round(v) + '%'
 };
 
