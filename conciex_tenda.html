@@ -83,10 +83,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:14px;max-width:1600px;margin:0 auto;width:100%}
 
 /* ── KPI CARDS ── */
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-@media(max-width:1300px){.kpi-row{grid-template-columns:repeat(5,1fr)}}
-@media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
-.kpi{background:var(--surface);border-radius:12px;padding:14px 14px;border:1px solid var(--border);transition:border-color .15s ease}
+.kpi-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.kpi{background:var(--surface);border-radius:12px;padding:14px 14px;border:1px solid var(--border);transition:border-color .15s ease;flex:1 1 0;min-width:106px}
 .kpi:hover{border-color:var(--text-3)}
 .kpi-val{font-size:23px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-0.02em}
 .kpi-label{font-size:11px;color:var(--text-2);margin-top:8px}
@@ -97,8 +95,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .kpi-group-label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin:4px 2px -2px}
 
 /* ── CHART CARDS ── */
-.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-auto-rows:380px}
-@media(max-width:800px){.charts-row{grid-template-columns:1fr;grid-auto-rows:auto}}
+.charts-row{display:grid;grid-template-columns:1fr;gap:12px;grid-auto-rows:380px}
+.chart-toggle{display:flex;background:var(--border-subtle);border-radius:8px;padding:3px;gap:2px;flex-shrink:0}
+.chart-toggle-btn{border:none;background:transparent;color:var(--text-2);font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .15s ease,color .15s ease}
+.chart-toggle-btn.active{background:var(--surface);color:var(--brand)}
 .chart-card{background:var(--surface);border-radius:12px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;height:100%}
 .chart-card.full{grid-column:1/-1}
 .chart-body{flex:1;min-height:0;position:relative;overflow:hidden;height:290px}
@@ -680,20 +680,15 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
       <div class="chart-card">
         <div class="card-header">
           <div>
-            <div class="card-title">Comentários — Avaliações e Score (%) por período</div>
-            <div class="card-sub">Conversas de texto (WhatsApp / chat) avaliadas pela Conciex</div>
+            <div class="card-title" id="chart-title">Voz — Avaliações e Score (%) por período</div>
+            <div class="card-sub" id="chart-sub">Ligações avaliadas pela Conciex</div>
+          </div>
+          <div class="chart-toggle">
+            <button type="button" class="chart-toggle-btn active" data-channel="voz" onclick="setChartChannel('voz')">Voz</button>
+            <button type="button" class="chart-toggle-btn" data-channel="coment" onclick="setChartChannel('coment')">Comentários</button>
           </div>
         </div>
-        <div class="chart-body"><canvas id="chart-coment"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Voz — Avaliações e Score (%) por período</div>
-            <div class="card-sub">Ligações avaliadas pela Conciex</div>
-          </div>
-        </div>
-        <div class="chart-body"><canvas id="chart-voz"></canvas></div>
+        <div class="chart-body"><canvas id="chart-unified"></canvas></div>
       </div>
     </div>
     <div class="matrix-card">
@@ -733,16 +728,16 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
 function renderKpis(k) {
   const cards = [
     { label: 'Avaliações', val: fmtN(k.avaliacoes) },
+    { label: 'Saudação Voz', val: pct(k.pct_saudacao_voz) },
+    { label: 'Comunicação Voz', val: pct(k.pct_comunicacao_voz) },
+    { label: 'Fechamento Voz', val: pct(k.pct_fechamento_voz) },
+    { label: 'Processos Voz', val: pct(k.pct_processos_voz) },
+    { label: '%Score Total Voz', val: pct(k.pct_total_voz) },
     { label: 'Saudação Comentários', val: pct(k.pct_saudacao_coment) },
     { label: 'Comunicação Comentários', val: pct(k.pct_comunicacao_coment) },
     { label: 'Fechamento Comentários', val: pct(k.pct_fechamento_coment) },
     { label: 'Processos Comentários', val: pct(k.pct_processos_coment) },
     { label: '%Score Total Comentários', val: pct(k.pct_total_coment) },
-    { label: 'Comunicação Voz', val: pct(k.pct_comunicacao_voz) },
-    { label: 'Fechamento Voz', val: pct(k.pct_fechamento_voz) },
-    { label: 'Saudação Voz', val: pct(k.pct_saudacao_voz) },
-    { label: 'Processos Voz', val: pct(k.pct_processos_voz) },
-    { label: '%Score Total Voz', val: pct(k.pct_total_voz) },
     { label: '%Score Total', val: pct(k.pct_total_geral) }
   ];
   document.getElementById('kpi-row').innerHTML = cards.map(c =>
@@ -750,37 +745,53 @@ function renderKpis(k) {
   ).join('');
 }
 
+let currentSerie = [];
+let chartChannel = 'voz';
+
 function renderCharts(serie) {
-  destroyChart('coment'); destroyChart('voz');
+  currentSerie = serie;
+  buildUnifiedChart();
+}
+
+function setChartChannel(ch) {
+  if (chartChannel === ch) return;
+  chartChannel = ch;
+  buildUnifiedChart();
+}
+window.setChartChannel = setChartChannel;
+
+function buildUnifiedChart() {
+  destroyChart('unified');
+  const serie = currentSerie;
   const labels = serie.map(r => r.data_label);
+  const isVoz = chartChannel === 'voz';
 
-  charts.coment = new Chart(document.getElementById('chart-coment'), {
-    data: {
-      labels,
-      datasets: [
-        { type: 'bar', label: '%Score Saudação', data: serie.map(r => r.pct_saudacao_coment), backgroundColor: '#a78bfa', order: 2 },
-        { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r.pct_comunicacao_coment), backgroundColor: '#a1a1aa', order: 2 },
-        { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_coment), backgroundColor: '#93c5fd', order: 2 },
-        { type: 'bar', label: '%Score Processos', data: serie.map(r => r.pct_processos_coment), backgroundColor: '#fbbf24', order: 2 },
-        { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_coment), backgroundColor: '#1e40af', order: 2 },
-        { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
-      ]
-    },
-    options: chartOptions()
-  });
+  document.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.channel === chartChannel));
+  document.getElementById('chart-title').textContent = isVoz
+    ? 'Voz — Avaliações e Score (%) por período'
+    : 'Comentários — Avaliações e Score (%) por período';
+  document.getElementById('chart-sub').textContent = isVoz
+    ? 'Ligações avaliadas pela Conciex'
+    : 'Conversas de texto (WhatsApp / chat) avaliadas pela Conciex';
 
-  charts.voz = new Chart(document.getElementById('chart-voz'), {
-    data: {
-      labels,
-      datasets: [
-        { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r.pct_comunicacao_voz), backgroundColor: '#86efac', order: 2 },
-        { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_voz), backgroundColor: '#a1a1aa', order: 2 },
-        { type: 'bar', label: '%Score Saudação', data: serie.map(r => r.pct_saudacao_voz), backgroundColor: '#a78bfa', order: 2 },
-        { type: 'bar', label: '%Score Processos', data: serie.map(r => r.pct_processos_voz), backgroundColor: '#fbbf24', order: 2 },
-        { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_voz), backgroundColor: '#1e40af', order: 2 },
-        { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
-      ]
-    },
+  const datasets = isVoz ? [
+    { type: 'bar', label: '%Score Saudação', data: serie.map(r => r.pct_saudacao_voz), backgroundColor: '#a78bfa', order: 2 },
+    { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r.pct_comunicacao_voz), backgroundColor: '#86efac', order: 2 },
+    { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_voz), backgroundColor: '#a1a1aa', order: 2 },
+    { type: 'bar', label: '%Score Processos', data: serie.map(r => r.pct_processos_voz), backgroundColor: '#fbbf24', order: 2 },
+    { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_voz), backgroundColor: '#1e40af', order: 2 },
+    { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
+  ] : [
+    { type: 'bar', label: '%Score Saudação', data: serie.map(r => r.pct_saudacao_coment), backgroundColor: '#a78bfa', order: 2 },
+    { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r.pct_comunicacao_coment), backgroundColor: '#a1a1aa', order: 2 },
+    { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r.pct_fechamento_coment), backgroundColor: '#93c5fd', order: 2 },
+    { type: 'bar', label: '%Score Processos', data: serie.map(r => r.pct_processos_coment), backgroundColor: '#fbbf24', order: 2 },
+    { type: 'bar', label: '%Score Total', data: serie.map(r => r.pct_total_coment), backgroundColor: '#1e40af', order: 2 },
+    { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3 }
+  ];
+
+  charts.unified = new Chart(document.getElementById('chart-unified'), {
+    data: { labels, datasets },
     options: chartOptions()
   });
 }
