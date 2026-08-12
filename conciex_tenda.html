@@ -888,7 +888,7 @@ window.setChartDimension = setChartDimension;
 // Mostra o valor da barra arredondado, só quando existe (evita "null%" nos trechos sem dado).
 const barDatalabels = {
   display: (ctx) => { const v = ctx.dataset.data[ctx.dataIndex]; return v !== null && v !== undefined; },
-  anchor: 'end', align: 'end', offset: -2,
+  anchor: 'end', align: 'end', offset: -2, rotation: -90, clamp: true,
   color: '#52525b', font: { size: 8, weight: '600' },
   formatter: (v) => Math.round(v) + '%'
 };
