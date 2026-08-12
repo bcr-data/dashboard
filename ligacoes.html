@@ -379,6 +379,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <div class="ms-footer"><span class="ms-footer-count" id="ms-count-colab">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('colab')">Limpar</button></div>
       </div>
     </div>
+    <div class="filter-group ms-wrap" id="ms-wrap-telefone">
+      <label>Telefone Entrada</label>
+      <div class="ms-trigger" id="ms-trigger-telefone" onclick="msToggle('telefone')">
+        <div class="ms-chips" id="ms-chips-telefone"><span class="ms-placeholder">Todos os telefones</span></div>
+        <i class="ms-chevron" id="ms-chev-telefone">▾</i>
+      </div>
+      <div class="ms-dropdown" id="ms-dd-telefone" style="display:none">
+        <div class="ms-search"><input type="text" placeholder="Buscar..." oninput="msFilter(this,'ms-list-telefone')" id="ms-srch-telefone"></div>
+        <div class="ms-opts" id="ms-list-telefone"></div>
+        <div class="ms-footer"><span class="ms-footer-count" id="ms-count-telefone">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('telefone')">Limpar</button></div>
+      </div>
+    </div>
     <input type="hidden" id="f-sla" value="20">
     <button class="btn-filter" id="btn-filtrar">Filtrar</button>
     <button class="btn-reset" id="btn-limpar">Limpar</button>
@@ -432,9 +444,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <script>
 
 // ── MULTISELECT ──
-const msSel = {equipe: new Set(), fila: new Set(), colab: new Set()};
-const msPlaceholder = {equipe:'Todas as equipes', fila:'Todas as filas', colab:'Todos os colaboradores'};
-const MS_KEYS = ['equipe','fila','colab'];
+const msSel = {equipe: new Set(), fila: new Set(), colab: new Set(), telefone: new Set()};
+const msPlaceholder = {equipe:'Todas as equipes', fila:'Todas as filas', colab:'Todos os colaboradores', telefone:'Todos os telefones'};
+const MS_KEYS = ['equipe','fila','colab','telefone'];
 
 function msFill(k, opts) {
   const list = document.getElementById('ms-list-'+k);
@@ -1082,10 +1094,13 @@ async function init() {
       const r = await callWorker('filters_cascade', { dateStart: ds, dateEnd: de, origem: [...msSel.equipe] });
       const filaVals = new Set(r.fila);
       const nameVals = new Set(r.colab);
+      const telVals = new Set(r.telefone);
       [...msSel.fila].forEach(v => { if(!filaVals.has(v)) msSel.fila.delete(v); });
       [...msSel.colab].forEach(v => { if(!nameVals.has(v)) msSel.colab.delete(v); });
+      [...msSel.telefone].forEach(v => { if(!telVals.has(v)) msSel.telefone.delete(v); });
       msFill('fila', r.fila);
       msFill('colab', r.colab);
+      msFill('telefone', r.telefone);
     } catch(e) { console.warn('Cascade filter error', e); }
   };
   document.getElementById('f-date-start').value = daysAgo(30);
@@ -1100,6 +1115,7 @@ async function init() {
     msFill('equipe', r.origem);
     msFill('fila', r.fila);
     msFill('colab', r.colab);
+    msFill('telefone', r.telefone);
   } catch(e) { console.warn('Filter load error', e); }
 
   document.getElementById('filters-bar').style.display = 'flex';
@@ -1129,7 +1145,7 @@ async function loadData() {
   try {
     const data = await callWorker('main_data', {
       dateStart: ds, dateEnd: de, slaSeconds: sla,
-      origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+      origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab], telefone: [...msSel.telefone]
     });
     buildDashboard(data, sla);
   } catch(e) {
@@ -1449,14 +1465,15 @@ function buildDashboard(data, sla) {
   });
   const ds = document.getElementById('f-date-start').value;
   const de = document.getElementById('f-date-end').value;
-  const equipe = [...msSel.equipe];
-  const fila   = [...msSel.fila];
-  const colab  = [...msSel.colab];
+  const equipe   = [...msSel.equipe];
+  const fila     = [...msSel.fila];
+  const colab    = [...msSel.colab];
+  const telefone = [...msSel.telefone];
 
   // ── CSAT ──
   async function loadCsat() {
     try {
-      const rows = await callWorker('csat_data', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab });
+      const rows = await callWorker('csat_data', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab, telefone });
 
       csatRawRows = rows;
       csatByDate = {};
@@ -1576,7 +1593,7 @@ function buildDashboard(data, sla) {
     const kpiVal = document.getElementById('kpi-rechamadas-val');
     const kpiSub = document.getElementById('kpi-rechamadas-sub');
     try {
-      const r = await callWorker('rechamadas_kpi', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab });
+      const r = await callWorker('rechamadas_kpi', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab, telefone });
       const tot = r.total||0;
       const rech = r.rechamadas||0;
       const pct = tot>0 ? (rech/tot*100) : 0;
@@ -1606,7 +1623,7 @@ function buildDashboard(data, sla) {
     });
 
     try {
-      const drillData = await callWorker('drill_bar', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab, mode });
+      const drillData = await callWorker('drill_bar', { dateStart: ds, dateEnd: de, origem: equipe, fila, colab, telefone, mode });
 
       // Filter noise entries
       const noisePatterns = mode === 'fila'
@@ -1833,7 +1850,7 @@ function buildDashboard(data, sla) {
         const dev2 = document.getElementById('f-date-end').value;
         callWorker('tma_tme_grouped', {
           dateStart: dsv2, dateEnd: dev2, dim,
-          origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+          origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab], telefone: [...msSel.telefone]
         }).then(rows2 => {
           const lbls  = rows2.map(r => dim==='fila' ? (r.label||'').replace(/^[^-]+-/,'')||r.label||'—' : translateDow(r.label||'—'));
           const tmaVs = rows2.map(r => +(r.tma||0).toFixed(1));
@@ -1992,7 +2009,7 @@ if (el) {
         if (el) el.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
         callWorker('heatmap_field_hour', {
           dateStart: dsv2, dateEnd: dev2, dim,
-          origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+          origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab], telefone: [...msSel.telefone]
         })
           .then(rows2 => {
             const byGrpHour = {};
@@ -2100,7 +2117,7 @@ if (el) {
     try {
       const rows = await callWorker('csat_matrix', {
         dateStart: dsv, dateEnd: dev, dim: dimKey,
-        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab], telefone: [...msSel.telefone]
       });
 
       let html = `<table class="matrix-table"><thead><tr>
@@ -2174,7 +2191,7 @@ if (el) {
     try {
       const rows = await callWorker('tme_matrix', {
         dateStart: dsv, dateEnd: dev, dim: mode,
-        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab]
+        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab], telefone: [...msSel.telefone]
       });
 
       const cols = ['0–10s','11–20s','21–30s','31–60s','61–120s','>120s'];
@@ -2227,6 +2244,7 @@ if (el) {
     const equipev = [...msSel.equipe];
     const filav = [...msSel.fila];
     const colabv = [...msSel.colab];
+    const telefonev = [...msSel.telefone];
 
     const labelMap = { equipe:'Equipe', fila:'Fila', colaborador:'Colaborador', data:'Data', mes:'Mês', dow:'Dia Sem.', hora:'Hora' };
     const labelCol = filaFilter ? 'Operador' : (labelMap[matrixDim] || 'Fila');
@@ -2242,7 +2260,7 @@ if (el) {
       // que o supervisor pode ver, mesmo editando essa chamada pelo DevTools.
       const rows = await callWorker('main_matrix', {
         dateStart: dsv, dateEnd: dev, dim: matrixDim, filaFilter: filaFilter || null,
-        origem: equipev, fila: filav, colab: colabv
+        origem: equipev, fila: filav, colab: colabv, telefone: telefonev
       });
 
       const cols = ['Total','Atendidas','%Atend','Abandonadas','%Aband','NS%','TMA','TME Atend','TME Aband','TME Total','Encaminhadas','Respondidas','Participação','CSAT%','Rechamadas','%Rechamadas'];
