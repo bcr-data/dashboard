@@ -728,6 +728,22 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
     <div class="matrix-card">
       <div class="matrix-header">
         <div>
+          <div class="matrix-title">Matriz de Subtópicos por Colaborador</div>
+          <div class="card-sub" id="subtop-sub">Top 25 subtópicos mais citados no período · nº de ocorrências</div>
+        </div>
+        <div class="chart-toggle">
+          <button type="button" class="chart-toggle-btn active" data-subtopico="atendidos" onclick="setSubtopicoTipo('atendidos')">Atendidos</button>
+          <button type="button" class="chart-toggle-btn" data-subtopico="violados" onclick="setSubtopicoTipo('violados')">Violados</button>
+          <button type="button" class="chart-toggle-btn" data-subtopico="melhoria" onclick="setSubtopicoTipo('melhoria')">Sugestões de Melhoria</button>
+        </div>
+      </div>
+      <div class="matrix-wrap" id="subtop-wrap">
+        <table class="matrix-table" id="tbl-subtopicos"><thead><tr><th>Subtópico</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="matrix-card">
+      <div class="matrix-header">
+        <div>
           <div class="matrix-title">Analítico — últimas avaliações</div>
           <div class="card-sub">Mostrando até 500 registros mais recentes do período filtrado</div>
         </div>
@@ -779,6 +795,7 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
   renderCharts(serie);
   renderColaboradores(colaboradores);
   renderDetalhe(detalhe);
+  loadSubtopicosMatriz();
 }
 
 function renderKpis(k) {
@@ -888,7 +905,7 @@ window.setChartDimension = setChartDimension;
 // Mostra o valor da barra arredondado, só quando existe (evita "null%" nos trechos sem dado).
 const barDatalabels = {
   display: (ctx) => { const v = ctx.dataset.data[ctx.dataIndex]; return v !== null && v !== undefined; },
-  anchor: 'end', align: 'end', offset: -2, rotation: -90, clamp: true,
+  anchor: 'end', align: 'end', offset: -2, clamp: true,
   color: '#52525b', font: { size: 8, weight: '600' },
   formatter: (v) => Math.round(v) + '%'
 };
@@ -912,7 +929,7 @@ function buildUnifiedChart() {
   const datasets = [
     { type: 'bar', label: '%Score Saudação', data: serie.map(r => r[`pct_saudacao_${suf}`]), backgroundColor: '#7dd3fc', order: 2, datalabels: barDatalabels },
     { type: 'bar', label: '%Score Comunicação', data: serie.map(r => r[`pct_comunicacao_${suf}`]), backgroundColor: '#86efac', order: 2, datalabels: barDatalabels },
-    { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r[`pct_fechamento_${suf}`]), backgroundColor: '#fb923c', order: 2, datalabels: barDatalabels },
+    { type: 'bar', label: '%Score Fechamento', data: serie.map(r => r[`pct_fechamento_${suf}`]), backgroundColor: '#9ca3af', order: 2, datalabels: barDatalabels },
     { type: 'bar', label: '%Score Processos', data: serie.map(r => r[`pct_processos_${suf}`]), backgroundColor: '#a78bfa', order: 2, datalabels: barDatalabels },
     { type: 'bar', label: '%Score Total', data: serie.map(r => r[`pct_total_${suf}`]), backgroundColor: '#1e40af', order: 2, datalabels: barDatalabels },
     { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3, datalabels: { display: false } }
@@ -963,6 +980,67 @@ function renderColaboradores(rows) {
       <td><strong>${pct(r.pct_total_geral)}</strong></td>
     </tr>
   `).join('');
+}
+
+// ── MATRIZ DE SUBTÓPICOS POR COLABORADOR ──
+// subtopic_value é texto livre gerado por IA (o Worker já normaliza variações óbvias — "." final,
+// "(5)"/": 5" de peso colado no texto — e devolve só os 25 subtópicos mais frequentes no recorte
+// filtrado). Aqui só pivotamos (subtópico, nome, ocorrências) numa matriz e aplicamos um shading
+// leve proporcional ao valor da célula, pra facilitar leitura visual.
+let subtopicoTipo = 'atendidos';
+
+function setSubtopicoTipo(tipo) {
+  if (subtopicoTipo === tipo) return;
+  subtopicoTipo = tipo;
+  document.querySelectorAll('.chart-toggle-btn[data-subtopico]').forEach(b => b.classList.toggle('active', b.dataset.subtopico === tipo));
+  loadSubtopicosMatriz();
+}
+window.setSubtopicoTipo = setSubtopicoTipo;
+
+async function loadSubtopicosMatriz() {
+  const wrap = document.getElementById('subtop-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Buscando subtópicos...</div>';
+  try {
+    const p = { ...currentFilterParams(), tipo: subtopicoTipo };
+    const rows = await callWorker('conciex_subtopicos_matriz', p);
+    renderSubtopicosMatriz(rows || []);
+  } catch (e) {
+    wrap.innerHTML = `<div class="error-box">Erro ao carregar subtópicos: ${(e && e.message) || e}</div>`;
+    console.error(e);
+  }
+}
+
+function renderSubtopicosMatriz(rows) {
+  const wrap = document.getElementById('subtop-wrap');
+  if (!rows.length) { wrap.innerHTML = '<div class="empty-state">Sem subtópicos para os filtros selecionados.</div>'; return; }
+
+  const totalPorSubtopico = new Map();
+  const totalPorColaborador = new Map();
+  rows.forEach(r => {
+    totalPorSubtopico.set(r.subtopico, (totalPorSubtopico.get(r.subtopico) || 0) + Number(r.ocorrencias));
+    totalPorColaborador.set(r.nome, (totalPorColaborador.get(r.nome) || 0) + Number(r.ocorrencias));
+  });
+  const subtopicos = [...totalPorSubtopico.keys()].sort((a, b) => totalPorSubtopico.get(b) - totalPorSubtopico.get(a));
+  const colaboradores = [...totalPorColaborador.keys()].sort((a, b) => totalPorColaborador.get(b) - totalPorColaborador.get(a));
+
+  const cell = new Map();
+  rows.forEach(r => cell.set(r.subtopico + '|' + r.nome, Number(r.ocorrencias)));
+  const maxV = Math.max(...rows.map(r => Number(r.ocorrencias)), 1);
+
+  const thead = `<tr><th>Subtópico</th>${colaboradores.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr>`;
+  const tbody = subtopicos.map(s => {
+    const cells = colaboradores.map(c => {
+      const v = cell.get(s + '|' + c) || 0;
+      if (!v) return '<td style="text-align:center;color:var(--text-3)">–</td>';
+      const alpha = Math.min(0.15 + (v / maxV) * 0.65, 0.8);
+      const textColor = alpha > 0.45 ? '#fff' : 'inherit';
+      return `<td style="text-align:center;background:rgba(30,64,175,${alpha.toFixed(2)});color:${textColor}">${v}</td>`;
+    }).join('');
+    return `<tr><td>${escapeHtml(s)}</td>${cells}</tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="matrix-table" id="tbl-subtopicos"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 }
 
 function escapeHtml(s) {
