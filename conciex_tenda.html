@@ -955,7 +955,13 @@ function chartOptions() {
     scales: {
       y: { beginAtZero: true, max: 100, grid: { display: false }, border: { display: false }, ticks: { callback: v => v + '%' }, title: { display: true, text: 'Score (%)', font: { size: 10 } } },
       y1: { beginAtZero: true, position: 'right', grid: { display: false, drawOnChartArea: false }, border: { display: false }, title: { display: true, text: 'Avaliações', font: { size: 10 } } },
-      x: { grid: { display: false }, border: { display: false } }
+      // Em "Data" tem 5 barras coloridas por rótulo do eixo x, cabendo apertadas o suficiente pra
+      // um %100 encostar no vizinho — reduz barPercentage só nesse caso pra abrir respiro entre
+      // elas. Mês/Dia Sem. têm menos categorias no total, então mantém o padrão do Chart.js.
+      x: {
+        grid: { display: false }, border: { display: false },
+        ...(chartDimension === 'data' ? { categoryPercentage: 0.9, barPercentage: 0.55 } : {})
+      }
     }
   };
 }
