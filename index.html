@@ -445,6 +445,14 @@ const PAGE   = 5000;
 // Supabase client
 const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
+// accessToken fica sempre sincronizado com a sessao do Supabase, inclusive
+// quando o SDK renova o token silenciosamente em segundo plano (evento
+// TOKEN_REFRESHED). Evita mandar um token vencido pro backend.
+let accessToken = null;
+supabase.auth.onAuthStateChange((event, session) => {
+  accessToken = session ? session.access_token : null;
+});
+
 // ── CONVITE / REDEFINIÇÃO DE SENHA ──────────────────────────────────────────
 // isPasswordFlow precisa ser checado ANTES do "check existing session on load"
 // mais abaixo, porque o link de convite/recovery já vem com um token válido —
@@ -1093,8 +1101,7 @@ window.tfClear      = tfClear;
 
 async function fetchAll(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session ? session.access_token : SB_KEY;
+  const token = accessToken || SB_KEY;
   while(true) {
     const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
     let url = `${SB_URL}/rest/v1/${TABLE}?select=*&order=extraction_date.asc`;
@@ -1114,8 +1121,7 @@ async function fetchAll(dateStart, dateEnd) {
 
 async function fetchExemptions(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session ? session.access_token : SB_KEY;
+  const token = accessToken || SB_KEY;
   while(true) {
     const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
     let url = `${SB_URL}/rest/v1/${TABLE_EX}?select=*&order=date.asc`;
@@ -1149,8 +1155,7 @@ async function fetchExemptions(dateStart, dateEnd) {
 
 async function fetchTimeCards(dateStart, dateEnd) {
   let rows=[], offset=0, total=null;
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session ? session.access_token : SB_KEY;
+  const token = accessToken || SB_KEY;
   while(true) {
     const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}`, Range:`${offset}-${offset+PAGE-1}`, Prefer:'count=exact' };
     let url = `${SB_URL}/rest/v1/${TABLE_TC}?select=*&order=date.asc`;

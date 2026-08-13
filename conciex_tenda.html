@@ -454,6 +454,13 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const WORKER = 'https://dashboard-ligacoes-bcrcx.monitorbcrcx.workers.dev';
 const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 let accessToken = '';
+// Mantem accessToken sempre em dia com o Supabase, inclusive quando o SDK
+// renova o token silenciosamente em segundo plano (evento TOKEN_REFRESHED).
+// Sem isso, o token guardado aqui podia expirar com a aba aberta e o Worker
+// respondia "Nao autenticado" ate a pagina ser recarregada.
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) accessToken = session.access_token;
+});
 let charts = {};
 // O CDN só anexa o plugin ao objeto global — sem isso o Chart.js ignora as opções "datalabels"
 // silenciosamente (nenhum erro, os rótulos de % simplesmente não aparecem nas barras).

@@ -681,6 +681,13 @@ window.submitForgotPassword = submitForgotPassword;
 
 let charts = {};
 let accessToken = '';
+// Mantem accessToken sempre em dia com o Supabase, inclusive quando o SDK
+// renova o token silenciosamente em segundo plano (evento TOKEN_REFRESHED).
+// Sem isso, o token guardado aqui podia expirar com a aba aberta e o Worker
+// respondia "Nao autenticado" ate a pagina ser recarregada.
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) accessToken = session.access_token;
+});
 function heatColor(v, max, type) {
   const r = Math.min(v/max,1);
   if (type==='vol') {
