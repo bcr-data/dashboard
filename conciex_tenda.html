@@ -720,21 +720,10 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
         <div class="chart-body"><canvas id="chart-unified"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="card-header" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div class="card-header">
           <div>
             <div class="card-title" id="chart-notas-title">Voz — Notas médias por período</div>
-            <div class="card-sub" id="chart-notas-sub">Compreensão / Resolução / Confirmação — escala bruta, não percentual</div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <div class="chart-toggle">
-              <button type="button" class="chart-toggle-btn active" data-dim="data" onclick="setChartDimension('data')">Data</button>
-              <button type="button" class="chart-toggle-btn" data-dim="mes" onclick="setChartDimension('mes')">Mês</button>
-              <button type="button" class="chart-toggle-btn" data-dim="diasem" onclick="setChartDimension('diasem')">Dia Sem.</button>
-            </div>
-            <div class="chart-toggle">
-              <button type="button" class="chart-toggle-btn active" data-channel="voz" onclick="setChartChannel('voz')">Voz</button>
-              <button type="button" class="chart-toggle-btn" data-channel="coment" onclick="setChartChannel('coment')">Comentários</button>
-            </div>
+            <div class="card-sub" id="chart-notas-sub">Compreensão / Resolução / Confirmação — escala bruta, não percentual · segue os filtros Data/Mês/Dia Sem. e Voz/Comentários do gráfico ao lado</div>
           </div>
         </div>
         <div class="chart-body"><canvas id="chart-notas"></canvas></div>
@@ -812,7 +801,8 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
         <table class="matrix-table" id="tbl-detalhe">
           <thead><tr>
             <th>Data</th><th>Ticket</th><th>Nome</th><th>Canal</th><th>Tipo</th>
-            <th>Compreensão</th><th>Resolução</th><th>Confirmação</th><th>Total</th><th>Justificativa</th>
+            <th>Compreensão</th><th>Resolução</th><th>Confirmação</th><th>Total</th>
+            <th>Subtópicos Atendidos</th><th>Subtópicos Violados</th><th>Pontos Positivos</th><th>Sugestões de Melhoria</th><th>Justificativa (texto livre)</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -983,18 +973,35 @@ function buildUnifiedChart() {
     : 'Conversas de texto (WhatsApp / chat) avaliadas pela Conciex';
 
   const suf = isVoz ? 'voz' : 'coment';
+  const pctData = serie.map(r => r[`pct_total_${suf}`]);
   const datasets = [
     { type: 'bar', label: 'Avaliações', data: serie.map(r => r.avaliacoes), backgroundColor: '#1e40af', order: 2, datalabels: barCountDatalabels },
-    { type: 'line', label: '%Score Total', data: serie.map(r => r[`pct_total_${suf}`]), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3, datalabels: lineScoreDatalabels }
+    { type: 'line', label: '%Score Total', data: pctData, borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3, datalabels: lineScoreDatalabels }
   ];
 
   charts.unified = new Chart(document.getElementById('chart-unified'), {
     data: { labels, datasets },
-    options: chartOptions()
+    options: chartOptions(serie, pctData)
   });
 }
 
-function chartOptions() {
+// Reserva os 30% superiores do gráfico exclusivamente pra linha de %Score e empurra as barras pro
+// espaço abaixo disso — sem essa separação, um dia com muitas avaliações rende uma barra alta o
+// bastante pra cruzar por cima da linha, poluindo a leitura. Como o eixo direito (y1) vira uma
+// escala "artificial" pra caber nessa faixa (não é mais 0–100% de ponta a ponta), ele fica
+// escondido — o valor real de cada ponto continua certo no rótulo e no tooltip, só a régua do
+// eixo em si que não seria mais um "%: posição" fiel.
+function chartOptions(serie, pctData) {
+  const BAR_FRACTION = 0.7; // barras usam até 70% da altura
+  const LINE_FRACTION = 1 - BAR_FRACTION; // linha fica restrita aos 30% do topo
+  const counts = serie.map(r => Number(r.avaliacoes) || 0);
+  const maxCount = Math.max(...counts, 1);
+  const pctVals = pctData.filter(v => v !== null && v !== undefined && !isNaN(v));
+  const minPct = pctVals.length ? Math.min(...pctVals) : 0;
+  const yMax = maxCount / BAR_FRACTION;
+  const y1Max = 100;
+  const y1Min = y1Max - (y1Max - minPct) / LINE_FRACTION;
+
   return {
     responsive: true, maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
@@ -1006,8 +1013,8 @@ function chartOptions() {
       datalabels: { display: false }
     },
     scales: {
-      y: { beginAtZero: true, grid: { display: false }, border: { display: false }, title: { display: true, text: 'Avaliações', font: { size: 10 } } },
-      y1: { beginAtZero: true, max: 100, position: 'right', grid: { display: false, drawOnChartArea: false }, border: { display: false }, ticks: { callback: v => v + '%' }, title: { display: true, text: 'Score (%)', font: { size: 10 } } },
+      y: { beginAtZero: true, max: yMax, grid: { display: false }, border: { display: false }, title: { display: true, text: 'Avaliações', font: { size: 10 } } },
+      y1: { min: y1Min, max: y1Max, position: 'right', display: false },
       // Em "Data" o eixo x tem muito mais categorias (um rótulo por dia) do que em "Mês"/"Dia
       // Sem.", então cabem apertadas o suficiente pra um rótulo de barra encostar no vizinho —
       // reduz barPercentage só nesse caso pra abrir respiro entre elas.
@@ -1139,18 +1146,24 @@ function renderSubtopicosMatriz(rows) {
   const wrap = document.getElementById('subtop-wrap');
   if (!rows.length) { wrap.innerHTML = '<div class="empty-state">Sem subtópicos para os filtros selecionados.</div>'; return; }
 
-  const totalPorSubtopico = new Map();
-  const totalPorColaborador = new Map();
+  const pctSumPorSubtopico = new Map(), pctCountPorSubtopico = new Map();
+  const pctSumPorColaborador = new Map(), pctCountPorColaborador = new Map();
   const avaliacoesPorColaborador = new Map();
   rows.forEach(r => {
-    totalPorSubtopico.set(r.subtopico, (totalPorSubtopico.get(r.subtopico) || 0) + Number(r.ocorrencias));
-    totalPorColaborador.set(r.nome, (totalPorColaborador.get(r.nome) || 0) + Number(r.ocorrencias));
+    const p = Number(r.pct_ocorrencias) || 0;
+    pctSumPorSubtopico.set(r.subtopico, (pctSumPorSubtopico.get(r.subtopico) || 0) + p);
+    pctCountPorSubtopico.set(r.subtopico, (pctCountPorSubtopico.get(r.subtopico) || 0) + 1);
+    pctSumPorColaborador.set(r.nome, (pctSumPorColaborador.get(r.nome) || 0) + p);
+    pctCountPorColaborador.set(r.nome, (pctCountPorColaborador.get(r.nome) || 0) + 1);
     avaliacoesPorColaborador.set(r.nome, Number(r.total_avaliacoes) || 0);
   });
-  // Ordena linhas/colunas pelo volume bruto (quem mais aparece no relatório), só pra decidir a
-  // ordem de exibição — o valor mostrado em cada célula continua sendo o %.
-  const subtopicos = [...totalPorSubtopico.keys()].sort((a, b) => totalPorSubtopico.get(b) - totalPorSubtopico.get(a));
-  const colaboradores = [...totalPorColaborador.keys()].sort((a, b) => b.localeCompare(a, 'pt-BR'));
+  // Ordena linhas (subtópico, topo → baixo) e colunas (colaborador, esquerda → direita) pela
+  // média do % na linha/coluna, decrescente — não mais por volume bruto nem alfabético. Vale
+  // pras 3 abas (Atendidos/Violados/Sugestões de Melhoria), já que essa função é reusada pelas 3.
+  const avgPctSubtopico = (s) => pctSumPorSubtopico.get(s) / pctCountPorSubtopico.get(s);
+  const avgPctColaborador = (c) => pctSumPorColaborador.get(c) / pctCountPorColaborador.get(c);
+  const subtopicos = [...pctSumPorSubtopico.keys()].sort((a, b) => avgPctSubtopico(b) - avgPctSubtopico(a));
+  const colaboradores = [...pctSumPorColaborador.keys()].sort((a, b) => avgPctColaborador(b) - avgPctColaborador(a));
 
   const cell = new Map();
   rows.forEach(r => cell.set(r.subtopico + '|' + r.nome, { pct: Number(r.pct_ocorrencias) || 0, n: Number(r.ocorrencias), total: Number(r.total_avaliacoes) || 0 }));
@@ -1230,11 +1243,53 @@ function resetDetalheFilters() {
 }
 window.resetDetalheFilters = resetDetalheFilters;
 
+// A "justificativa" às vezes vem como JSON estruturado (Subtopicos_atendidos/violados,
+// Pontos_positivos, Sugestoes_de_melhoria — nomes de chave variam um pouco, ex.:
+// "Suggestoes_de_melhoria" com g duplo já apareceu) e às vezes como texto livre. Em vez de tentar
+// bater nomes de chave exatos, normaliza (sem acento, minúsculo) e casa por substring — assim
+// pequenas variações de grafia caem no balde certo mesmo assim. Se nada bater, trata como texto
+// livre (retorna null) e a linha cai na coluna de fallback.
+function parseJustificativa(raw) {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
+  let obj;
+  try { obj = JSON.parse(trimmed); } catch (e) { return null; }
+  if (!obj || typeof obj !== 'object') return null;
+  const buckets = { atendidos: [], violados: [], positivos: [], melhoria: [] };
+  let matched = false;
+  Object.entries(obj).forEach(([key, val]) => {
+    const norm = key.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    let bucket = null;
+    if (norm.includes('atendid')) bucket = 'atendidos';
+    else if (norm.includes('violad')) bucket = 'violados';
+    else if (norm.includes('positiv')) bucket = 'positivos';
+    else if (norm.includes('melhoria')) bucket = 'melhoria';
+    if (!bucket) return;
+    matched = true;
+    const items = Array.isArray(val) ? val : (val ? [val] : []);
+    buckets[bucket].push(...items.map(String));
+  });
+  return matched ? buckets : null;
+}
+
+// Mesma técnica de altura limitada com scroll interno usada antes pra Justificativa bruta — cada
+// item vira uma linha com marcador "•", e o hover mostra a lista completa sem quebrar a tabela.
+function listCell(items) {
+  if (!items || !items.length) return '—';
+  const html = items.map(i => '• ' + escapeHtml(i)).join('<br>');
+  return `<div class="just-cell" title="${escapeHtml(items.join('\n'))}">${html}</div>`;
+}
+
 function renderDetalheRows(rows) {
   const tbody = document.querySelector('#tbl-detalhe tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-3)">Sem dados para os filtros aplicados</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--text-3)">Sem dados para os filtros aplicados</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
     const canalClass = r.canal_exibicao === 'voz' ? 'voz' : r.canal_exibicao === 'agente' ? 'agente' : r.canal_exibicao === 'mdias' ? 'mdias' : '';
+    const parsed = parseJustificativa(r.justificativa);
+    const freeText = !parsed && r.justificativa
+      ? `<div class="just-cell" title="${escapeHtml(r.justificativa)}">${escapeHtml(r.justificativa)}</div>`
+      : '—';
     return `
     <tr>
       <td>${r.data || '—'}</td>
@@ -1246,7 +1301,11 @@ function renderDetalheRows(rows) {
       <td>${r.resolucao ?? '—'}</td>
       <td>${r.confirmacao ?? '—'}</td>
       <td><strong>${r.total ?? '—'}</strong></td>
-      <td class="col-justificativa">${r.justificativa ? `<div class="just-cell" title="${escapeHtml(r.justificativa)}">${escapeHtml(r.justificativa)}</div>` : '—'}</td>
+      <td class="col-justificativa">${parsed ? listCell(parsed.atendidos) : '—'}</td>
+      <td class="col-justificativa">${parsed ? listCell(parsed.violados) : '—'}</td>
+      <td class="col-justificativa">${parsed ? listCell(parsed.positivos) : '—'}</td>
+      <td class="col-justificativa">${parsed ? listCell(parsed.melhoria) : '—'}</td>
+      <td class="col-justificativa">${freeText}</td>
     </tr>
   `;
   }).join('');
@@ -1254,20 +1313,27 @@ function renderDetalheRows(rows) {
 
 function exportDetalheExcel() {
   if (!currentDetalheFiltered.length) { alert('Não há dados para exportar.'); return; }
-  const rows = currentDetalheFiltered.map(r => ({
-    'Data': r.data || '',
-    'Ticket': r.ticket || '',
-    'Nome': r.nome || '',
-    'Canal': r.canal_exibicao || '',
-    'Tipo': r.is_comentario ? 'Comentários' : 'Voz',
-    'Compreensão': r.compreensao ?? '',
-    'Resolução': r.resolucao ?? '',
-    'Confirmação': r.confirmacao ?? '',
-    'Total': r.total ?? '',
-    'Justificativa': r.justificativa || ''
-  }));
+  const rows = currentDetalheFiltered.map(r => {
+    const parsed = parseJustificativa(r.justificativa);
+    return {
+      'Data': r.data || '',
+      'Ticket': r.ticket || '',
+      'Nome': r.nome || '',
+      'Canal': r.canal_exibicao || '',
+      'Tipo': r.is_comentario ? 'Comentários' : 'Voz',
+      'Compreensão': r.compreensao ?? '',
+      'Resolução': r.resolucao ?? '',
+      'Confirmação': r.confirmacao ?? '',
+      'Total': r.total ?? '',
+      'Subtópicos Atendidos': parsed ? parsed.atendidos.join('; ') : '',
+      'Subtópicos Violados': parsed ? parsed.violados.join('; ') : '',
+      'Pontos Positivos': parsed ? parsed.positivos.join('; ') : '',
+      'Sugestões de Melhoria': parsed ? parsed.melhoria.join('; ') : '',
+      'Justificativa (texto livre)': !parsed ? (r.justificativa || '') : ''
+    };
+  });
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 8 }, { wch: 60 }];
+  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 8 }, { wch: 40 }, { wch: 40 }, { wch: 40 }, { wch: 40 }, { wch: 40 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Avaliações');
   const stamp = new Date().toISOString().slice(0, 10);
