@@ -102,7 +102,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .kpi-group-label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin:4px 2px -2px}
 
 /* ── CHART CARDS ── */
-.charts-row{display:grid;grid-template-columns:1fr;gap:12px;grid-auto-rows:380px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-auto-rows:380px}
+@media (max-width:980px){.charts-row{grid-template-columns:1fr}}
 .chart-toggle{display:flex;background:var(--border-subtle);border-radius:8px;padding:3px;gap:2px;flex-shrink:0}
 .chart-toggle-btn{border:none;background:transparent;color:var(--text-2);font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .15s ease,color .15s ease}
 .chart-toggle-btn.active{background:var(--surface);color:var(--brand)}
@@ -718,6 +719,26 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
         </div>
         <div class="chart-body"><canvas id="chart-unified"></canvas></div>
       </div>
+      <div class="chart-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="chart-notas-title">Voz — Notas médias por período</div>
+            <div class="card-sub" id="chart-notas-sub">Compreensão / Resolução / Confirmação — escala bruta, não percentual</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="chart-toggle">
+              <button type="button" class="chart-toggle-btn active" data-dim="data" onclick="setChartDimension('data')">Data</button>
+              <button type="button" class="chart-toggle-btn" data-dim="mes" onclick="setChartDimension('mes')">Mês</button>
+              <button type="button" class="chart-toggle-btn" data-dim="diasem" onclick="setChartDimension('diasem')">Dia Sem.</button>
+            </div>
+            <div class="chart-toggle">
+              <button type="button" class="chart-toggle-btn active" data-channel="voz" onclick="setChartChannel('voz')">Voz</button>
+              <button type="button" class="chart-toggle-btn" data-channel="coment" onclick="setChartChannel('coment')">Comentários</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chart-notas"></canvas></div>
+      </div>
     </div>
     <div class="matrix-card">
       <div class="matrix-header"><div class="matrix-title">Avaliações por colaborador</div></div>
@@ -844,13 +865,15 @@ let chartDimension = 'data';
 
 const DIA_SEM_NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const MES_NOMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-// Métricas de %; cada uma é ponderada pela contagem de avaliações do canal a que pertence (não
-// pelo total do dia) — senão um dia com muita Voz e pouco Comentários distorceria a média de
-// Comentários daquele grupo, e vice-versa.
+// Métricas de % e de nota média; cada uma é ponderada pela contagem de avaliações do canal a
+// que pertence (não pelo total do dia) — senão um dia com muita Voz e pouco Comentários
+// distorceria a média de Comentários daquele grupo, e vice-versa.
 const SERIE_PCT_METRICS = {
   pct_total_coment: 'n_comentarios',
   pct_total_voz: 'n_voz',
-  pct_total_geral: 'avaliacoes'
+  pct_total_geral: 'avaliacoes',
+  avg_compreensao_coment: 'n_comentarios', avg_resolucao_coment: 'n_comentarios', avg_confirmacao_coment: 'n_comentarios',
+  avg_compreensao_voz: 'n_voz', avg_resolucao_voz: 'n_voz', avg_confirmacao_voz: 'n_voz'
 };
 
 // Reagrupa a série diária (como vem do Worker) por mês ou dia da semana, fazendo média ponderada
@@ -904,12 +927,17 @@ function aggregateSerie(serie, dimension) {
 function renderCharts(serie) {
   currentSerie = serie;
   buildUnifiedChart();
+  buildNotasChart();
 }
 
+// Data/Mês/Dia Sem. e Voz/Comentários são estado compartilhado entre os dois gráficos (o de
+// Avaliações/%Score e o de Notas médias) — os botões de alternância existem duplicados nos dois
+// cards, mas apontam pro mesmo par de funções, então trocar num card espelha o outro.
 function setChartChannel(ch) {
   if (chartChannel === ch) return;
   chartChannel = ch;
   buildUnifiedChart();
+  buildNotasChart();
 }
 window.setChartChannel = setChartChannel;
 
@@ -917,16 +945,25 @@ function setChartDimension(dim) {
   if (chartDimension === dim) return;
   chartDimension = dim;
   buildUnifiedChart();
+  buildNotasChart();
 }
 window.setChartDimension = setChartDimension;
 
-// Em "Data" tem 5 barras coladas por rótulo — não sobra espaço legível pra número nenhum, então
-// esconde o rótulo nessa dimensão. Em "Mês"/"Dia Sem." (bem menos categorias) mostra maior.
-const barDatalabels = {
-  display: (ctx) => { if (chartDimension === 'data') return false; const v = ctx.dataset.data[ctx.dataIndex]; return v !== null && v !== undefined; },
+// Rótulo da coluna de Avaliações (total bruto) — mostrado em todas as dimensões (Data/Mês/Dia
+// Sem.) e nos dois canais, a pedido: sempre visível, não só quando "sobra espaço".
+const barCountDatalabels = {
+  display: (ctx) => { const v = ctx.dataset.data[ctx.dataIndex]; return v !== null && v !== undefined; },
   anchor: 'end', align: 'end', offset: -2, clamp: true,
   color: '#52525b',
   font: { size: 11, weight: '600' },
+  formatter: (v) => fmtN(v)
+};
+// Rótulo da linha de %Score Total — mesma regra: sempre visível.
+const lineScoreDatalabels = {
+  display: (ctx) => { const v = ctx.dataset.data[ctx.dataIndex]; return v !== null && v !== undefined; },
+  align: 'top', anchor: 'end', offset: 6, clamp: true,
+  color: '#18181b',
+  font: { size: 10, weight: '600' },
   formatter: (v) => Math.round(v) + '%'
 };
 
@@ -947,8 +984,8 @@ function buildUnifiedChart() {
 
   const suf = isVoz ? 'voz' : 'coment';
   const datasets = [
-    { type: 'bar', label: '%Score Total', data: serie.map(r => r[`pct_total_${suf}`]), backgroundColor: '#1e40af', order: 2, datalabels: barDatalabels },
-    { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3, datalabels: { display: false } }
+    { type: 'bar', label: 'Avaliações', data: serie.map(r => r.avaliacoes), backgroundColor: '#1e40af', order: 2, datalabels: barCountDatalabels },
+    { type: 'line', label: '%Score Total', data: serie.map(r => r[`pct_total_${suf}`]), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3, datalabels: lineScoreDatalabels }
   ];
 
   charts.unified = new Chart(document.getElementById('chart-unified'), {
@@ -969,14 +1006,74 @@ function chartOptions() {
       datalabels: { display: false }
     },
     scales: {
-      y: { beginAtZero: true, max: 100, grid: { display: false }, border: { display: false }, ticks: { callback: v => v + '%' }, title: { display: true, text: 'Score (%)', font: { size: 10 } } },
-      y1: { beginAtZero: true, position: 'right', grid: { display: false, drawOnChartArea: false }, border: { display: false }, title: { display: true, text: 'Avaliações', font: { size: 10 } } },
-      // Em "Data" tem 5 barras coloridas por rótulo do eixo x, cabendo apertadas o suficiente pra
-      // um %100 encostar no vizinho — reduz barPercentage só nesse caso pra abrir respiro entre
-      // elas. Mês/Dia Sem. têm menos categorias no total, então mantém o padrão do Chart.js.
+      y: { beginAtZero: true, grid: { display: false }, border: { display: false }, title: { display: true, text: 'Avaliações', font: { size: 10 } } },
+      y1: { beginAtZero: true, max: 100, position: 'right', grid: { display: false, drawOnChartArea: false }, border: { display: false }, ticks: { callback: v => v + '%' }, title: { display: true, text: 'Score (%)', font: { size: 10 } } },
+      // Em "Data" o eixo x tem muito mais categorias (um rótulo por dia) do que em "Mês"/"Dia
+      // Sem.", então cabem apertadas o suficiente pra um rótulo de barra encostar no vizinho —
+      // reduz barPercentage só nesse caso pra abrir respiro entre elas.
       x: {
         grid: { display: false }, border: { display: false },
         ...(chartDimension === 'data' ? { categoryPercentage: 0.9, barPercentage: 0.55 } : {})
+      }
+    }
+  };
+}
+
+// Rótulo das colunas de nota média — sempre visível, mesma convenção adotada nos outros
+// gráficos/KPIs desse dashboard. 1 casa decimal (mesmo formato do fmtAvg usado nos KPIs).
+const notaDatalabels = {
+  display: (ctx) => { const v = ctx.dataset.data[ctx.dataIndex]; return v !== null && v !== undefined; },
+  anchor: 'end', align: 'end', offset: -2, clamp: true,
+  color: '#52525b',
+  font: { size: 10, weight: '600' },
+  formatter: (v) => Number(v).toFixed(1)
+};
+
+// Espelha buildUnifiedChart(): mesma série (currentSerie), mesma agregação por dimensão
+// (aggregateSerie) e mesmo canal (chartChannel) — só troca o que é plotado: em vez de
+// Avaliações/%Score Total, mostra a nota média bruta de cada questão (Compreensão/Resolução/
+// Confirmação) do canal selecionado. Nota bruta, não percentual — cada questão tem sua própria
+// escala (ver CONCIEX_SCALES), por isso os valores não são comparáveis em altura absoluta entre
+// si, só a evolução de cada uma ao longo do tempo.
+function buildNotasChart() {
+  destroyChart('notas');
+  const serie = aggregateSerie(currentSerie, chartDimension);
+  const labels = serie.map(r => r.data_label);
+  const isVoz = chartChannel === 'voz';
+
+  document.getElementById('chart-notas-title').textContent = isVoz
+    ? 'Voz — Notas médias por período'
+    : 'Comentários — Notas médias por período';
+
+  const suf = isVoz ? 'voz' : 'coment';
+  const datasets = [
+    { type: 'bar', label: `Compreensão (${scaleSub('compreensao_' + suf)})`, data: serie.map(r => r[`avg_compreensao_${suf}`]), backgroundColor: '#7dd3fc', datalabels: notaDatalabels },
+    { type: 'bar', label: `Resolução (${scaleSub('resolucao_' + suf)})`, data: serie.map(r => r[`avg_resolucao_${suf}`]), backgroundColor: '#86efac', datalabels: notaDatalabels },
+    { type: 'bar', label: `Confirmação (${scaleSub('confirmacao_' + suf)})`, data: serie.map(r => r[`avg_confirmacao_${suf}`]), backgroundColor: '#a78bfa', datalabels: notaDatalabels }
+  ];
+
+  charts.notas = new Chart(document.getElementById('chart-notas'), {
+    data: { labels, datasets },
+    options: notasChartOptions()
+  });
+}
+
+function notasChartOptions() {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 6, boxHeight: 6, font: { size: 10 }, color: '#71717a', padding: 10 }
+      },
+      datalabels: { display: false }
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { display: false }, border: { display: false }, title: { display: true, text: 'Nota média', font: { size: 10 } } },
+      x: {
+        grid: { display: false }, border: { display: false },
+        ...(chartDimension === 'data' ? { categoryPercentage: 0.85, barPercentage: 0.9 } : {})
       }
     }
   };
@@ -1053,7 +1150,7 @@ function renderSubtopicosMatriz(rows) {
   // Ordena linhas/colunas pelo volume bruto (quem mais aparece no relatório), só pra decidir a
   // ordem de exibição — o valor mostrado em cada célula continua sendo o %.
   const subtopicos = [...totalPorSubtopico.keys()].sort((a, b) => totalPorSubtopico.get(b) - totalPorSubtopico.get(a));
-  const colaboradores = [...totalPorColaborador.keys()].sort((a, b) => totalPorColaborador.get(b) - totalPorColaborador.get(a));
+  const colaboradores = [...totalPorColaborador.keys()].sort((a, b) => b.localeCompare(a, 'pt-BR'));
 
   const cell = new Map();
   rows.forEach(r => cell.set(r.subtopico + '|' + r.nome, { pct: Number(r.pct_ocorrencias) || 0, n: Number(r.ocorrencias), total: Number(r.total_avaliacoes) || 0 }));
