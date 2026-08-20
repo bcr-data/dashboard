@@ -724,8 +724,8 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
         <table class="matrix-table" id="tbl-colab">
           <thead><tr>
             <th>Nome</th><th>Avaliações</th>
-            <th>Compreensão Com.</th><th>Resolução Com.</th><th>Confirmação Com.</th><th>Total Com.</th>
-            <th>Compreensão Voz</th><th>Resolução Voz</th><th>Confirmação Voz</th><th>Total Voz</th>
+            <th title="Média bruta (0–70)">Compreensão Com.</th><th title="Média bruta (0–25)">Resolução Com.</th><th title="Média bruta (0–10)">Confirmação Com.</th><th title="%Score">Total Com.</th>
+            <th title="Média bruta (25–75)">Compreensão Voz</th><th title="Média bruta (0–15)">Resolução Voz</th><th title="Média bruta (0–10)">Confirmação Voz</th><th title="%Score">Total Voz</th>
             <th>Score Total</th>
           </tr></thead>
           <tbody></tbody>
@@ -805,21 +805,35 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
   loadSubtopicosMatriz();
 }
 
+// Escalas (min/max) observadas de cada questão — mesmos números usados no Worker para
+// contextualizar a média bruta exibida nos KPIs (ver comentário no worker.js sobre por
+// que as sub-métricas não viram percentual). Se as escalas mudarem, atualize os dois lugares.
+const CONCIEX_SCALES = {
+  compreensao_coment: { min: 0, max: 70 },
+  resolucao_coment: { min: 0, max: 25 },
+  confirmacao_coment: { min: 0, max: 10 },
+  compreensao_voz: { min: 25, max: 75 },
+  resolucao_voz: { min: 0, max: 15 },
+  confirmacao_voz: { min: 0, max: 10 }
+};
+function fmtAvg(v) { return (v === null || v === undefined || isNaN(v)) ? '—' : Number(v).toFixed(1); }
+function scaleSub(key) { const s = CONCIEX_SCALES[key]; return s ? `min ${s.min} · max ${s.max}` : ''; }
+
 function renderKpis(k) {
   const cards = [
     { label: 'Avaliações', val: fmtN(k.avaliacoes) },
-    { label: 'Compreensão Voz', val: pct(k.pct_compreensao_voz) },
-    { label: 'Resolução Voz', val: pct(k.pct_resolucao_voz) },
-    { label: 'Confirmação Voz', val: pct(k.pct_confirmacao_voz) },
+    { label: 'Compreensão Voz', val: fmtAvg(k.avg_compreensao_voz), sub: scaleSub('compreensao_voz') },
+    { label: 'Resolução Voz', val: fmtAvg(k.avg_resolucao_voz), sub: scaleSub('resolucao_voz') },
+    { label: 'Confirmação Voz', val: fmtAvg(k.avg_confirmacao_voz), sub: scaleSub('confirmacao_voz') },
     { label: '%Score Total Voz', val: pct(k.pct_total_voz) },
-    { label: 'Compreensão Comentários', val: pct(k.pct_compreensao_coment) },
-    { label: 'Resolução Comentários', val: pct(k.pct_resolucao_coment) },
-    { label: 'Confirmação Comentários', val: pct(k.pct_confirmacao_coment) },
+    { label: 'Compreensão Comentários', val: fmtAvg(k.avg_compreensao_coment), sub: scaleSub('compreensao_coment') },
+    { label: 'Resolução Comentários', val: fmtAvg(k.avg_resolucao_coment), sub: scaleSub('resolucao_coment') },
+    { label: 'Confirmação Comentários', val: fmtAvg(k.avg_confirmacao_coment), sub: scaleSub('confirmacao_coment') },
     { label: '%Score Total Comentários', val: pct(k.pct_total_coment) },
     { label: '%Score Total', val: pct(k.pct_total_geral) }
   ];
   document.getElementById('kpi-row').innerHTML = cards.map(c =>
-    `<div class="kpi"><div class="kpi-val">${c.val}</div><div class="kpi-label">${c.label}</div></div>`
+    `<div class="kpi"><div class="kpi-val">${c.val}</div><div class="kpi-label">${c.label}</div>${c.sub ? `<div class="kpi-sub">${c.sub}</div>` : ''}</div>`
   ).join('');
 }
 
@@ -833,10 +847,8 @@ const MES_NOMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set'
 // pelo total do dia) — senão um dia com muita Voz e pouco Comentários distorceria a média de
 // Comentários daquele grupo, e vice-versa.
 const SERIE_PCT_METRICS = {
-  pct_compreensao_coment: 'n_comentarios', pct_resolucao_coment: 'n_comentarios',
-  pct_confirmacao_coment: 'n_comentarios', pct_total_coment: 'n_comentarios',
-  pct_compreensao_voz: 'n_voz', pct_resolucao_voz: 'n_voz',
-  pct_confirmacao_voz: 'n_voz', pct_total_voz: 'n_voz',
+  pct_total_coment: 'n_comentarios',
+  pct_total_voz: 'n_voz',
   pct_total_geral: 'avaliacoes'
 };
 
@@ -934,9 +946,6 @@ function buildUnifiedChart() {
 
   const suf = isVoz ? 'voz' : 'coment';
   const datasets = [
-    { type: 'bar', label: '%Score Compreensão', data: serie.map(r => r[`pct_compreensao_${suf}`]), backgroundColor: '#7dd3fc', order: 2, datalabels: barDatalabels },
-    { type: 'bar', label: '%Score Resolução', data: serie.map(r => r[`pct_resolucao_${suf}`]), backgroundColor: '#86efac', order: 2, datalabels: barDatalabels },
-    { type: 'bar', label: '%Score Confirmação', data: serie.map(r => r[`pct_confirmacao_${suf}`]), backgroundColor: '#a78bfa', order: 2, datalabels: barDatalabels },
     { type: 'bar', label: '%Score Total', data: serie.map(r => r[`pct_total_${suf}`]), backgroundColor: '#1e40af', order: 2, datalabels: barDatalabels },
     { type: 'line', label: 'Avaliações', data: serie.map(r => r.avaliacoes), borderColor: '#18181b', backgroundColor: '#18181b', borderWidth: 1, pointRadius: 2, pointHoverRadius: 3, yAxisID: 'y1', order: 1, tension: .3, datalabels: { display: false } }
   ];
@@ -979,13 +988,13 @@ function renderColaboradores(rows) {
     <tr>
       <td>${r.nome || '—'}</td>
       <td>${fmtN(r.avaliacoes)}</td>
-      <td>${pct(r.pct_compreensao_coment)}</td>
-      <td>${pct(r.pct_resolucao_coment)}</td>
-      <td>${pct(r.pct_confirmacao_coment)}</td>
+      <td>${fmtAvg(r.avg_compreensao_coment)}</td>
+      <td>${fmtAvg(r.avg_resolucao_coment)}</td>
+      <td>${fmtAvg(r.avg_confirmacao_coment)}</td>
       <td>${pct(r.pct_total_coment)}</td>
-      <td>${pct(r.pct_compreensao_voz)}</td>
-      <td>${pct(r.pct_resolucao_voz)}</td>
-      <td>${pct(r.pct_confirmacao_voz)}</td>
+      <td>${fmtAvg(r.avg_compreensao_voz)}</td>
+      <td>${fmtAvg(r.avg_resolucao_voz)}</td>
+      <td>${fmtAvg(r.avg_confirmacao_voz)}</td>
       <td>${pct(r.pct_total_voz)}</td>
       <td><strong>${pct(r.pct_total_geral)}</strong></td>
     </tr>
