@@ -393,7 +393,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     </div>
     <div class="filter-group filter-sla">
       <label>Meta NS (Erlang)</label>
-      <input type="number" id="erlang-meta-ns" value="80" min="1" max="99" title="Meta de nível de serviço usada no cálculo de Erlang C (Agentes Necessários × Dimensionados)" onchange="window.renderErlangChart && window.renderErlangChart()">
+      <input type="number" id="erlang-meta-ns" value="80" min="1" max="99" title="Meta de nível de serviço usada no cálculo de Erlang C (Agentes Necessários × Dimensionados)" onchange="window.renderErlangChart && window.renderErlangChart(); window.renderErlangMatrix && window.renderErlangMatrix()">
     </div>
     <input type="hidden" id="f-sla" value="20">
     <button class="btn-filter" id="btn-filtrar">Filtrar</button>
@@ -1414,7 +1414,7 @@ function buildDashboard(data, sla) {
     </div>
 
     <div class="charts-row">
-      <div class="chart-card full">
+      <div class="chart-card">
         <div class="card-header">
           <div>
             <div class="card-title">Agentes Necessários × Agentes Dimensionados</div>
@@ -1429,6 +1429,22 @@ function buildDashboard(data, sla) {
         </div>
         <div class="card-sub" id="erlang-note" style="display:none;margin:-4px 0 10px;color:var(--warn)">Contagem de agentes por Data/Hora ainda não disponível no backend — exibindo apenas o Necessário (Erlang C). Para habilitar a comparação com o Dimensionado, é preciso expor a contagem de colaboradores distintos (filtrando ruído como "Agentes indisponíveis" e números de telefone) na action <code>main_data</code> do Worker.</div>
         <div class="chart-body"><canvas id="chart-erlang"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Agentes Necessários por Dimensão</div>
+            <div class="card-sub">Erlang C · total de agentes necessários por hora · SLA de ${sla}s · Meta NS definida no filtro do topo</div>
+          </div>
+          <div class="dim-group" id="erlang-mx-dim-group">
+            <button class="time-toggle active" id="erlang-mx-dim-data"   onclick="setErlangMatrixDim('data')">Data</button>
+            <button class="time-toggle" id="erlang-mx-dim-mes"          onclick="setErlangMatrixDim('mes')">Mês</button>
+            <button class="time-toggle" id="erlang-mx-dim-dow"          onclick="setErlangMatrixDim('dow')">Dia Sem.</button>
+            <button class="time-toggle" id="erlang-mx-dim-equipe"       onclick="setErlangMatrixDim('equipe')">Equipe</button>
+            <button class="time-toggle" id="erlang-mx-dim-fila"         onclick="setErlangMatrixDim('fila')">Fila</button>
+          </div>
+        </div>
+        <div class="chart-body-scroll" style="overflow-x:auto;overflow-y:auto;max-height:480px"><div class="heatmap-wrap" id="heatmap-erlang-mx"></div></div>
       </div>
     </div>
 
@@ -1528,6 +1544,7 @@ function buildDashboard(data, sla) {
 
   // ── Agentes Necessários × Agentes Dimensionados (Erlang C) ──
   if (window.renderErlangChart) window.renderErlangChart();
+  if (window.renderErlangMatrix) window.renderErlangMatrix();
 
   const ds = document.getElementById('f-date-start').value;
   const de = document.getElementById('f-date-end').value;
@@ -1963,7 +1980,7 @@ function buildDashboard(data, sla) {
       necessarios.push(req);
       if (b.hasAgentes) {
         anyAgentes = true;
-        const dimN = b.slots > 0 ? +(b.agentesSum / b.slots).toFixed(1) : 0;
+        const dimN = b.slots > 0 ? Math.round(b.agentesSum / b.slots) : 0;
         dimensionados.push(dimN);
         aderencia.push(req > 0 ? +(dimN / req * 100).toFixed(1) : (dimN > 0 ? 100 : 0));
       } else {
@@ -2038,13 +2055,140 @@ function buildDashboard(data, sla) {
     }
     if (!hasAgentes) {
       kpiVal.textContent = '—';
-      kpiSub.textContent = `Necessário médio: ${(sumNec/slotsComVolume).toFixed(1)} agentes/hora · Dimensionado aguardando dado no backend`;
+      kpiSub.textContent = `Necessário médio: ${Math.round(sumNec/slotsComVolume)} agentes/hora · Dimensionado aguardando dado no backend`;
       return;
     }
     const pct = sumNec > 0 ? (sumDim / sumNec * 100) : (sumDim > 0 ? 100 : 0);
+    const avgNecHora = Math.round(sumNec / slotsComVolume);
     kpiVal.textContent = pct.toFixed(0) + '%';
-    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dim./${fmtN(sumNec)} nec.`;
+    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dim./${fmtN(sumNec)} nec. (agentes-hora no período · méd. ${avgNecHora}/hora)`;
   }
+
+  // ── Matriz "Agentes Necessários por Dimensão" (Erlang C) ──
+  // Linhas: Data / Mês / Dia Sem. / Equipe / Fila (sem Colaborador). Colunas: Hora (fixo, igual
+  // ao padrão dos heatmaps de Volume/CSAT por Dia × Hora). Célula: nº de agentes necessários
+  // (Erlang C) pra aquele bucket+hora, com a Meta NS do filtro do topo.
+  // Data/Mês/Dia Sem. vêm direto de rawData (já carregado, respeitando os filtros do topo) —
+  // sem chamada nova ao Worker. Equipe/Fila precisam de uma quebra por fila/equipe que o
+  // main_data não tem, então usam a action heatmap_field_hour (mesma dos heatmaps de Volume),
+  // que ganhou os campos tma/dias pra dar pra calcular Erlang por Fila × Hora.
+  let erlangMxDim = 'data';
+
+  window.setErlangMatrixDim = function(dim) {
+    erlangMxDim = dim;
+    ['data','mes','dow','equipe','fila'].forEach(d => {
+      const btn = document.getElementById('erlang-mx-dim-'+d);
+      if (!btn) return;
+      const active = d === dim;
+      btn.style.background = active ? 'var(--surface)' : 'transparent';
+      btn.style.color = active ? 'var(--text)' : 'var(--text-2)';
+      btn.style.boxShadow = active ? '0 1px 2px rgba(0,0,0,.06)' : 'none';
+      if (active) btn.classList.add('active'); else btn.classList.remove('active');
+    });
+    window.renderErlangMatrix();
+  };
+
+  window.renderErlangMatrix = function() {
+    const el = document.getElementById('heatmap-erlang-mx');
+    if (!el) return;
+    const metaInput = document.getElementById('erlang-meta-ns');
+    const metaNS = metaInput ? Math.min(99, Math.max(1, parseFloat(metaInput.value) || 80)) / 100 : 0.8;
+    const dim = erlangMxDim;
+    const hourHeaders = allHours.map(h=>'<th>'+h+'h</th>').join('');
+    const reqFromCell = (calls, aht) => erlangRequiredAgents(calls, aht, erlangTargetSec, metaNS);
+
+    function renderTable(rowsData) {
+      let maxV = 1;
+      rowsData.forEach(({getVal}) => allHours.forEach(h => { maxV = Math.max(maxV, getVal(h)||0); }));
+      let html = '<table class="heatmap-table"><thead><tr><th></th>'+hourHeaders+'</tr></thead><tbody>';
+      rowsData.forEach(({label, getVal}) => {
+        html += '<tr><td class="row-label">'+label+'</td>';
+        allHours.forEach(h => {
+          const v = getVal(h) || 0;
+          const bg = v>0 ? heatColor(v, maxV, 'vol') : '#f4f4f5';
+          const tc = maxV>0 && v/maxV>0.5 ? '#fff' : '#71717a';
+          html += '<td style="background:'+bg+';color:'+tc+'">'+(v||'')+'</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+      let maior = 0;
+      el.querySelectorAll('.row-label').forEach(lbl => { maior = Math.max(maior, lbl.scrollWidth); });
+      el.querySelectorAll('.row-label').forEach(lbl => { lbl.style.width = `${maior+16}px`; lbl.style.minWidth = `${maior+16}px`; });
+    }
+
+    if (dim === 'data') {
+      const byDataHora = {};
+      rawData.forEach(r => {
+        const h = r.Hora != null ? String(r.Hora).padStart(2,'0') : '00';
+        byDataHora[r.Data+'_'+h] = { lig: r.Total_Ligacoes||0, tma: r.TMA_medio||0 };
+      });
+      renderTable(showDates.map(d => ({
+        label: d,
+        getVal: h => {
+          const c = byDataHora[d+'_'+h];
+          return c ? reqFromCell(c.lig, c.tma) : 0;
+        }
+      })));
+    } else if (dim === 'mes' || dim === 'dow') {
+      // Mesma metodologia do gráfico "Agentes Necessários × Dimensionados": média de calls e de
+      // TMA no bucket (agora bucket = mês/dia da semana + hora), um único Erlang por célula.
+      const agg = {};
+      rawData.forEach(r => {
+        const h = r.Hora != null ? String(r.Hora).padStart(2,'0') : '00';
+        const bucket = dim === 'mes' ? getMonthLabel(r.Data) : DOW_ORDER[getDOW(r.Data)];
+        const k = bucket+'_'+h;
+        if (!agg[k]) agg[k] = {calls:0, tmaSum:0, tmaW:0, slots:0};
+        const b = agg[k];
+        b.calls += r.Total_Ligacoes||0;
+        b.tmaSum += (r.TMA_medio||0)*(r.Atendidas||0);
+        b.tmaW += r.Atendidas||0;
+        b.slots += 1;
+      });
+      const buckets = dim === 'mes'
+        ? [...new Set(dates.map(d=>getMonthLabel(d)))]
+        : DOW_ORDER.filter(dw => allHours.some(h => agg[dw+'_'+h]));
+      renderTable(buckets.map(bk => ({
+        label: bk,
+        getVal: h => {
+          const b = agg[bk+'_'+h];
+          if (!b || !b.slots) return 0;
+          const callsPerHour = b.calls/b.slots;
+          const ahtSec = b.tmaW>0 ? b.tmaSum/b.tmaW : 0;
+          return reqFromCell(callsPerHour, ahtSec);
+        }
+      })));
+    } else if (dim === 'equipe' || dim === 'fila') {
+      el.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
+      const dsv = document.getElementById('f-date-start').value;
+      const dev = document.getElementById('f-date-end').value;
+      callWorker('heatmap_field_hour', {
+        dateStart: dsv, dateEnd: dev, dim,
+        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab], telefone: [...msSel.telefone]
+      }).then(rows2 => {
+        const byGrpHour = {};
+        const grpTotals = {};
+        rows2.forEach(r => {
+          const g = r.grp||'—';
+          const h = r.Hora!=null ? String(Math.floor(r.Hora)).padStart(2,'0') : '00';
+          byGrpHour[g+'___'+h] = { lig: r.lig||0, tma: r.tma||0, dias: r.dias||0 };
+          grpTotals[g] = (grpTotals[g]||0)+(r.lig||0);
+        });
+        const grps = Object.keys(grpTotals).sort((a,b)=>grpTotals[b]-grpTotals[a]).slice(0,30);
+        const fmtGrp = g => dim==='fila' ? (g.includes('-')?g.split('-').slice(1).join('-'):g) : g;
+        renderTable(grps.map(g => ({
+          label: fmtGrp(g),
+          getVal: h => {
+            const c = byGrpHour[g+'___'+h];
+            if (!c || !c.dias) return 0;
+            const callsPerHour = c.lig/c.dias;
+            return reqFromCell(callsPerHour, c.tma);
+          }
+        })));
+      }).catch(e => { el.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
+    }
+  };
 
   function setTfBtnActive(chart, dim) {
     ['data','mes','dow','hora','equipe','fila','colaborador'].forEach(d => {
