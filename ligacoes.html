@@ -85,8 +85,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .main{padding:20px 24px;display:flex;flex-direction:column;gap:14px;max-width:1600px;margin:0 auto;width:100%}
 
 /* ── KPI CARDS ── */
-.kpi-row{display:grid;grid-template-columns:repeat(9,1fr);gap:12px}
-@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(4,1fr)}}
+.kpi-row{display:grid;grid-template-columns:repeat(10,1fr);gap:12px}
+@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(5,1fr)}}
 @media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border-radius:12px;padding:16px 18px;border:1px solid var(--border);transition:border-color .15s ease}
 .kpi:hover{border-color:var(--text-3)}
@@ -1257,6 +1257,11 @@ function buildDashboard(data, sla) {
         <div class="kpi-label">Rechamadas</div>
         <div class="kpi-sub" id="kpi-rechamadas-sub">Carregando...</div>
       </div>
+      <div class="kpi" id="kpi-erlang" title="Mede cobertura de headcount (dimensionado ÷ necessário pelo modelo Erlang C por hora) — não é o mesmo cálculo do Nível de Serviço real, que é % de ligações atendidas dentro do SLA. Os dois podem divergir bastante quando o TMA é alto em relação ao SLA.">
+        <div class="kpi-val" id="erlang-kpi-val">—</div>
+        <div class="kpi-label">Aderência Erlang C</div>
+        <div class="kpi-sub" id="erlang-kpi-sub">Carregando...</div>
+      </div>
     </div>
 
     <div class="charts-row">
@@ -1400,13 +1405,6 @@ function buildDashboard(data, sla) {
             <button class="tf-btn" id="tf-erlang-mes" onclick="setErlangDim('mes')">Mês</button>
             <button class="tf-btn" id="tf-erlang-dow" onclick="setErlangDim('dow')">Dia Sem.</button>
             <button class="tf-btn" id="tf-erlang-hora" onclick="setErlangDim('hora')">Hora</button>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:12px">
-          <div class="kpi" style="flex:0 0 auto;min-width:220px;max-width:280px">
-            <div class="kpi-val" id="erlang-kpi-val">—</div>
-            <div class="kpi-label">Aderência Erlang C</div>
-            <div class="kpi-sub" id="erlang-kpi-sub">Carregando...</div>
           </div>
         </div>
         <div class="card-sub" id="erlang-note" style="display:none;margin:-4px 0 10px;color:var(--warn)">Contagem de agentes por Data/Hora ainda não disponível no backend — exibindo apenas o Necessário (Erlang C). Para habilitar a comparação com o Dimensionado, é preciso expor a contagem de colaboradores distintos (filtrando ruído como "Agentes indisponíveis" e números de telefone) na action <code>main_data</code> do Worker.</div>
