@@ -802,7 +802,7 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
           <thead><tr>
             <th>Data</th><th>Ticket</th><th>Nome</th><th>Canal</th><th>Tipo</th>
             <th>Compreensão</th><th>Resolução</th><th>Confirmação</th><th>Total</th>
-            <th>Subtópicos Atendidos</th><th>Subtópicos Violados</th><th>Pontos Positivos</th><th>Sugestões de Melhoria</th><th>Justificativa (texto livre)</th>
+            <th>Subtópicos Atendidos</th><th>Subtópicos Violados</th><th>Pontos Positivos</th><th>Sugestões de Melhoria</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -999,12 +999,18 @@ function chartOptions(serie, pctData) {
   const pctVals = pctData.filter(v => v !== null && v !== undefined && !isNaN(v));
   const minPct = pctVals.length ? Math.min(...pctVals) : 0;
   const yMax = maxCount / BAR_FRACTION;
-  const y1Max = 100;
+  // Teto um pouco acima de 100 (não 100 cravado) — dá uma folga de alguns pixels acima do maior
+  // ponto real (que nunca passa de 100%), então o rótulo dele não fica colado/cortado na borda
+  // superior do canvas mesmo num dia de %Score muito alto.
+  const y1Max = 105;
   const y1Min = y1Max - (y1Max - minPct) / LINE_FRACTION;
 
   return {
     responsive: true, maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
+    // Espaço extra acima da área do gráfico — sem isso, o rótulo do ponto mais alto da linha
+    // (clamp:true no datalabel) fica espremido contra a borda do canvas e sai cortado.
+    layout: { padding: { top: 22 } },
     plugins: {
       legend: {
         position: 'bottom',
@@ -1283,13 +1289,10 @@ function listCell(items) {
 
 function renderDetalheRows(rows) {
   const tbody = document.querySelector('#tbl-detalhe tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--text-3)">Sem dados para os filtros aplicados</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-3)">Sem dados para os filtros aplicados</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
     const canalClass = r.canal_exibicao === 'voz' ? 'voz' : r.canal_exibicao === 'agente' ? 'agente' : r.canal_exibicao === 'mdias' ? 'mdias' : '';
     const parsed = parseJustificativa(r.justificativa);
-    const freeText = !parsed && r.justificativa
-      ? `<div class="just-cell" title="${escapeHtml(r.justificativa)}">${escapeHtml(r.justificativa)}</div>`
-      : '—';
     return `
     <tr>
       <td>${r.data || '—'}</td>
@@ -1305,7 +1308,6 @@ function renderDetalheRows(rows) {
       <td class="col-justificativa">${parsed ? listCell(parsed.violados) : '—'}</td>
       <td class="col-justificativa">${parsed ? listCell(parsed.positivos) : '—'}</td>
       <td class="col-justificativa">${parsed ? listCell(parsed.melhoria) : '—'}</td>
-      <td class="col-justificativa">${freeText}</td>
     </tr>
   `;
   }).join('');
@@ -1328,12 +1330,11 @@ function exportDetalheExcel() {
       'Subtópicos Atendidos': parsed ? parsed.atendidos.join('; ') : '',
       'Subtópicos Violados': parsed ? parsed.violados.join('; ') : '',
       'Pontos Positivos': parsed ? parsed.positivos.join('; ') : '',
-      'Sugestões de Melhoria': parsed ? parsed.melhoria.join('; ') : '',
-      'Justificativa (texto livre)': !parsed ? (r.justificativa || '') : ''
+      'Sugestões de Melhoria': parsed ? parsed.melhoria.join('; ') : ''
     };
   });
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 8 }, { wch: 40 }, { wch: 40 }, { wch: 40 }, { wch: 40 }, { wch: 40 }];
+  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 8 }, { wch: 40 }, { wch: 40 }, { wch: 40 }, { wch: 40 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Avaliações');
   const stamp = new Date().toISOString().slice(0, 10);
