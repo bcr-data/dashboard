@@ -1451,12 +1451,13 @@ function buildDashboard(data, sla) {
   charts.vol = new Chart(document.getElementById('chart-volume'), {
     type:'bar',
     data:{ labels:dates, datasets:[
-      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2},
-      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2},
-      {label:'%NS',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#64748b',backgroundColor:'transparent',tension:.3,pointRadius:2,pointBackgroundColor:'#64748b',borderWidth:1.5,yAxisID:'y2'},
+      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2,order:1},
+      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2,order:1},
+      {label:'%NS',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#64748b',backgroundColor:'transparent',tension:.3,pointRadius:2,pointBackgroundColor:'#64748b',borderWidth:1.5,yAxisID:'y2',order:0},
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:22}},
       plugins:{
         datalabels:{
           display:true,
@@ -1476,7 +1477,7 @@ function buildDashboard(data, sla) {
       scales:{
         x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
         y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-        y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,max:100,position:'right'}
+        y2:{display:false,min:0,max:100,position:'right'}
       }
     }
   });
@@ -1596,12 +1597,13 @@ function buildDashboard(data, sla) {
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
-        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
-        {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle',order:1},
+        {label:'Respondidas',data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle',order:1},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2',order:0},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
+        layout:{padding:{top:22}},
         plugins:{
           datalabels:{
             display:true,
@@ -1621,7 +1623,7 @@ function buildDashboard(data, sla) {
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
           y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,max:100,position:'right'}
+          y2:{display:false,min:0,max:100,position:'right'}
         }
       }
     });
@@ -1950,17 +1952,18 @@ function buildDashboard(data, sla) {
 
     destroyChart('erlang');
     const datasets = [
-      {label:'Necessários (Erlang C)', data:necessarios, backgroundColor:'rgba(33,81,229,.60)', borderRadius:3, borderSkipped:false, yAxisID:'y'}
+      {label:'Necessários (Erlang C)', data:necessarios, backgroundColor:'rgba(33,81,229,.60)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1}
     ];
     if (anyAgentes) {
-      datasets.push({label:'Dimensionados', data:dimensionados, backgroundColor:'rgba(22,163,74,.55)', borderRadius:3, borderSkipped:false, yAxisID:'y'});
-      datasets.push({label:'Aderência %', type:'line', data:aderencia, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, pointBackgroundColor:'#f59e0b', borderWidth:1.5, yAxisID:'y2'});
+      datasets.push({label:'Dimensionados', data:dimensionados, backgroundColor:'rgba(22,163,74,.55)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1});
+      datasets.push({label:'Aderência %', type:'line', data:aderencia, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, pointBackgroundColor:'#f59e0b', borderWidth:1.5, yAxisID:'y2', order:0});
     }
     charts.erlang = new Chart(canvas, {
       type:'bar',
       data:{labels, datasets},
       options:{
         responsive:true, maintainAspectRatio:false,
+        layout:{padding:{top:22}},
         plugins:{
           datalabels:{
             display:true,
@@ -1978,7 +1981,7 @@ function buildDashboard(data, sla) {
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:14}},
           y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,position:'right',display:anyAgentes}
+          y2:{display:false,min:0,grace:'15%',position:'right'}
         }
       }
     });
@@ -2275,12 +2278,13 @@ if (el) {
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
-        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle'},
-        {label:'Respondidas', data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y'},
-        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2'},
+        {label:'Encaminhadas',data:enc,backgroundColor:'rgba(180,180,190,.45)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointRadius:2,pointStyle:'circle',order:1},
+        {label:'Respondidas', data:resp,backgroundColor:'rgba(59,130,246,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',order:1},
+        {label:'%CSAT',type:'line',data:pct,borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,yAxisID:'y2',order:0},
       ]},
       options:{
         responsive:true, maintainAspectRatio:false,
+        layout:{padding:{top:22}},
         plugins:{
           datalabels:{
             display:true,
@@ -2295,7 +2299,7 @@ if (el) {
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:15}},
           y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,max:100,position:'right'}
+          y2:{display:false,min:0,max:100,position:'right'}
         }
       }
     });
