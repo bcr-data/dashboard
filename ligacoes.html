@@ -739,6 +739,26 @@ function fmtPct(v, total) {
   return (v / total * 100).toFixed(1).replace('.', ',') + '%';
 }
 function fmtN(n) { return Number(n || 0).toLocaleString('pt-BR'); }
+// Calcula uma escala "y2" comprimida pra linha percentual sempre ficar numa faixa alta do
+// gráfico (acima das barras), independente da escala real dos valores (0-100% ou >100%, como
+// na Aderência Erlang). Também devolve um teto pro eixo das barras (yMax) que empurra as barras
+// pra baixo, liberando essa faixa de cima. FRAC_MIN/FRAC_MAX controlam onde a linha fica: a
+// faixa de dados dela é mapeada entre 72% e 94% da altura do gráfico.
+function computeTopBandScale(lineValues, barValues) {
+  const FRAC_MIN = 0.72, FRAC_MAX = 0.94;
+  const lv = (lineValues || []).filter(v => v != null && isFinite(v));
+  const bv = (barValues || []).filter(v => v != null && isFinite(v));
+  const barMax = bv.length ? Math.max(...bv, 0) : 0;
+  const dMin = lv.length ? Math.min(...lv) : 0;
+  const dMax = lv.length ? Math.max(...lv) : 100;
+  let range = dMax - dMin;
+  if (range < 1e-6) range = Math.max(1, Math.abs(dMin) * 0.1, 5);
+  const span = range / (FRAC_MAX - FRAC_MIN);
+  const y2min = dMin - FRAC_MIN * span;
+  const y2max = y2min + span;
+  const yMax = barMax > 0 ? barMax / 0.68 : undefined;
+  return { y2min, y2max, yMax };
+}
 function parseDate(d) {
   if (!d) return '';
   const [dd, mm, yy] = d.split('-');
@@ -1448,12 +1468,16 @@ function buildDashboard(data, sla) {
   const chartDefaults = { responsive:true, maintainAspectRatio:false, plugins:{datalabels:{display:false},legend:{position:'bottom'}}, scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'}}} };
   // ── VOLUME + NS% (mixed bar + line) ──
   destroyChart('vol');
+  const volAtendArr = dates.map(d=>byDate[d].atend);
+  const volAbandArr = dates.map(d=>byDate[d].aband);
+  const volNsArr = dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0);
+  const volBand = computeTopBandScale(volNsArr, [...volAtendArr, ...volAbandArr]);
   charts.vol = new Chart(document.getElementById('chart-volume'), {
     type:'bar',
     data:{ labels:dates, datasets:[
-      {label:'Atendidas',data:dates.map(d=>byDate[d].atend),backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2,order:1},
-      {label:'Abandonadas',data:dates.map(d=>byDate[d].aband),backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2,order:1},
-      {label:'%NS',type:'line',data:dates.map(d=>byDate[d].lig>0?+(byDate[d].sla/byDate[d].lig*100).toFixed(1):0),borderColor:'#64748b',backgroundColor:'transparent',tension:.3,pointRadius:2,pointBackgroundColor:'#64748b',borderWidth:1.5,yAxisID:'y2',order:0},
+      {label:'Atendidas',data:volAtendArr,backgroundColor:'rgba(22,163,74,.60)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2,order:1},
+      {label:'Abandonadas',data:volAbandArr,backgroundColor:'rgba(220,38,38,.55)',borderRadius:3,borderSkipped:false,yAxisID:'y',pointStyle:'circle',pointRadius:2,order:1},
+      {label:'%NS',type:'line',data:volNsArr,borderColor:'#64748b',backgroundColor:'transparent',tension:.3,pointRadius:2,pointBackgroundColor:'#64748b',borderWidth:1.5,yAxisID:'y2',order:0},
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -1476,8 +1500,8 @@ function buildDashboard(data, sla) {
       },
       scales:{
         x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
-        y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-        y2:{display:false,min:0,max:100,position:'right'}
+        y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left',max:volBand.yMax},
+        y2:{display:false,min:volBand.y2min,max:volBand.y2max,position:'right'}
       }
     }
   });
@@ -1594,6 +1618,7 @@ function buildDashboard(data, sla) {
       const r = agg[l]; if (!r || !r.resp) return 0;
       return +(r.sat/r.resp*100).toFixed(1);
     });
+    const csatBand = computeTopBandScale(pct, [...enc, ...resp]);
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
       data:{ labels, datasets:[
@@ -1622,8 +1647,8 @@ function buildDashboard(data, sla) {
         },
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:10}},
-          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{display:false,min:0,max:100,position:'right'}
+          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left',max:csatBand.yMax},
+          y2:{display:false,min:csatBand.y2min,max:csatBand.y2max,position:'right'}
         }
       }
     });
@@ -1958,6 +1983,7 @@ function buildDashboard(data, sla) {
       datasets.push({label:'Dimensionados', data:dimensionados, backgroundColor:'rgba(22,163,74,.55)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1});
       datasets.push({label:'Aderência %', type:'line', data:aderencia, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, pointBackgroundColor:'#f59e0b', borderWidth:1.5, yAxisID:'y2', order:0});
     }
+    const erlangBand = computeTopBandScale(aderencia, anyAgentes ? [...necessarios, ...dimensionados] : necessarios);
     charts.erlang = new Chart(canvas, {
       type:'bar',
       data:{labels, datasets},
@@ -1980,8 +2006,8 @@ function buildDashboard(data, sla) {
         },
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:14}},
-          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{display:false,min:0,grace:'15%',position:'right'}
+          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left',max:erlangBand.yMax},
+          y2:{display:false,min:erlangBand.y2min,max:anyAgentes?erlangBand.y2max:undefined,position:'right'}
         }
       }
     });
@@ -2274,6 +2300,7 @@ if (el) {
     const enc    = entries.map(([,v])=>v.enc);
     const resp   = entries.map(([,v])=>v.resp);
     const pct    = entries.map(([,v])=>v.resp>0?+(v.sat/v.resp*100).toFixed(1):0);
+    const csatGroupedBand = computeTopBandScale(pct, [...enc, ...resp]);
     destroyChart('csat');
     charts.csat = new Chart(document.getElementById('chart-csat'), {
       type:'bar',
@@ -2298,8 +2325,8 @@ if (el) {
         },
         scales:{
           x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:15}},
-          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
-          y2:{display:false,min:0,max:100,position:'right'}
+          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left',max:csatGroupedBand.yMax},
+          y2:{display:false,min:csatGroupedBand.y2min,max:csatGroupedBand.y2max,position:'right'}
         }
       }
     });
