@@ -391,6 +391,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <div class="ms-footer"><span class="ms-footer-count" id="ms-count-telefone">0 selecionados</span><button class="ms-footer-clear" onclick="msClear('telefone')">Limpar</button></div>
       </div>
     </div>
+    <div class="filter-group filter-sla">
+      <label>Meta NS (Erlang)</label>
+      <input type="number" id="erlang-meta-ns" value="80" min="1" max="99" title="Meta de nível de serviço usada no cálculo de Erlang C (Agentes Necessários × Dimensionados)" onchange="window.renderErlangChart && window.renderErlangChart()">
+    </div>
     <input type="hidden" id="f-sla" value="20">
     <button class="btn-filter" id="btn-filtrar">Filtrar</button>
     <button class="btn-reset" id="btn-limpar">Limpar</button>
@@ -681,6 +685,7 @@ window.submitForgotPassword = submitForgotPassword;
 
 let charts = {};
 let accessToken = '';
+let erlangTargetSec = 20; // meta de tempo de resposta (SLA) usada pelo Erlang C — espelha o `sla` de buildDashboard
 // Mantem accessToken sempre em dia com o Supabase, inclusive quando o SDK
 // renova o token silenciosamente em segundo plano (evento TOKEN_REFRESHED).
 // Sem isso, o token guardado aqui podia expirar com a aba aberta e o Worker
@@ -1189,6 +1194,7 @@ function buildDashboard(data, sla) {
 
   // Group by date
   rawData = data;
+  erlangTargetSec = sla;
   byDate = {};
   data.forEach(r => {
     if (!byDate[r.Data]) byDate[r.Data] = {lig:0,atend:0,aband:0,sla:0,tmaSum:0,tmaW:0,tmeSum:0,tmeW:0};
@@ -1382,6 +1388,32 @@ function buildDashboard(data, sla) {
       </div>
     </div>
 
+    <div class="charts-row">
+      <div class="chart-card full">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Agentes Necessários × Agentes Dimensionados</div>
+            <div class="card-sub">Erlang C — a partir do volume e TMA do período · SLA de ${sla}s · Meta NS definida no filtro do topo</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
+            <button class="tf-btn active" id="tf-erlang-data" onclick="setErlangDim('data')">Data</button>
+            <button class="tf-btn" id="tf-erlang-mes" onclick="setErlangDim('mes')">Mês</button>
+            <button class="tf-btn" id="tf-erlang-dow" onclick="setErlangDim('dow')">Dia Sem.</button>
+            <button class="tf-btn" id="tf-erlang-hora" onclick="setErlangDim('hora')">Hora</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+          <div class="kpi" style="flex:0 0 auto;min-width:220px;max-width:280px">
+            <div class="kpi-val" id="erlang-kpi-val">—</div>
+            <div class="kpi-label">Aderência Erlang C</div>
+            <div class="kpi-sub" id="erlang-kpi-sub">Carregando...</div>
+          </div>
+        </div>
+        <div class="card-sub" id="erlang-note" style="display:none;margin:-4px 0 10px;color:var(--warn)">Contagem de agentes por Data/Hora ainda não disponível no backend — exibindo apenas o Necessário (Erlang C). Para habilitar a comparação com o Dimensionado, é preciso expor a contagem de colaboradores distintos (filtrando ruído como "Agentes indisponíveis" e números de telefone) na action <code>main_data</code> do Worker.</div>
+        <div class="chart-body"><canvas id="chart-erlang"></canvas></div>
+      </div>
+    </div>
+
     <div class="matrix-card">
       <div class="matrix-header">
         <div class="matrix-title">Detalhamento por Dimensão e Período</div>
@@ -1470,6 +1502,10 @@ function buildDashboard(data, sla) {
       scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,beginAtZero:true,ticks:{...chartDefaults.scales.y.ticks,callback:v=>fmtMmSs(v)}}}
     }
   });
+
+  // ── Agentes Necessários × Agentes Dimensionados (Erlang C) ──
+  if (window.renderErlangChart) window.renderErlangChart();
+
   const ds = document.getElementById('f-date-start').value;
   const de = document.getElementById('f-date-end').value;
   const equipe   = [...msSel.equipe];
@@ -1760,7 +1796,7 @@ function buildDashboard(data, sla) {
   }
 
   // ── DIMENSION AGGREGATION ──
-  const chartDims = {vol:'data', sla:'data', tma:'data', csat:'data'};
+  const chartDims = {vol:'data', sla:'data', tma:'data', csat:'data', erlang:'data'};
   const DOW_ORDER = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
   function aggregateByDim(dim) {
@@ -1810,6 +1846,178 @@ function buildDashboard(data, sla) {
       return {labels: allHours.filter(h=>agg[h+'h'].lig>0).map(h=>h+'h'), agg};
     }
     return {labels: dates, agg};
+  }
+
+  // ── ERLANG C: Agentes Necessários × Agentes Dimensionados ──────────────────
+  // A = tráfego oferecido em Erlangs = (chamadas/hora) × (TMA em horas).
+  // erlangB usa a recursão numericamente estável (evita estourar Aⁿ/N! para N grande).
+  function erlangB(n, A) {
+    let b = 1;
+    for (let i = 1; i <= n; i++) b = (A * b) / (i + A * b);
+    return b;
+  }
+  function erlangC(n, A) {
+    if (n <= A) return 1; // sistema saturado (utilização ≥ 100%) — fila cresce sem limite
+    const b = erlangB(n, A);
+    return b / (1 - (A / n) * (1 - b));
+  }
+  // Nível de serviço: % de chamadas atendidas dentro de targetSec, com N agentes.
+  function erlangServiceLevel(n, A, ahtSec, targetSec) {
+    if (n <= A) return 0;
+    const c = erlangC(n, A);
+    return 1 - c * Math.exp(-(n - A) * (targetSec / ahtSec));
+  }
+  // Menor N que atinge a meta de nível de serviço (ex.: 80% em 20s).
+  function erlangRequiredAgents(callsPerHour, ahtSec, targetSec, targetSL, maxAgents) {
+    maxAgents = maxAgents || 300;
+    if (!callsPerHour || callsPerHour <= 0 || !ahtSec) return 0;
+    const A = callsPerHour * (ahtSec / 3600);
+    let n = Math.max(1, Math.floor(A) + 1); // ponto de partida já acima da saturação
+    while (n < maxAgents) {
+      if (erlangServiceLevel(n, A, ahtSec, targetSec) >= targetSL) return n;
+      n++;
+    }
+    return maxAgents;
+  }
+
+  // Agrega rawData (já filtrado pelos filtros do topo, 1 linha por Data+Hora) por dimensão.
+  // "slots" = nº de combinações Data+Hora dentro do bucket — usado como divisor para chegar
+  // numa média de chamadas/hora e de agentes/hora comparável entre Data, Mês, Dia Sem. e Hora.
+  function aggregateErlangByDim(dim) {
+    const agg = {};
+    const empty = () => ({calls:0, tmaSum:0, tmaW:0, slots:0, agentesSum:0, hasAgentes:false});
+    rawData.forEach(r => {
+      const h = r.Hora != null ? String(r.Hora).padStart(2,'0') : '00';
+      let key;
+      if (dim === 'mes') key = getMonthLabel(r.Data);
+      else if (dim === 'dow') key = DOW_ORDER[getDOW(r.Data)];
+      else if (dim === 'hora') key = h + 'h';
+      else key = r.Data;
+      if (!agg[key]) agg[key] = empty();
+      const b = agg[key];
+      b.calls   += r.Total_Ligacoes || 0;
+      b.tmaSum  += (r.TMA_medio || 0) * (r.Atendidas || 0);
+      b.tmaW    += r.Atendidas || 0;
+      b.slots   += 1;
+      // r.Agentes: nº de colaboradores distintos que atenderam naquele Data+Hora — depende
+      // de a action main_data do Worker devolver esse campo (ver nota no card do dashboard).
+      if (r.Agentes != null) { b.agentesSum += r.Agentes; b.hasAgentes = true; }
+    });
+
+    let labels;
+    if (dim === 'mes') labels = [...new Set(dates.map(d => getMonthLabel(d)))];
+    else if (dim === 'dow') labels = DOW_ORDER.filter(d => agg[d]);
+    else if (dim === 'hora') labels = allHours.filter(h => agg[h+'h']).map(h => h+'h');
+    else labels = dates;
+    return {labels, agg};
+  }
+
+  window.setErlangDim = function(dim) {
+    chartDims.erlang = dim;
+    setTfBtnActive('erlang', dim);
+    window.renderErlangChart();
+  };
+
+  window.renderErlangChart = function() {
+    const canvas = document.getElementById('chart-erlang');
+    if (!canvas) return; // ainda não renderizado no DOM
+    const dim = chartDims.erlang || 'data';
+    const {labels, agg} = aggregateErlangByDim(dim);
+    const metaInput = document.getElementById('erlang-meta-ns');
+    const metaNS = metaInput ? Math.min(99, Math.max(1, parseFloat(metaInput.value) || 80)) / 100 : 0.8;
+
+    const necessarios = [];
+    const dimensionados = [];
+    const aderencia = [];
+    let anyAgentes = false;
+    labels.forEach(l => {
+      const b = agg[l] || {calls:0, tmaSum:0, tmaW:0, slots:0, agentesSum:0, hasAgentes:false};
+      const callsPerHour = b.slots > 0 ? b.calls / b.slots : 0;
+      const ahtSec = b.tmaW > 0 ? b.tmaSum / b.tmaW : 0;
+      const req = erlangRequiredAgents(callsPerHour, ahtSec, erlangTargetSec, metaNS);
+      necessarios.push(req);
+      if (b.hasAgentes) {
+        anyAgentes = true;
+        const dimN = b.slots > 0 ? +(b.agentesSum / b.slots).toFixed(1) : 0;
+        dimensionados.push(dimN);
+        aderencia.push(req > 0 ? +(dimN / req * 100).toFixed(1) : (dimN > 0 ? 100 : 0));
+      } else {
+        dimensionados.push(null);
+        aderencia.push(null);
+      }
+    });
+
+    const noteEl = document.getElementById('erlang-note');
+    if (noteEl) noteEl.style.display = anyAgentes ? 'none' : 'block';
+
+    destroyChart('erlang');
+    const datasets = [
+      {label:'Necessários (Erlang C)', data:necessarios, backgroundColor:'rgba(33,81,229,.60)', borderRadius:3, borderSkipped:false, yAxisID:'y'}
+    ];
+    if (anyAgentes) {
+      datasets.push({label:'Dimensionados', data:dimensionados, backgroundColor:'rgba(22,163,74,.55)', borderRadius:3, borderSkipped:false, yAxisID:'y'});
+      datasets.push({label:'Aderência %', type:'line', data:aderencia, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, pointBackgroundColor:'#f59e0b', borderWidth:1.5, yAxisID:'y2'});
+    }
+    charts.erlang = new Chart(canvas, {
+      type:'bar',
+      data:{labels, datasets},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          datalabels:{
+            display:true,
+            formatter:(v,ctx) => v==null ? '' : (ctx.dataset.yAxisID==='y2' ? v.toFixed(0)+'%' : Number(v).toLocaleString('pt-BR')),
+            anchor:(ctx) => ctx.dataset.yAxisID==='y2' ? 'center' : 'end',
+            align:(ctx) => ctx.dataset.yAxisID==='y2' ? 'top' : 'end',
+            font:{size:8}, color:'#71717a', clip:false
+          },
+          legend:{position:'bottom'},
+          tooltip:{callbacks:{label: ctx => {
+            if (ctx.raw == null) return ctx.dataset.label + ': —';
+            return ctx.dataset.label + ': ' + (ctx.dataset.yAxisID==='y2' ? ctx.raw+'%' : Number(ctx.raw).toLocaleString('pt-BR')+' agentes');
+          }}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:10},color:'#71717a',maxTicksLimit:14}},
+          y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a'},beginAtZero:true,position:'left'},
+          y2:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#71717a',callback:v=>v+'%'},min:0,position:'right',display:anyAgentes}
+        }
+      }
+    });
+
+    updateErlangKpi(metaNS);
+  };
+
+  // KPI agregado, independente do toggle de dimensão: soma "agentes-hora" necessários e
+  // dimensionados direto das linhas de rawData (cada linha do main_data já é 1 slot de 1 hora),
+  // e divide um pelo outro — mais robusto que uma média simples de percentuais por bucket.
+  function updateErlangKpi(metaNS) {
+    const kpiVal = document.getElementById('erlang-kpi-val');
+    const kpiSub = document.getElementById('erlang-kpi-sub');
+    if (!kpiVal) return;
+    let sumNec = 0, sumDim = 0, slotsComVolume = 0, hasAgentes = false;
+    rawData.forEach(r => {
+      const callsPerHour = r.Total_Ligacoes || 0; // cada linha já representa 1 hora
+      const ahtSec = r.TMA_medio || 0;
+      const req = erlangRequiredAgents(callsPerHour, ahtSec, erlangTargetSec, metaNS);
+      sumNec += req;
+      if (req > 0) slotsComVolume++;
+      if (r.Agentes != null) { hasAgentes = true; sumDim += r.Agentes; }
+    });
+    const metaPct = Math.round(metaNS * 100);
+    if (!slotsComVolume) {
+      kpiVal.textContent = '—';
+      kpiSub.textContent = 'Sem volume no período selecionado';
+      return;
+    }
+    if (!hasAgentes) {
+      kpiVal.textContent = '—';
+      kpiSub.textContent = `Necessário médio: ${(sumNec/slotsComVolume).toFixed(1)} agentes/hora · Dimensionado aguardando dado no backend`;
+      return;
+    }
+    const pct = sumNec > 0 ? (sumDim / sumNec * 100) : (sumDim > 0 ? 100 : 0);
+    kpiVal.textContent = pct.toFixed(0) + '%';
+    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dimensionados vs ${fmtN(sumNec)} necessários (agentes-hora) · Meta NS ${metaPct}%`;
   }
 
   function setTfBtnActive(chart, dim) {
