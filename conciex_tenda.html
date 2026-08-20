@@ -138,7 +138,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .just-cell{max-height:54px;overflow-y:auto;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;padding-right:2px}
 .btn-export{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;transition:border-color .15s ease,background .15s ease;flex-shrink:0}
 .btn-export:hover{border-color:var(--brand);color:var(--brand)}
-.chip-canal{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:#eff6ff;color:#1e40af}
+.chip-canal{display:inline-block;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:#eff6ff;color:#1e40af}
 .chip-canal.voz{background:#fef3c7;color:#92400e}
 .chip-canal.agente{background:#f0fdf4;color:#15803d}
 .chip-canal.mdias{background:#faf5ff;color:#7e22ce}
@@ -720,12 +720,12 @@ function renderApp(app, kpis, serie, colaboradores, detalhe) {
         <div class="chart-body"><canvas id="chart-unified"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="card-header">
+        <div class="card-header" style="flex-direction:column;align-items:stretch;gap:8px">
           <div>
             <div class="card-title" id="chart-notas-title">Voz — Notas médias por período</div>
             <div class="card-sub" id="chart-notas-sub">Compreensão / Resolução / Confirmação — escala bruta, não percentual</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px">
             <div class="chart-toggle">
               <button type="button" class="chart-toggle-btn active" data-dim="data" onclick="setChartDimension('data')">Data</button>
               <button type="button" class="chart-toggle-btn" data-dim="mes" onclick="setChartDimension('mes')">Mês</button>
@@ -1240,7 +1240,7 @@ function renderDetalheRows(rows) {
       <td>${r.data || '—'}</td>
       <td>${r.ticket || '—'}</td>
       <td>${r.nome || '—'}</td>
-      <td><span class="chip-canal ${canalClass}">${r.canal_exibicao || '—'}</span></td>
+      <td><span class="chip-canal ${canalClass}" title="${escapeHtml(r.canal_exibicao || '')}">${r.canal_exibicao || '—'}</span></td>
       <td>${r.is_comentario ? 'Comentários' : 'Voz'}</td>
       <td>${r.compreensao ?? '—'}</td>
       <td>${r.resolucao ?? '—'}</td>
