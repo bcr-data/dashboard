@@ -1257,9 +1257,9 @@ function buildDashboard(data, sla) {
         <div class="kpi-label">Rechamadas</div>
         <div class="kpi-sub" id="kpi-rechamadas-sub">Carregando...</div>
       </div>
-      <div class="kpi" id="kpi-erlang" title="Mede cobertura de headcount (dimensionado ÷ necessário pelo modelo Erlang C por hora) — não é o mesmo cálculo do Nível de Serviço real, que é % de ligações atendidas dentro do SLA. Os dois podem divergir bastante quando o TMA é alto em relação ao SLA.">
+      <div class="kpi" id="kpi-erlang">
         <div class="kpi-val" id="erlang-kpi-val">—</div>
-        <div class="kpi-label">Aderência Erlang C</div>
+        <div class="kpi-label">Aderência Erlang</div>
         <div class="kpi-sub" id="erlang-kpi-sub">Carregando...</div>
       </div>
     </div>
@@ -2002,7 +2002,6 @@ function buildDashboard(data, sla) {
       if (req > 0) slotsComVolume++;
       if (r.Agentes != null) { hasAgentes = true; sumDim += r.Agentes; }
     });
-    const metaPct = Math.round(metaNS * 100);
     if (!slotsComVolume) {
       kpiVal.textContent = '—';
       kpiSub.textContent = 'Sem volume no período selecionado';
@@ -2015,7 +2014,7 @@ function buildDashboard(data, sla) {
     }
     const pct = sumNec > 0 ? (sumDim / sumNec * 100) : (sumDim > 0 ? 100 : 0);
     kpiVal.textContent = pct.toFixed(0) + '%';
-    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dimensionados vs ${fmtN(sumNec)} necessários (agentes-hora) · Meta NS ${metaPct}%`;
+    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dimensionados/${fmtN(sumNec)} necessários`;
   }
 
   function setTfBtnActive(chart, dim) {
