@@ -133,7 +133,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .matrix-table tbody td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:1;font-weight:400;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;min-width:140px}
 .matrix-table tbody tr:hover td{background:#f0f4ff}
 .matrix-table tbody tr:hover td:first-child{background:#e8eef8}
-.matrix-table td.col-justificativa{text-align:left;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;min-width:220px;max-width:360px;color:var(--text-2)}
+.matrix-table td.col-justificativa{text-align:left;vertical-align:top;min-width:220px;max-width:360px;color:var(--text-2)}
+.just-cell{max-height:54px;overflow-y:auto;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.35;padding-right:2px}
 .btn-export{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;transition:border-color .15s ease,background .15s ease;flex-shrink:0}
 .btn-export:hover{border-color:var(--brand);color:var(--brand)}
 .chip-canal{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:#eff6ff;color:#1e40af}
@@ -826,9 +827,9 @@ function renderKpis(k) {
     { label: 'Resolução Voz', val: fmtAvg(k.avg_resolucao_voz), sub: scaleSub('resolucao_voz') },
     { label: 'Confirmação Voz', val: fmtAvg(k.avg_confirmacao_voz), sub: scaleSub('confirmacao_voz') },
     { label: '%Score Total Voz', val: pct(k.pct_total_voz) },
-    { label: 'Compreensão Comentários', val: fmtAvg(k.avg_compreensao_coment), sub: scaleSub('compreensao_coment') },
-    { label: 'Resolução Comentários', val: fmtAvg(k.avg_resolucao_coment), sub: scaleSub('resolucao_coment') },
-    { label: 'Confirmação Comentários', val: fmtAvg(k.avg_confirmacao_coment), sub: scaleSub('confirmacao_coment') },
+    { label: 'Compreensão Com.', val: fmtAvg(k.avg_compreensao_coment), sub: scaleSub('compreensao_coment') },
+    { label: 'Resolução Com.', val: fmtAvg(k.avg_resolucao_coment), sub: scaleSub('resolucao_coment') },
+    { label: 'Confirmação Com.', val: fmtAvg(k.avg_confirmacao_coment), sub: scaleSub('confirmacao_coment') },
     { label: '%Score Total Comentários', val: pct(k.pct_total_coment) },
     { label: '%Score Total', val: pct(k.pct_total_geral) }
   ];
@@ -1030,31 +1031,43 @@ async function loadSubtopicosMatriz() {
   }
 }
 
+// Mostra % (ocorrências do subtópico / total de avaliações do colaborador no período), não o
+// volume bruto — o Worker já calcula isso (pct_ocorrencias). Volume bruto distorce a comparação
+// entre colaboradores: quem atende mais chamados/conversas naturalmente acumula números maiores
+// em TODO subtópico, então a matriz de contagem sempre "destaca" quem tem mais volume, não quem
+// realmente cita mais aquele comportamento proporcionalmente. Em %, um colaborador com 20
+// avaliações e 10 ocorrências (50%) aparece corretamente mais destacado que um com 200 avaliações
+// e 60 ocorrências (30%), mesmo a contagem bruta do segundo sendo maior.
 function renderSubtopicosMatriz(rows) {
   const wrap = document.getElementById('subtop-wrap');
   if (!rows.length) { wrap.innerHTML = '<div class="empty-state">Sem subtópicos para os filtros selecionados.</div>'; return; }
 
   const totalPorSubtopico = new Map();
   const totalPorColaborador = new Map();
+  const avaliacoesPorColaborador = new Map();
   rows.forEach(r => {
     totalPorSubtopico.set(r.subtopico, (totalPorSubtopico.get(r.subtopico) || 0) + Number(r.ocorrencias));
     totalPorColaborador.set(r.nome, (totalPorColaborador.get(r.nome) || 0) + Number(r.ocorrencias));
+    avaliacoesPorColaborador.set(r.nome, Number(r.total_avaliacoes) || 0);
   });
+  // Ordena linhas/colunas pelo volume bruto (quem mais aparece no relatório), só pra decidir a
+  // ordem de exibição — o valor mostrado em cada célula continua sendo o %.
   const subtopicos = [...totalPorSubtopico.keys()].sort((a, b) => totalPorSubtopico.get(b) - totalPorSubtopico.get(a));
   const colaboradores = [...totalPorColaborador.keys()].sort((a, b) => totalPorColaborador.get(b) - totalPorColaborador.get(a));
 
   const cell = new Map();
-  rows.forEach(r => cell.set(r.subtopico + '|' + r.nome, Number(r.ocorrencias)));
-  const maxV = Math.max(...rows.map(r => Number(r.ocorrencias)), 1);
+  rows.forEach(r => cell.set(r.subtopico + '|' + r.nome, { pct: Number(r.pct_ocorrencias) || 0, n: Number(r.ocorrencias), total: Number(r.total_avaliacoes) || 0 }));
+  const maxPct = Math.max(...rows.map(r => Number(r.pct_ocorrencias) || 0), 1);
 
-  const thead = `<tr><th>Subtópico</th>${colaboradores.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr>`;
+  const thead = `<tr><th>Subtópico</th>${colaboradores.map(c => `<th title="${avaliacoesPorColaborador.get(c)} avaliações no período">${escapeHtml(c)}</th>`).join('')}</tr>`;
   const tbody = subtopicos.map(s => {
     const cells = colaboradores.map(c => {
-      const v = cell.get(s + '|' + c) || 0;
-      if (!v) return '<td style="text-align:center;color:var(--text-3)">–</td>';
-      const alpha = Math.min(0.15 + (v / maxV) * 0.65, 0.8);
+      const v = cell.get(s + '|' + c);
+      if (!v || !v.n) return '<td style="text-align:center;color:var(--text-3)">–</td>';
+      const alpha = Math.min(0.15 + (v.pct / maxPct) * 0.65, 0.8);
       const textColor = alpha > 0.45 ? '#fff' : 'inherit';
-      return `<td style="text-align:center;background:rgba(30,64,175,${alpha.toFixed(2)});color:${textColor}">${v}</td>`;
+      const title = `${v.n} de ${v.total} avaliações`;
+      return `<td title="${title}" style="text-align:center;background:rgba(30,64,175,${alpha.toFixed(2)});color:${textColor}">${Math.round(v.pct)}%</td>`;
     }).join('');
     return `<tr><td>${escapeHtml(s)}</td>${cells}</tr>`;
   }).join('');
@@ -1136,7 +1149,7 @@ function renderDetalheRows(rows) {
       <td>${r.resolucao ?? '—'}</td>
       <td>${r.confirmacao ?? '—'}</td>
       <td><strong>${r.total ?? '—'}</strong></td>
-      <td class="col-justificativa">${escapeHtml(r.justificativa) || '—'}</td>
+      <td class="col-justificativa">${r.justificativa ? `<div class="just-cell" title="${escapeHtml(r.justificativa)}">${escapeHtml(r.justificativa)}</div>` : '—'}</td>
     </tr>
   `;
   }).join('');
