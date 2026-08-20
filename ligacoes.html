@@ -1641,7 +1641,7 @@ function buildDashboard(data, sla) {
       const rech = r.rechamadas||0;
       const pct = tot>0 ? (rech/tot*100) : 0;
       if (kpiVal) kpiVal.textContent = fmtN(rech);
-      if (kpiSub) kpiSub.textContent = fmtPct(rech, tot) + ' das ligações (base: nº de telefone)';
+      if (kpiSub) kpiSub.textContent = fmtPct(rech, tot) + ' das ligações';
     } catch(e) {
       console.warn('Rechamadas KPI error', e);
       if (kpiSub) kpiSub.textContent = 'Erro ao carregar';
@@ -2017,7 +2017,7 @@ function buildDashboard(data, sla) {
     }
     const pct = sumNec > 0 ? (sumDim / sumNec * 100) : (sumDim > 0 ? 100 : 0);
     kpiVal.textContent = pct.toFixed(0) + '%';
-    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dimensionados/${fmtN(sumNec)} necessários`;
+    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dim./${fmtN(sumNec)} nec.`;
   }
 
   function setTfBtnActive(chart, dim) {
