@@ -1433,7 +1433,7 @@ function buildDashboard(data, sla) {
       <div class="chart-card">
         <div class="card-header">
           <div>
-            <div class="card-title">Agentes Necessários por Dimensão</div>
+            <div class="card-title">Matriz de Agentes Necessários</div>
             <div class="card-sub">Erlang C · total de agentes necessários por hora · SLA de ${sla}s · Meta NS definida no filtro do topo</div>
           </div>
           <div class="dim-group" id="erlang-mx-dim-group">
@@ -1998,7 +1998,7 @@ function buildDashboard(data, sla) {
     ];
     if (anyAgentes) {
       datasets.push({label:'Dimensionados', data:dimensionados, backgroundColor:'rgba(22,163,74,.55)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1});
-      datasets.push({label:'Aderência %', type:'line', data:aderencia, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, pointBackgroundColor:'#f59e0b', borderWidth:1.5, yAxisID:'y2', order:0});
+      datasets.push({label:'Aderência % Erlang', type:'line', data:aderencia, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, pointBackgroundColor:'#f59e0b', borderWidth:1.5, yAxisID:'y2', order:0});
     }
     const erlangBand = computeTopBandScale(aderencia, anyAgentes ? [...necessarios, ...dimensionados] : necessarios);
     charts.erlang = new Chart(canvas, {
@@ -2061,7 +2061,7 @@ function buildDashboard(data, sla) {
     const pct = sumNec > 0 ? (sumDim / sumNec * 100) : (sumDim > 0 ? 100 : 0);
     const avgNecHora = Math.round(sumNec / slotsComVolume);
     kpiVal.textContent = pct.toFixed(0) + '%';
-    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dim./${fmtN(sumNec)} nec. (agentes-hora no período · méd. ${avgNecHora}/hora)`;
+    kpiSub.textContent = `${avgNecHora} necessários/hora`;
   }
 
   // ── Matriz "Agentes Necessários por Dimensão" (Erlang C) ──
@@ -2106,7 +2106,7 @@ function buildDashboard(data, sla) {
         allHours.forEach(h => {
           const v = getVal(h) || 0;
           const bg = v>0 ? heatColor(v, maxV, 'vol') : '#f4f4f5';
-          const tc = maxV>0 && v/maxV>0.5 ? '#fff' : '#71717a';
+          const tc = '#fff';
           html += '<td style="background:'+bg+';color:'+tc+'">'+(v||'')+'</td>';
         });
         html += '</tr>';
@@ -2169,10 +2169,25 @@ function buildDashboard(data, sla) {
       }).then(rows2 => {
         const byGrpHour = {};
         const grpTotals = {};
+        // Fallback pro caso do worker.js publicado ainda não ter os campos tma/dias (patch
+        // pendente de deploy no Cloudflare): aproxima "dias" pelo nº de dias do período
+        // selecionado e "tma" pela média geral já carregada em rawData, em vez de deixar a
+        // célula em branco. Fica menos preciso que os campos nativos por fila/equipe (que só
+        // vêm depois do worker.js atualizado ser publicado), mas evita a matriz vazia.
+        const fallbackDias = (() => {
+          const d1 = new Date(dsv+'T00:00:00'), d2 = new Date(dev+'T00:00:00');
+          const diff = Math.round((d2-d1)/86400000)+1;
+          return diff > 0 ? diff : 1;
+        })();
+        let tmaSumG = 0, tmaWG = 0;
+        rawData.forEach(r => { tmaSumG += (r.TMA_medio||0)*(r.Atendidas||0); tmaWG += r.Atendidas||0; });
+        const fallbackTma = tmaWG > 0 ? tmaSumG/tmaWG : 0;
+        let usedFallback = false;
         rows2.forEach(r => {
           const g = r.grp||'—';
           const h = r.Hora!=null ? String(Math.floor(r.Hora)).padStart(2,'0') : '00';
-          byGrpHour[g+'___'+h] = { lig: r.lig||0, tma: r.tma||0, dias: r.dias||0 };
+          if (!r.dias || !r.tma) usedFallback = true;
+          byGrpHour[g+'___'+h] = { lig: r.lig||0, tma: r.tma||fallbackTma, dias: r.dias||fallbackDias };
           grpTotals[g] = (grpTotals[g]||0)+(r.lig||0);
         });
         const grps = Object.keys(grpTotals).sort((a,b)=>grpTotals[b]-grpTotals[a]).slice(0,30);
@@ -2186,6 +2201,9 @@ function buildDashboard(data, sla) {
             return reqFromCell(callsPerHour, c.tma);
           }
         })));
+        if (usedFallback) {
+          el.insertAdjacentHTML('afterbegin', '<div class="card-sub" style="color:var(--warn);margin-bottom:8px">⚠️ Estimativa aproximada — o backend ainda não expõe TMA/dias por ' + (dim==='fila'?'fila':'equipe') + ' (worker.js atualizado precisa ser publicado); usando a média geral do período.</div>');
+        }
       }).catch(e => { el.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
     }
   };
