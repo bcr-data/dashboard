@@ -2062,7 +2062,7 @@ function buildDashboard(data, sla) {
     }
     const avgDim = slotsComAgentes > 0 ? Math.round(sumDim / slotsComAgentes) : 0;
     kpiVal.textContent = `${avgDim} / ${avgNec}`;
-    kpiSub.textContent = 'méd. de agentes/hora no período';
+    kpiSub.textContent = 'méd. de agentes/hora';
   }
 
   // ── Matriz "Agentes Necessários por Dimensão" (Erlang C) ──
