@@ -1440,8 +1440,6 @@ function buildDashboard(data, sla) {
             <button class="time-toggle active" id="erlang-mx-dim-data"   onclick="setErlangMatrixDim('data')">Data</button>
             <button class="time-toggle" id="erlang-mx-dim-mes"          onclick="setErlangMatrixDim('mes')">Mês</button>
             <button class="time-toggle" id="erlang-mx-dim-dow"          onclick="setErlangMatrixDim('dow')">Dia Sem.</button>
-            <button class="time-toggle" id="erlang-mx-dim-equipe"       onclick="setErlangMatrixDim('equipe')">Equipe</button>
-            <button class="time-toggle" id="erlang-mx-dim-fila"         onclick="setErlangMatrixDim('fila')">Fila</button>
           </div>
         </div>
         <div class="chart-body-scroll" style="overflow-x:auto;overflow-y:auto;max-height:480px"><div class="heatmap-wrap" id="heatmap-erlang-mx"></div></div>
@@ -2059,24 +2057,22 @@ function buildDashboard(data, sla) {
       return;
     }
     const pct = sumNec > 0 ? (sumDim / sumNec * 100) : (sumDim > 0 ? 100 : 0);
-    const avgNecHora = Math.round(sumNec / slotsComVolume);
     kpiVal.textContent = pct.toFixed(0) + '%';
-    kpiSub.textContent = `${avgNecHora} necessários/hora`;
+    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dim./${fmtN(sumNec)} nec.`;
   }
 
   // ── Matriz "Agentes Necessários por Dimensão" (Erlang C) ──
-  // Linhas: Data / Mês / Dia Sem. / Equipe / Fila (sem Colaborador). Colunas: Hora (fixo, igual
-  // ao padrão dos heatmaps de Volume/CSAT por Dia × Hora). Célula: nº de agentes necessários
-  // (Erlang C) pra aquele bucket+hora, com a Meta NS do filtro do topo.
-  // Data/Mês/Dia Sem. vêm direto de rawData (já carregado, respeitando os filtros do topo) —
-  // sem chamada nova ao Worker. Equipe/Fila precisam de uma quebra por fila/equipe que o
-  // main_data não tem, então usam a action heatmap_field_hour (mesma dos heatmaps de Volume),
-  // que ganhou os campos tma/dias pra dar pra calcular Erlang por Fila × Hora.
+  // Linhas: Data / Mês / Dia Sem. Colunas: Hora (fixo, igual ao padrão dos heatmaps de
+  // Volume/CSAT por Dia × Hora). Célula: nº de agentes necessários (Erlang C) pra aquele
+  // bucket+hora, com a Meta NS do filtro do topo. Tudo vem direto de rawData (já carregado,
+  // respeitando os filtros do topo) — sem chamada nova ao Worker.
+  // (Equipe/Fila removidos a pedido do usuário — rollback do Worker que expunha tma/dias por
+  // fila/equipe em heatmap_field_hour.)
   let erlangMxDim = 'data';
 
   window.setErlangMatrixDim = function(dim) {
     erlangMxDim = dim;
-    ['data','mes','dow','equipe','fila'].forEach(d => {
+    ['data','mes','dow'].forEach(d => {
       const btn = document.getElementById('erlang-mx-dim-'+d);
       if (!btn) return;
       const active = d === dim;
@@ -2159,52 +2155,6 @@ function buildDashboard(data, sla) {
           return reqFromCell(callsPerHour, ahtSec);
         }
       })));
-    } else if (dim === 'equipe' || dim === 'fila') {
-      el.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>Carregando...</div>';
-      const dsv = document.getElementById('f-date-start').value;
-      const dev = document.getElementById('f-date-end').value;
-      callWorker('heatmap_field_hour', {
-        dateStart: dsv, dateEnd: dev, dim,
-        origem: [...msSel.equipe], fila: [...msSel.fila], colab: [...msSel.colab], telefone: [...msSel.telefone]
-      }).then(rows2 => {
-        const byGrpHour = {};
-        const grpTotals = {};
-        // Fallback pro caso do worker.js publicado ainda não ter os campos tma/dias (patch
-        // pendente de deploy no Cloudflare): aproxima "dias" pelo nº de dias do período
-        // selecionado e "tma" pela média geral já carregada em rawData, em vez de deixar a
-        // célula em branco. Fica menos preciso que os campos nativos por fila/equipe (que só
-        // vêm depois do worker.js atualizado ser publicado), mas evita a matriz vazia.
-        const fallbackDias = (() => {
-          const d1 = new Date(dsv+'T00:00:00'), d2 = new Date(dev+'T00:00:00');
-          const diff = Math.round((d2-d1)/86400000)+1;
-          return diff > 0 ? diff : 1;
-        })();
-        let tmaSumG = 0, tmaWG = 0;
-        rawData.forEach(r => { tmaSumG += (r.TMA_medio||0)*(r.Atendidas||0); tmaWG += r.Atendidas||0; });
-        const fallbackTma = tmaWG > 0 ? tmaSumG/tmaWG : 0;
-        let usedFallback = false;
-        rows2.forEach(r => {
-          const g = r.grp||'—';
-          const h = r.Hora!=null ? String(Math.floor(r.Hora)).padStart(2,'0') : '00';
-          if (!r.dias || !r.tma) usedFallback = true;
-          byGrpHour[g+'___'+h] = { lig: r.lig||0, tma: r.tma||fallbackTma, dias: r.dias||fallbackDias };
-          grpTotals[g] = (grpTotals[g]||0)+(r.lig||0);
-        });
-        const grps = Object.keys(grpTotals).sort((a,b)=>grpTotals[b]-grpTotals[a]).slice(0,30);
-        const fmtGrp = g => dim==='fila' ? (g.includes('-')?g.split('-').slice(1).join('-'):g) : g;
-        renderTable(grps.map(g => ({
-          label: fmtGrp(g),
-          getVal: h => {
-            const c = byGrpHour[g+'___'+h];
-            if (!c || !c.dias) return 0;
-            const callsPerHour = c.lig/c.dias;
-            return reqFromCell(callsPerHour, c.tma);
-          }
-        })));
-        if (usedFallback) {
-          el.insertAdjacentHTML('afterbegin', '<div class="card-sub" style="color:var(--warn);margin-bottom:8px">⚠️ Estimativa aproximada — o backend ainda não expõe TMA/dias por ' + (dim==='fila'?'fila':'equipe') + ' (worker.js atualizado precisa ser publicado); usando a média geral do período.</div>');
-        }
-      }).catch(e => { el.innerHTML = `<div class="error-box">⚠️ ${e.message}</div>`; });
     }
   };
 
