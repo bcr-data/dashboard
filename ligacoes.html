@@ -1279,7 +1279,7 @@ function buildDashboard(data, sla) {
       </div>
       <div class="kpi" id="kpi-erlang">
         <div class="kpi-val" id="erlang-kpi-val">—</div>
-        <div class="kpi-label">Dimensionados x Necessários</div>
+        <div class="kpi-label">Dimensionados / Necessários</div>
         <div class="kpi-sub" id="erlang-kpi-sub">Carregando...</div>
       </div>
     </div>
@@ -1417,7 +1417,7 @@ function buildDashboard(data, sla) {
       <div class="chart-card">
         <div class="card-header">
           <div>
-            <div class="card-title">Agentes Necessários × Agentes Dimensionados</div>
+            <div class="card-title">Agentes Necessários × Agentes Dimensionados por Hora</div>
             <div class="card-sub">Erlang C — a partir do volume e TMA do período · SLA de ${sla}s · Meta NS definida no filtro do topo</div>
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0;background:var(--border-subtle);border-radius:8px;padding:3px">
@@ -1433,7 +1433,7 @@ function buildDashboard(data, sla) {
       <div class="chart-card">
         <div class="card-header">
           <div>
-            <div class="card-title">Matriz de Agentes Necessários</div>
+            <div class="card-title">Matriz de Agentes Necessários por Hora</div>
             <div class="card-sub">Erlang C · total de agentes necessários por hora · SLA de ${sla}s · Meta NS definida no filtro do topo</div>
           </div>
           <div class="dim-group" id="erlang-mx-dim-group">
@@ -1992,10 +1992,10 @@ function buildDashboard(data, sla) {
 
     destroyChart('erlang');
     const datasets = [
-      {label:'Necessários (Erlang C)', data:necessarios, backgroundColor:'rgba(33,81,229,.60)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1}
+      {label:'Necessários/hora', data:necessarios, backgroundColor:'rgba(33,81,229,.60)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1}
     ];
     if (anyAgentes) {
-      datasets.push({label:'Dimensionados', data:dimensionados, backgroundColor:'rgba(22,163,74,.55)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1});
+      datasets.push({label:'Dimensionados/hora', data:dimensionados, backgroundColor:'rgba(22,163,74,.55)', borderRadius:3, borderSkipped:false, yAxisID:'y', order:1});
       datasets.push({label:'Aderência % Erlang', type:'line', data:aderencia, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.3, pointRadius:2, pointBackgroundColor:'#f59e0b', borderWidth:1.5, yAxisID:'y2', order:0});
     }
     const erlangBand = computeTopBandScale(aderencia, anyAgentes ? [...necessarios, ...dimensionados] : necessarios);
@@ -2061,7 +2061,7 @@ function buildDashboard(data, sla) {
       return;
     }
     const avgDim = slotsComAgentes > 0 ? Math.round(sumDim / slotsComAgentes) : 0;
-    kpiVal.textContent = `${avgDim} x ${avgNec}`;
+    kpiVal.textContent = `${avgDim} / ${avgNec}`;
     kpiSub.textContent = 'méd. de agentes/hora no período';
   }
 
