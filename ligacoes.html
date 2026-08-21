@@ -1279,7 +1279,7 @@ function buildDashboard(data, sla) {
       </div>
       <div class="kpi" id="kpi-erlang">
         <div class="kpi-val" id="erlang-kpi-val">—</div>
-        <div class="kpi-label">Dimensionados / Necessários</div>
+        <div class="kpi-label">Dimensionados / Necessários por Hora</div>
         <div class="kpi-sub" id="erlang-kpi-sub">Carregando...</div>
       </div>
     </div>
@@ -1542,7 +1542,10 @@ function buildDashboard(data, sla) {
 
   // ── Agentes Necessários × Agentes Dimensionados (Erlang C) ──
   if (window.renderErlangChart) window.renderErlangChart();
-  if (window.renderErlangMatrix) window.renderErlangMatrix();
+  // renderErlangMatrix (modo "Data") depende de showDates, que só é calculado mais abaixo (perto
+  // dos heatmaps) — chamar aqui renderizava com showDates ainda vazio no load inicial, deixando
+  // a matriz em branco até o próximo re-render (ex.: mexer no filtro de data). A chamada real
+  // fica logo depois de showDates ser preenchido.
 
   const ds = document.getElementById('f-date-start').value;
   const de = document.getElementById('f-date-end').value;
@@ -1786,6 +1789,7 @@ function buildDashboard(data, sla) {
 
   showDates = [...allDates].sort((a,b)=>{const p=s=>{const[d,m,y]=s.split('-');return y+m+d;};return p(b).localeCompare(p(a));});
   maxVol = Math.max(1,...showDates.flatMap(d=>allHours.map(h=>(byHour[`${d}_${h}`]||{}).lig||0)));
+  if (window.renderErlangMatrix) window.renderErlangMatrix();
 
   // heatColor defined in outer scope
 
@@ -2062,7 +2066,7 @@ function buildDashboard(data, sla) {
     }
     const avgDim = slotsComAgentes > 0 ? Math.round(sumDim / slotsComAgentes) : 0;
     kpiVal.textContent = `${avgDim} / ${avgNec}`;
-    kpiSub.textContent = 'méd. de agentes/hora';
+    kpiSub.textContent = '';
   }
 
   // ── Matriz "Agentes Necessários por Dimensão" (Erlang C) ──
