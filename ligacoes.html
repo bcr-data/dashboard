@@ -1279,7 +1279,7 @@ function buildDashboard(data, sla) {
       </div>
       <div class="kpi" id="kpi-erlang">
         <div class="kpi-val" id="erlang-kpi-val">—</div>
-        <div class="kpi-label">Aderência Erlang</div>
+        <div class="kpi-label">Dimensionados x Necessários</div>
         <div class="kpi-sub" id="erlang-kpi-sub">Carregando...</div>
       </div>
     </div>
@@ -2030,35 +2030,39 @@ function buildDashboard(data, sla) {
     updateErlangKpi(metaNS);
   };
 
-  // KPI agregado, independente do toggle de dimensão: soma "agentes-hora" necessários e
-  // dimensionados direto das linhas de rawData (cada linha do main_data já é 1 slot de 1 hora),
-  // e divide um pelo outro — mais robusto que uma média simples de percentuais por bucket.
+  // KPI agregado, independente do toggle de dimensão: MÉDIA por hora (não soma) de necessários
+  // e dimensionados, direto das linhas de rawData (cada linha do main_data já é 1 slot de 1
+  // hora, já respeitando os filtros do topo). Importante usar média, não soma: somar todos os
+  // slots de hora do período gera um número em "agentes-hora" (ex.: 4.754) que não corresponde a
+  // headcount nenhum e confunde quem está olhando o card — a média por hora é o número
+  // comparável ao tamanho real do time.
   function updateErlangKpi(metaNS) {
     const kpiVal = document.getElementById('erlang-kpi-val');
     const kpiSub = document.getElementById('erlang-kpi-sub');
     if (!kpiVal) return;
-    let sumNec = 0, sumDim = 0, slotsComVolume = 0, hasAgentes = false;
+    let sumNec = 0, sumDim = 0, slotsComVolume = 0, slotsComAgentes = 0, hasAgentes = false;
     rawData.forEach(r => {
       const callsPerHour = r.Total_Ligacoes || 0; // cada linha já representa 1 hora
       const ahtSec = r.TMA_medio || 0;
       const req = erlangRequiredAgents(callsPerHour, ahtSec, erlangTargetSec, metaNS);
       sumNec += req;
       if (req > 0) slotsComVolume++;
-      if (r.Agentes != null) { hasAgentes = true; sumDim += r.Agentes; }
+      if (r.Agentes != null) { hasAgentes = true; sumDim += r.Agentes; slotsComAgentes++; }
     });
     if (!slotsComVolume) {
       kpiVal.textContent = '—';
       kpiSub.textContent = 'Sem volume no período selecionado';
       return;
     }
+    const avgNec = Math.round(sumNec / slotsComVolume);
     if (!hasAgentes) {
       kpiVal.textContent = '—';
-      kpiSub.textContent = `Necessário médio: ${Math.round(sumNec/slotsComVolume)} agentes/hora · Dimensionado aguardando dado no backend`;
+      kpiSub.textContent = `Necessário médio: ${avgNec} agentes/hora · Dimensionado aguardando dado no backend`;
       return;
     }
-    const pct = sumNec > 0 ? (sumDim / sumNec * 100) : (sumDim > 0 ? 100 : 0);
-    kpiVal.textContent = pct.toFixed(0) + '%';
-    kpiSub.textContent = `${fmtN(Math.round(sumDim))} dim./${fmtN(sumNec)} nec.`;
+    const avgDim = slotsComAgentes > 0 ? Math.round(sumDim / slotsComAgentes) : 0;
+    kpiVal.textContent = `${avgDim} x ${avgNec}`;
+    kpiSub.textContent = 'méd. de agentes/hora no período';
   }
 
   // ── Matriz "Agentes Necessários por Dimensão" (Erlang C) ──
